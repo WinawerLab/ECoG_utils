@@ -1,214 +1,22 @@
-rootpath = '/Volumes/server/Projects/BAIR/ECoG/';
-sub_label = '648'; % channel with triggers = 138 (DC10_REF)
+tbUse('ECoG_utils');
 
-dataName = fullfile(rootpath, sub_label, ['NY' sub_label '_Winawer.edf']);
-stimFile = fullfile(rootpath, sub_label, ['NY' sub_label '_StimInfo.mat']);
-tbUse('fieldtrip');
-addpath(genpath([rootpath '/code']));
+%%%% DEFINE PATHS TO DATA, ANALYSIS DIRECTORIES %%%%
 
-% NOTE: code needs to be adapted to BIDS format
-%ses_label = 'somIEMU01';
-%acq_label =  'task-spat'; %'task-hrf'; 
-%sourcedataName = 'run-010203_ieeg.edf';%'run-01_ieeg.edf'; 
-%dataName = fullfile(rootpath,['sub-' sub_label],['ses-' ses_label],'ieeg', ['sub-' sub_label '_' 'ses-' ses_label '_' acq_label '_' sourcedataName]);
-%stimFile = fullfile(rootpath,['sub-' sub_label],['ses-' ses_label],'ieeg', 'stimInfo.mat');
+anaDir = '/Volumes/server/Projects/BAIR/Analysis/';
+projectName = 'visual';
 
-%% Import ECoG data
+sub_label = 'ny648'; 
+ses_label = 'NYUECOG01';
+task_label = 'soc';
 
-cfg            = [];
-cfg.dataset    = dataName;
-cfg.continuous = 'yes';
-cfg.channel    = 'all';
-data           = ft_preprocessing(cfg);
+%% Load preprocessed data
 
-%% Look at powerpectrum of channels to see which ones look bad
+dataToLoad = fullfile(anaDir, projectName, ['sub-' sub_label], ...
+    ['sub-' sub_label '_' 'ses-' ses_label '_' 'task-' task_label '_epoched']);
 
-% look at data.label to determine which channels are EEG channels: 1:126
+load(dataToLoad);
 
-% This is one way to calculate the power spectrum and make a plot, the nice
-% thing is that when you click on the lines it returns the channel numbers
-figure;
-spectopo(data.trial{1}(1:126,:),size(data.trial{1},2),data.fsample);
-%spectopo(data.trial{1}(el,:),size(data.trial{1},2),data.fsample);
-
-% This is another way to look at the power spectum and make a plot. This
-% returns the frequency (f) and power (pxx) and you can check for outliers.
-[pxx,f] = pwelch(data.trial{1}(1:126,:)',data.fsample,0,data.fsample,data.fsample);
-figure,plot(f,log10(pxx))
-
-% Now, I think these are bad channels, but this is quite subjective.
-% from NY645:
-% bad_channels = find(log10(pxx(f==60,:))>3);
-% good_channels(good_channels>100)=[];
-
-%bad_channels = find(log10(pxx(f==60,:))<-1 | log10(pxx(f==60,:))> 0.75);
-bad_channels = [81 82 100 102 126]; %manually selected based on inspection of spectra and time courses
-good_channels = setdiff(1:126,bad_channels);
-
-%% So let's visualize the timeseries of some channels
-figure
-subplot(2,1,1),hold on
-plot(data.time{1},data.trial{1}(bad_channels(1),:),'r')
-title('first bad channel')
-subplot(2,1,2),hold on
-plot(data.time{1},data.trial{1}(good_channels(1),:),'k')
-title('first good channel')
-
-% check the powerplot of all the good channels, no leftover outliers?
-figure,plot(f,log10(pxx(:,good_channels)))
-
-% check the timeseries of all the good channels, no noisy moments?
-figure,plot(data.time{1},data.trial{1}(good_channels,:))
-
-%%  Now we know the bad channels, and we can do a common average reference.
-% note that some reviewers may want to see another  referencing method, and
-% any large signal in 50% of the channels is introduced in all channels...
-
-signal = data.trial{1};
-[signal] = ecog_CarRegress(signal, good_channels);
-
-%% look at the effect of CAR
-figure
-subplot(1,2,1),hold on
-channel_plot = good_channels(1);
-plot(data.time{1},data.trial{1}(channel_plot,:),'k')
-plot(data.time{1},signal(channel_plot,:),'g')
-legend({'before CAR','after CAR'})
-
-subplot(1,2,2),hold on
-[pxx2,f] = pwelch(signal',data.fsample,0,data.fsample,data.fsample);
-plot(f,pxx(:,channel_plot),'k')
-plot(f,pxx2(:,channel_plot),'g'); 
-set(gca, 'YScale', 'log')
-
-%% Now you have preprocessed data, save it somewhere and analyse.
-save NY648_data_preproc data signal
-
-% NEXT: filter, then split data by task
-
-%% You may want to do a notch filter (optional).
-
-% Filter: Dora style; compare with other approaches?
-% You can also notch filter at 100 and then take hband = 60:120
-
-% hband_sig=zeros(size(signal));
-% for el=1:size(signal,1)
-%     disp(['filter el ' int2str(el) ' of ' int2str(size(signal,1))])
-%     hband=[60 70];
-%     hband_sig1=butterpass_eeglabdata(signal(el,:)',hband,data.fsample);   
-%     hband_sig1=log10(abs(hilbert(hband_sig1)).^2)-mean(log10(abs(hilbert(hband_sig1)).^2));
-%     hband=[70 80];
-%     hband_sig2=butterpass_eeglabdata(signal(el,:)',hband,data.fsample);   
-%     hband_sig2=log10(abs(hilbert(hband_sig2)).^2)-mean(log10(abs(hilbert(hband_sig2)).^2));
-%     hband=[80 90];
-%     hband_sig3=butterpass_eeglabdata(signal(el,:)',hband,data.fsample);   
-%     hband_sig3=log10(abs(hilbert(hband_sig3)).^2)-mean(log10(abs(hilbert(hband_sig3)).^2));
-%     hband=[110 120];
-%     hband_sig4=butterpass_eeglabdata(signal(el,:)',hband,data.fsample);   
-%     hband_sig4=log10(abs(hilbert(hband_sig4)).^2)-mean(log10(abs(hilbert(hband_sig4)).^2));
-% 
-%     hband_sig(el,:)=mean([hband_sig1 hband_sig2 hband_sig3 hband_sig4],2);
-% 
-%     clear hband_sig1 hband_sig2 hband_sig3 hband_sig4
-% end
-
-% compare with broadband computation function from Jons broadband tutorial
-% bands = [[60 70]; [70 80]; [80 90]; [110 120]]; 
-bands = [[70 90]; [90 110]; [130 150]; [150 170]];
-% bands = [[70 80]; [80 90]; [90 100]; [100 110];[130 140]; [140 150]; [150 160]; [160 170]];
-%                 1 'abs(hilbert(mean(whiten(bp(x)))))';
-%                 2 'abs(hilbert(mean(whiten(bp(x))))).^2';
-%                 3 'geomean(abs(hilbert(whiten(bp(x)))))';
-%                 4 'geomean(abs(hilbert(whiten(bp(x))).^2)';
-%                 5 'geomean(abs(hilbert(bp(x)).^2)';
-
-% % BANDPASS FILTER THE SIGNAL
-%  bp = bandpassFilter(signal', data.fsample, bands);
-% 
-%  % EXTRACT BROADBAND
-%  whiten         = @(x) (x - mean(x(:)))./ diff(prctile(x, [.25 .75]));
-%  whiten_hilbert = @(x) abs(hilbert(whiten(x)));
-%  
-%  broadband = sum(whiten_hilbert(bp).^2, 3);
-
-broadband = extractBroadband(signal', data.fsample, 5, bands);
- hband_sig = broadband';
-
-%% plot filtered time course for channel(s) of interest
-load(stimFile);
-
-% electrodes with coverage in visual areas: 
-eltomatch = {'MO_01'};%, 'MO_02', 'MO_03', 'MO_04'};
-
-% NY648 electrodes with coverage in IPS:
-%eltomatch = {'DLPA_07', 'DLPA_08'};
-%eltomatch = {'G_03', 'G_04', 'G_09', 'G_10', 'G_11', 'G_12', 'G_17', 'G_18'};
-%eltomatch = {'G_08', 'G_07'};
-
-% find matching electrode numbers
-el = ecog_matchchannels(eltomatch, data);
-
-load(stimFile);
-tasklabels = fields(onsets);
-
-for tl = 1:length(tasklabels)
-    tasklabel = tasklabels{tl};
-    
-    % smooth & plot
-    figure('Name', tasklabel), hold on,
-    for ii = 1:length(eltomatch)
-        plot(data.time{1},smooth(hband_sig(el(ii),:),128), 'LineWidth', 2);
-        %plot(data.time{1},smooth(signal(el(ii),:),128), 'LineWidth', 2);
-    end
-
-    % and plot event onsets on top
-    plot(onsets.(tasklabel), zeros(length(onsets.(tasklabel)),1),'k.','MarkerSize', 25, 'LineStyle','none');
-    legend(data.label(el));
-    xlabel('time (s)');
-    ylabel('broadband power (60-120 Hz)');
-    %ylabel('evoked');
-    l = line([data.time{1}(1) max(data.time{1})], [0 0],'LineStyle', '-', 'Color', 'k');
-    l.Annotation.LegendInformation.IconDisplayStyle = 'off';
-end
-
-%% epoch data (all channels, all tasks)
-
-% set epoch length (in seconds)
-prestim = 0.5; 
-poststim = 1.5;
-
-% determine how many samples to go back and forth to extract epoch
-onset_pre = round(prestim/(1/data.fsample));
-onset_post = round(poststim/(1/data.fsample));
-
-trials = struct();
-for tl = 1:length(tasklabels)
-    
-    tasklabel = tasklabels{tl};
-    [~,onsetsInx] = intersect(data.time{1},onsets.(tasklabel));
-
-    % extract epochs
-    for ii = 1:length(data.label)
-        for jj = 1:length(onsetsInx)  
-            % broadband
-            trials.broadband.(tasklabel)(ii,:,jj) = smooth(hband_sig(ii,onsetsInx(jj)-onset_pre:onsetsInx(jj)+onset_post),8);
-            % evoked
-            trials.evoked.(tasklabel)(ii,:,jj) = smooth(signal(ii,onsetsInx(jj)-onset_pre:onsetsInx(jj)+onset_post),8);
-        end
-    end
-end
-disp('done');
-
-trials.label = data.label;
-trials.time = -prestim:(1/data.fsample):poststim;
-trials.stimuli = stimuli;
-trials.fsample = data.fsample;
-
-%% Now you have epoched data, save it somewhere and analyse.
-savePth = [rootpath sub_label];
-save([savePth '/NY648_data_epoched_bbmethod5'], 'trials', 'category_names');
-
-%% plot trial averages for channel(s) of interest
+%% Plot trial averages for channel(s) of interest
 
 usebootstrap = 'no'; % yes/no
 signaltoplot = 'broadband'; % evoked/broadband
@@ -558,6 +366,3 @@ end
 % is there a gamma response in ventral cortex?
 % for ventral/lateral electrodes, is there stimulus selectivity (e.g.
 % face/scene)?
-
-
-
