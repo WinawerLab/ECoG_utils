@@ -1,4 +1,4 @@
-edit sfunction broadband = extractBroadband(x, srate, method, bands)
+function broadband = extractBroadband_nyu(x, srate, method, bands)
 %Compute time varying broadband envelope of a time series
 % broadband = extractBroadband(x, srate, method, bands)
 %
@@ -43,7 +43,7 @@ end
 % band pass filter each sub-band
 bp  = zeros([size(x) size(bands,1)]);
 for ii = 1:size(bands,1)
-    bp(:,:, ii) = butterpass_eeglabdata(x,bands(ii,:),srate);
+    bp(:,:, ii) = butterpass_eeglabdata_nyu(x,bands(ii,:),srate);
 end
 
 % if only one time series, then eliminate singleton dimension

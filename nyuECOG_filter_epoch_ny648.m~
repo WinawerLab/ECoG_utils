@@ -85,7 +85,7 @@ disp('done');
 
 trials.label = data.label;
 trials.time = -prestim:(1/data.fsample):poststim;
-trials.events = events;
+trials.ev = events.trial_type;
 trials.fsample = data.fsample;
 
 %% Save filtered and epoched data for further analysis

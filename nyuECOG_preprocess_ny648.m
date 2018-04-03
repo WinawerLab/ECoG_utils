@@ -4,7 +4,7 @@ tbUse('ECoG_utils');
 %%%% DEFINE PATHS TO DATA, ANALYSIS DIRECTORIES %%%%
 
 dataDir = '/Volumes/server/Projects/BAIR/Data/';
-anaDir = '/Volumes/server/Projects/BAIR/Analysis/';
+anaDir = '/Volumes/server/Projects/BAIR/Analyses/';
 projectName = 'visual';
 
 sub_label = 'ny648'; 
@@ -100,8 +100,6 @@ dataToSave = fullfile(anaDir, projectName, ['sub-' sub_label], ...
 
 save(dataToSave, 'data', 'signal', 'events');
 
-%% NEXT: nyuECOG_filter
-
-
+%% NEXT: nyuECOG_filter_epoch
 
 
