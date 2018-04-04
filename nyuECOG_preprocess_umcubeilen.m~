@@ -1,5 +1,5 @@
 
-tbUse('ECoG_utils');
+%tbUse('ECoG_utils');
 
 %%%% DEFINE PATHS TO DATA, ANALYSIS DIRECTORIES %%%%
 
@@ -7,59 +7,114 @@ dataDir = '/Volumes/server/Projects/BAIR/Data/';
 anaDir = '/Volumes/server/Projects/BAIR/Analyses/';
 projectName = 'visual';
 
-sub_label = 'ny648'; 
-ses_label = 'NYUECOG01';
-task_label = 'soc';
-run_label = '01';
+sub_label = 'beilen'; 
+ses_label = 'day03';
+
+allTasks = {'bairhrfpattern',...
+            'bairprf',...
+            'bairspatialobject',...
+            'bairspatialpattern', ...
+            'bairtemporalpattern'
+            };
+allRuns  = {'00', '01'};
+numberofRunsPerTask = [1 2 2 2 2];
+
+% Got this information from Gio (should perhaps be added to JSON files?)
+n_chan = 133;
+s_freq = 2048;
 
 % NOTES:
-% - channel with triggers = 138 (DC10_REF), would be required to change
-% data to BIDS prior to analysis
-% - note we also have HRF data for this subject; BIDS events file for these
-% trials needs to be created
 
 %% Import ECoG data and Events
 
-dataToLoad = fullfile(dataDir, projectName, ['sub-' sub_label],['ses-' ses_label], 'ieeg', ...
-    ['sub-' sub_label '_' 'ses-' ses_label '_' 'task-' task_label '_' 'run-' run_label]);
+% Put all data in one struct
+data = struct();
+data.sub_label  = sub_label;
+data.ses_label  = ses_label;
+data.task_label = allTasks;
+data.run_label  = allRuns;
+data.nruns      = numberofRunsPerTask;
 
-dataName =      [dataToLoad '_ieeg.edf'];
-eventsName =    [dataToLoad '_events.tsv'];
+for cTask = 1:length(allTasks)
+    
+    task_label = allTasks{cTask};
+    numberofRuns = numberofRunsPerTask(cTask);
+    
+    for cRun = 1:numberofRuns
+        run_label = allRuns{cRun};
+        
+        dataToLoad = fullfile(dataDir, projectName, ['sub-' sub_label],['ses-' ses_label], 'ieeg', ...
+            ['sub-' sub_label '_' 'ses-' ses_label '_' 'task-' task_label '_' 'run-' run_label]);
 
-% Read in ECoG data
-cfg            = [];
-cfg.dataset    = dataName;
-cfg.continuous = 'yes';
-cfg.channel    = 'all';
-data           = ft_preprocessing(cfg);
+        dataName     =  [dataToLoad '_acq-clinical_ieeg.bin'];
+        jsonName     =  [dataToLoad '_acq-clinical_ieeg.json'];
+        eventsName   =  [dataToLoad '_acq-clinical_events.tsv'];       
+        channelsName =  [dataToLoad '_acq-clinical_channels.tsv'];
+        
+        % Read in JSON file to get  duration for this run
+        json = jsonread(jsonName);
+        
+        % Read in ECoG data
+        duration = json.RecordingDuration; disp(duration);
+        mem = memmapfile(dataName,  'Format', {'double', [n_chan duration * s_freq], 'data'});
 
-% Read in events data
-events         = readtable(eventsName, 'FileType', 'text');
+        % Read in event info
+        events = readtable(eventsName, 'FileType', 'text');
+        
+        % Read in channel info
+        chans = readtable(channelsName, 'FileType', 'text');
+        
+        % Put all data in one struct
+        data.dataset{cTask,cRun} = dataName;
+        data.trial{cTask,cRun}   = mem.Data.data;
+        data.label{cTask,cRun}   = chans;
+        data.events{cTask,cRun}  = events;
+        data.time{cTask,cRun}    = 0:1/s_freq:duration-(1/s_freq);
+    end
+end
 
-%% Look at powerpectrum of channels to see which ones look bad
+data.fsample = s_freq;
 
-% Look at data.label to determine which channels are EEG channels: 1:126
-chans = contains(data.label, 'EEG');
+%% PLOT: Powerspectra
 
-% This is one way to calculate the power spectrum and make a plot, the nice
-% thing is that when you click on the lines it returns the channel numbers
-figure;
-spectopo(data.trial{1}(chans,:),size(data.trial{1},2),data.fsample);
+% Pick a task and run (Q do we maybe want to combine across all?)
+task_to_plot = 'bairhrfpattern';
+runidx = 1;
 
-% This is another way to look at the power spectum and make a plot. This
-% returns the frequency (f) and power (pxx) and you can check for outliers.
-[pxx,f] = pwelch(data.trial{1}(chans,:)',data.fsample,0,data.fsample,data.fsample);
-figure,plot(f,log10(pxx))
+taskidx = find(strcmp(task_to_plot,data.task_label));
+
+% Determine which channels are EEG channels
+ecog_chans = find(contains(data.label{taskidx, runidx}.type, 'ECOG'));
+
+% Two types of power spectra plots:
+figure; spectopo(data.trial{taskidx,runidx}(ecog_chans,:),size(data.trial{taskidx,runidx},2),data.fsample, 'limits', [0 500]);
+[pxx,f] = pwelch(data.trial{taskidx,runidx}(ecog_chans,:)',data.fsample,0,data.fsample,data.fsample);
+figure,plot(f,log10(pxx));
+
+% Add onsets to indicate relevant data segments
+onsets = data.events{taskidx,runidx}.onset;
+    
+% To inspect data on a channel by channel basis:
+for ii = 1:length(ecog_chans)
+    figure;hold on;
+    plot(data.time{taskidx,runidx}, data.trial{taskidx,runidx}(ii,:)); 
+    title([num2str(ii) ' ' data.label{taskidx,runidx}.name{ii}]);   
+    plot(onsets, zeros(length(onsets),1), 'ok')
+    waitforbuttonpress; close
+end
+
+% Plot variance per channel
+figure; plot(1:length(ecog_chans), var(data.trial{taskidx,runidx}(ecog_chans,:),0,2), '-o');
+set(gca, 'XTick', 1:length(ecog_chans), 'XTickLabel', data.label{taskidx,runidx}.name);
 
 % Identify bad channels MANUALLY
-bad_channels = [81 82 100 102 126]; % Manually selected based on inspection of spectra and time courses
-good_channels = setdiff(find(chans),bad_channels);
+bad_channels = [4 20]; % Manually selected based on inspection of spectra and time courses
+good_channels = setdiff(1:length(ecog_chans),bad_channels);
 
 %% Visualize the timeseries of some channels
-
 figure;
 subplot(2,1,1); hold on
-plot(data.time{1},data.trial{1}(bad_channels(1),:),'r')
+plot(data.time{taskidx,runidx},data.trial{1}(bad_channels(1),:),'r')
 title('first bad channel')
 subplot(2,1,2); hold on
 plot(data.time{1},data.trial{1}(good_channels(1),:),'k')
@@ -70,8 +125,8 @@ figure,plot(f,log10(pxx(:,good_channels)))
 
 % Check the timeseries of all the good channels, no noisy moments?
 figure,plot(data.time{1},data.trial{1}(good_channels,:))
+plot(onsets, zeros(length(onsets),1), 'ok')
 
-% TO ADD: plot events on top; check of onsets??
 % TO ADD: extract electrode positions using runE2N, make list of visual electrodes??
 
 %%  Do a common average reference using the good channels
