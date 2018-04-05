@@ -1,54 +1,57 @@
 
-function [out] = electrode_to_nearest_node(pID, thresh, plotmesh, plotlabel)
+function [out] = electrode_to_nearest_node(patientSpecs, plotmesh, plotlabel)
 
 % pID = patient ID (number)
 % thresh = maximal distance electrode to nearest node, in mm
 % plotmesh = 'yes' or 'no'
 
 % SETTINGS
-if nargin < 4 || isempty(plotlabel)
+if nargin < 2 || isempty(plotlabel)
     plotlabel = 'no';
 end
-if nargin < 3 || isempty(plotmesh)
+if nargin < 2 || isempty(plotmesh)
     plotmesh = 'no';
 end
-if nargin < 2 || isempty(thresh)
-    thresh = inf;% 20;
-end
     
+pID    = patientSpecs.pID;
+thresh = patientSpecs.thresh;
+if isempty(thresh)
+    thresh = inf;
+end
+
 % RUN
-disp(['running patient number ' num2str(pID)]);
+disp(['running patient ' num2str(pID)]);
 
-% check which directory patient is in main BAIR directory, if not find it in SoM
-patientDir = '/Volumes/server/Projects/BAIR/ECoG/';
-if ~isdir([patientDir num2str(pID)])
-    patientDir = '/Volumes/server/Projects/BAIR/ECoG/SoM/';
-    if ~isdir([patientDir num2str(pID)])
-        disp('patient directory not found - exiting');
-        out = [];
-        return
+% Read electrode coordinate file from BAIR/ECOG directory
+elec_file = patientSpecs.elecFile;
+if exist(elec_file, 'file')
+    
+    %fid = fopen(elec_file); E = textscan(fid, '%s%f%f%f%s'); fclose(fid);
+    %elec_xyz = [E{2}(2:end) E{3}(2:end) E{4}(2:end)]; 
+    %elec_labels = E{1}(2:end);
+    
+    % Prefer to use readtable for tsv files because it doesn't require
+    % knowing the order of the columns beforehand (as textscan does). 
+    E = readtable(elec_file, 'FileType', 'text');
+    elec_labels = E.name;
+    if iscell(E.x)
+        for ii = 1:length(elec_labels)
+            elec_xyz(ii,1) = str2double(E.x{ii});
+            elec_xyz(ii,2) = str2double(E.y{ii});
+            elec_xyz(ii,3) = str2double(E.z{ii});    
+        end
+    else
+        elec_xyz = [E.x E.y E.z];
     end
-end 
-
-% read electrode coordinate file from BAIR/ECOG directory
-D = dir([patientDir num2str(pID) '/*coor_T1*.txt']);
-if ~isempty(D)
-    elec_file = D(1).name;
-    %disp(['reading ' D.name]);
-    fid = fopen([patientDir num2str(pID) '/' elec_file]); E = textscan(fid, '%s%f%f%f%s'); fclose(fid);
-    elec_xyz = [E{2} E{3} E{4}]; 
-    elec_labels = E{1};
-    elec_types = unique(E{5});
-    disp(['types of electrodes found: ' elec_types{:}]);
 else
-    disp('no coordinate file found - exiting');
+    disp('electrode coordinate file not found - exiting');
     out = [];
     return
 end
 
-% read surface reconstructions from Freesurfer_subjects directory
-surf_file_rh = ['/Volumes/server/Freesurfer_subjects/som' num2str(pID) '/surf/rh.pial'];
-surf_file_lh = ['/Volumes/server/Freesurfer_subjects/som' num2str(pID) '/surf/lh.pial'];
+% Read surface reconstructions from Freesurfer_subjects directory
+surf_file_rh = [patientSpecs.fsDir '/surf/rh.pial'];
+surf_file_lh = [patientSpecs.fsDir '/surf/lh.pial'];
 if exist(surf_file_rh, 'file') && exist(surf_file_lh, 'file')
     [vertices_r, faces_r] = read_surf(surf_file_rh);
     [vertices_l, faces_l] = read_surf(surf_file_lh);
@@ -74,16 +77,17 @@ for a = 1:length(atlasNames)
     
     % get atlas label names
     if a == 1 % Wang atlas
-        wangfile = '/Volumes/server/Projects/Kastner2015Atlas/ProbAtlas_v4/ROIfiles_Labeling.txt';
-        fid = fopen(wangfile); textscan(fid, '%s', 5);  W = textscan(fid, '%s%f%s%s'); fclose(fid);
-        area_labels = W{4};
+        % Labels from: '/Volumes/server/Projects/Kastner2015Atlas/ProbAtlas_v4/ROIfiles_Labeling.txt';
+        area_labels =  {'V1v','V1d','V2v','V2d','V3v','V3d','hV4', ...
+                        'VO1','VO2','PHC1','PHC2','MST','hMT','LO2','LO1', ...
+                        'V3b','V3a','IPS0','IPS1','IPS2','IPS3','IPS4','IPS5', 'SPL1','FEF'};                  
     elseif a == 2 % Noah template
         area_labels = {'V1', 'V2', 'V3'}; 
     end
 
     % get atlases for this subject
-    atlas_file_rh = ['/Volumes/server/Freesurfer_subjects/som' num2str(pID) '/surf/rh.' atlasNames{a} '.mgz'];
-    atlas_file_lh = ['/Volumes/server/Freesurfer_subjects/som' num2str(pID) '/surf/lh.' atlasNames{a} '.mgz'];
+    atlas_file_rh = [patientSpecs.fsDir '/surf/rh.' atlasNames{a} '.mgz'];
+    atlas_file_lh = [patientSpecs.fsDir '/surf/lh.' atlasNames{a} '.mgz'];
     if exist(atlas_file_rh, 'file') && exist(atlas_file_lh, 'file')
         [atlas_rh] = load_mgh(atlas_file_rh);
         [atlas_lh] = load_mgh(atlas_file_lh);
