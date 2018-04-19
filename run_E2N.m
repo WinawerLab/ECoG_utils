@@ -17,7 +17,7 @@ specs.thresh   = []; % default is 20 mm
 specs.patientPool = 'BAIR';
 
 % specs.pID      = 'beilen';
-% specs.elecFile = '/Volumes/server/Projects/BAIR/Data/visual/sub-beilen/ses-day03/sub-beilen_acq-clinicalprojectedregions_electrodes.tsv';
+% specs.elecFile = '/Volumes/server/Projects/BAIR/Data/BIDS/visual/sub-beilen/ses-day03/sub-beilen_acq-clinicalprojectedregions_electrodes.tsv';
 % specs.fsDir    = '/Volumes/server/Freesurfer_subjects/umcu_beilen';
 % specs.thresh   = []; % default is 20 mm
 

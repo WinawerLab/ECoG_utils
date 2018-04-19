@@ -96,14 +96,19 @@ indices = indices(keep_idx);
 elec_xyz = elec_xyz(keep_idx,:);
 
 % node indices to atlases
-atlasNames = {'wang2015_atlas', 'benson14_varea'};%, 'benson14_angle', 'benson14_eccen', 'benson14_sigma'};
-    %'template_areas', 'template_angle', 'template_eccen'};
+atlasNames = {'wang2015_atlas', 'benson14_varea', 'benson14_eccen', 'benson14_angle', 'benson14_sigma'};
+%'template_areas', 'template_angle', 'template_eccen'};
 
+% Output
+out.patientID = pID;
+    
 for a = 1:length(atlasNames)
     
-    % get atlases for this subject
-    atlas_file_rh = [specs.fsDir '/surf/rh.' atlasNames{a} '.mgz'];
-    atlas_file_lh = [specs.fsDir '/surf/lh.' atlasNames{a} '.mgz'];
+    currentAtlas = atlasNames{a};
+    
+    % Get atlases for this subject
+    atlas_file_rh = [specs.fsDir '/surf/rh.' currentAtlas '.mgz'];
+    atlas_file_lh = [specs.fsDir '/surf/lh.' currentAtlas '.mgz'];
     if exist(atlas_file_rh, 'file') && exist(atlas_file_lh, 'file')
         [atlas_rh] = load_mgh(atlas_file_rh);
         [atlas_lh] = load_mgh(atlas_file_lh);
@@ -113,84 +118,84 @@ for a = 1:length(atlasNames)
         return
     end
     
-    % get names / colormaps associated with each atlas
-    if a == 1 % Wang atlas
-        % Labels come from: '/Volumes/server/Projects/Kastner2015Atlas/ProbAtlas_v4/ROIfiles_Labeling.txt';
-        area_labels =  {'V1v','V1d', ...
-                        'V2v','V2d', ...
-                        'V3v','V3d', ...
-                        'hV4', ...
-                        'VO1','VO2', ...
-                        'PHC1','PHC2', ...
-                        'TO2','TO1', ...
-                        'LO2','LO1', ...
-                        'V3b','V3a', ...
-                        'IPS0','IPS1','IPS2','IPS3','IPS4','IPS5', ...
-                        'SPL1','FEF'}; 
-        area_cmap   = [102  51   0; 255   0   0; 
-                       102   0  51; 255 128   0;
-                        51   0 102; 255 255   0;
-                         0 128 255;
-                         0 102  51; 153 153   0;
-                       204 102   0; 204   0   0;
-                         0  76 153; 153  76   0;
-                       255  51 153; 102   0 204;
-                         0 255 255;   0 255   0;
-                       255 153 153; 255 204 153; 255 255 153; 153 255 153; 153 255 255; 153 153 255; 
-                       255 153 255; 255 178 102]./255;
-    elseif a == 2 % Noah template: areas
-        area_labels = {'V1', ...
-                       'V2', ...
-                       'V3', ...
-                       'hV4', ...
-                       'VO1', 'VO2', ...
-                       'LO1', 'LO2', ...
-                       'TO1', 'TO2', ...
-                       'V3b', 'V3a'}; 
-        area_cmap   = [255   0   0; 
-                       255 128   0; 
-                       255 255   0; 
-                         0 128 255;
-                         0  76 153; 153  76   0;
-                         0 102  51; 153 153   0;  
-                       255  51 153; 102   0 204;
-                         0 255 255;   0 255   0]./255;
-    elseif a == 3 % Noah template: polar angle
-        area_labels = 0:180;%num2cell(0:180);
-        A = load('colormap_eccentricity.mat');
-        area_cmap = A.cmap(:,2:4);
-    elseif a == 4 % Noah template: eccentricity
-        area_labels = 0:90;%num2cell(0:90);
-        A = load('colormap_eccentricity.mat');
-        area_cmap = A.cmap(:,2:4);
-    end
-    
-    % match nearest nodes to atlas labels
+    % Match nearest nodes to atlas labels
     atlas = [squeeze(atlas_rh);squeeze(atlas_lh)]; % concatenate hemis   
     atlas_elec = atlas(indices);
     [elec_indices] = find(atlas_elec);
     elec_labels_found = elec_labels(elec_indices);
-     
-    % print to window how many maps were found, and
-    % make a count per area (across hemispheres)
-    area_count = zeros(1,length(area_labels));
-    if a < 3
-        area_labels_found = area_labels(round(atlas_elec(elec_indices)));
-        if ~isempty(elec_labels_found)
-            disp(['found ' num2str(length(elec_labels_found)) ' electrodes in ' atlasNames{a} ': '])
-            for i = 1:length(elec_labels_found)
-                disp([elec_labels_found{i} ' in area ' area_labels_found{i}]);
-                area_count(atlas_elec(elec_indices(i))) = area_count(atlas_elec(elec_indices(i))) + 1;
-            end
-        else 
-            disp(['no electrodes in ' atlasNames{a}]);
+    node_indices = indices(elec_indices);
+         
+    if ~isempty(elec_labels_found)
+
+        % Get names / colormaps associated with each atlas
+        switch currentAtlas
+
+            case 'wang2015_atlas' % Wang atlas
+
+                % Labels come from: '/Volumes/server/Projects/Kastner2015Atlas/ProbAtlas_v4/ROIfiles_Labeling.txt';
+                area_labels =  {'V1v','V1d', ...
+                                'V2v','V2d', ...
+                                'V3v','V3d', ...
+                                'hV4', ...
+                                'VO1','VO2', ...
+                                'PHC1','PHC2', ...
+                                'TO2','TO1', ...
+                                'LO2','LO1', ...
+                                'V3b','V3a', ...
+                                'IPS0','IPS1','IPS2','IPS3','IPS4','IPS5', ...
+                                'SPL1','FEF'}; 
+                area_cmap   = [102  51   0; 255   0   0; 
+                               102   0  51; 255 128   0;
+                                51   0 102; 255 255   0;
+                                 0 128 255;
+                                 0 102  51; 153 153   0;
+                               204 102   0; 204   0   0;
+                                 0  76 153; 153  76   0;
+                               255  51 153; 102   0 204;
+                                 0 255 255;   0 255   0;
+                               255 153 153; 255 204 153; 255 255 153; 153 255 153; 153 255 255; 153 153 255; 
+                               255 153 255; 255 178 102]./255;
+                out.(currentAtlas).area_names   = area_labels;
+
+            case 'benson14_varea' % Noah template: areas 
+
+                % Labels come from Noah email:  values in order from 1-12: V1 V2 V3 hV4 VO1 VO2 LO1 LO2 TO1 TO2 V3b V3a
+                area_labels = {'V1', ...
+                               'V2', ...
+                               'V3', ...
+                               'hV4', ...
+                               'VO1', 'VO2', ...
+                               'LO1', 'LO2', ...
+                               'TO1', 'TO2', ...
+                               'V3b', 'V3a'}; 
+                area_cmap   = [255   0   0; 
+                               255 128   0; 
+                               255 255   0; 
+                                 0 128 255;
+                                 0  76 153; 153  76   0;
+                                 0 102  51; 153 153   0;  
+                               255  51 153; 102   0 204;
+                                 0 255 255;   0 255   0]./255;
+                out.(currentAtlas).area_names   = area_labels;
+                
+            otherwise
+                
+                A = load(['colormap_' atlasNames{a}]);
+                area_cmap = A.cmap(:,2:4);
+                atlas_range = range(atlas);
+                cmap_index = round(linspace(1,length(area_cmap),atlas_range));
+                area_cmap = area_cmap(cmap_index,:);
+                
         end
+   
+    else
+        disp(['no electrodes in ' currentAtlas]);
     end
         
-    % plot
+    % Plot
     switch plotmesh
         case 'yes'
-            figure('Name', [num2str(pID) ' ' atlasNames{a}]); hold on;
+            figure('Name', [num2str(pID) ' ' currentAtlas]); hold on;
             
             plot_electrodes(elec_xyz, [1 1 1]*0.2,2);
             plot_electrodes(elec_xyz(elec_indices,:), [0 0 0],2);
@@ -202,7 +207,7 @@ for a = 1:length(atlasNames)
             t_l.LineStyle = 'none';
             cmap = [[1 1 1]*.7; area_cmap];
             colormap(cmap); 
-            caxis([0 length(area_labels)]);
+            caxis([0 length(area_cmap)]);
             
             plot_electrodes(vertices(indices,:), [1 1 1]*0.8, 1);
             plot_electrodes(vertices(indices(elec_indices),:), [1 1 1], 1);
@@ -221,21 +226,56 @@ for a = 1:length(atlasNames)
             h=light; lightangle(h, -45, 45); lighting gouraud;
             h=light; lightangle(h, -45, -90); lighting gouraud;
         otherwise
-            % do not plot
+            % Do not plot
     end
-    
-    % save 
-    % also include count per atlas map to facilitate computing distribution
-    % across patients?
-    out.patientID = pID;
-    out.(atlasNames{a}).elec_labels = elec_labels_found;
-    out.(atlasNames{a}).area_labels = area_labels_found;
-    out.(atlasNames{a}).area_count = area_count;
-	out.(atlasNames{a}).area_names = area_labels;
-    
+
+	% Get area labels and specs for matched nodes
+    switch currentAtlas
+        case {'wang2015_atlas', 'benson14_varea'}
+            
+            area_count = zeros(1,length(area_labels));
+           	for i = 1:length(elec_labels_found)
+                area_count(atlas_elec(elec_indices(i))) = area_count(atlas_elec(elec_indices(i))) + 1;
+            end
+            area_labels_found = area_labels(round(atlas_elec(elec_indices)));
+            
+            out.(currentAtlas).area_count   = area_count;
+            out.(currentAtlas).elec_labels  = elec_labels_found;
+            out.(currentAtlas).area_labels  = area_labels_found;
+            out.(currentAtlas).node_indices = node_indices;
+        
+        case 'benson14_eccen'
+            out.benson14_varea.node_eccen = round(atlas(out.benson14_varea.node_indices),2);
+        
+        case 'benson14_angle' 
+            out.benson14_varea.node_angle = round(atlas(out.benson14_varea.node_indices),2);
+        
+        case 'benson14_sigma'
+            out.benson14_varea.node_sigma = round(atlas(out.benson14_varea.node_indices),2);
+    end
 end
 
 
+% Print to window how many maps were found, and
+% make a count per area (across hemispheres)
+
+for a = 1:2
+    currentAtlas = atlasNames{a};
+    
+    if ~isempty(out.(currentAtlas).elec_labels)
+        
+        disp(['found ' num2str(length(out.(currentAtlas).elec_labels)) ' electrodes in ' currentAtlas ': '])
+            
+        for i = 1:length(out.(currentAtlas).elec_labels)            
+            switch currentAtlas
+                case 'wang2015_atlas'
+                    disp([out.(currentAtlas).elec_labels{i} ' in area ' out.(currentAtlas).area_labels{i}]);
+                case 'benson14_varea'
+                    disp([out.(currentAtlas).elec_labels{i} ' in area ' out.(currentAtlas).area_labels{i} ...
+                        ' with eccen = ' num2str(out.benson14_varea.node_eccen(i)) ', angle = ' num2str(out.benson14_varea.node_angle(i)) ', sigma = ' num2str(out.benson14_varea.node_sigma(i))]);
+            end
+        end
+    end
 end
 
 function plot_electrodes(xyz, color, radius)
@@ -273,5 +313,7 @@ function [x, y, z] = adjust_elec_label(xyz,radius)
     end
 
     y = xyz(2);
+
+end
 
 end
