@@ -178,8 +178,8 @@ end
 
 %% PLOT: filtered time course for channel(s) of interest
 
-task_to_plot = 'bairtemporalpattern';
-runidx = 1;
+task_to_plot = 'bairprf';
+runidx = 2;
 taskidx = find(strcmp(task_to_plot,data.task_label));
 
 % According to sub-beilen_acq-clinicalprojectedregions_electrodes.tsv: 
@@ -204,19 +204,30 @@ xlabel('time (s)');
 ylabel('broadband power (60-120 Hz)');
 title([data.task_label{taskidx} ' ' data.run_label{runidx}]); 
 
-%% Epoch data (all channels, all tasks)
+%% Epoch data (all channels, all tasks), including baseline correction
 
 % Set epoch length (in seconds)
 prestim = 0.5; 
 poststim = 1.5;
 
+% Set baseline correction period (in seconds)
+baselinewindow = [-0.2 0];
+
 trials = struct();
-ecog_chans = find(contains(data.label{taskidx, runidx}.type, 'ECOG'));
+trials.tasks = allTasks;
+trials.fsample = data.fsample;
+trials.time = -prestim:(1/data.fsample):poststim;
+
+ecog_chans = find(contains(data.label{1,1}.type, 'ECOG'));
 trials.label = data.label{1,1}.name(ecog_chans);
 
 % Determine how many samples to go back and forth to extract epoch
 onset_pre = round(prestim/(1/data.fsample));
 onset_post = round(poststim/(1/data.fsample));
+
+% Determine what the baseline indices will be
+[~,baseline_start] = min(abs(trials.time-baselinewindow(1)));
+[~,baseline_stop] = min(abs(trials.time-baselinewindow(2)));
 
 % Extract epochs
 for cTask = 1:length(data.task_label) 
@@ -227,22 +238,28 @@ for cTask = 1:length(data.task_label)
             for jj = 1:length(onsetsInx)  
                 
                 % Broadband
-                trials.broadband.(data.task_label{cTask})(ii,:,jj,cRun) = smooth(data.hband_sig{cTask,cRun}(ecog_chans(ii),onsetsInx(jj)-onset_pre:onsetsInx(jj)+onset_post),8);
+                trials.broadband.(data.task_label{cTask})(ii,:,jj,cRun) = data.hband_sig{cTask,cRun}(ecog_chans(ii),onsetsInx(jj)-onset_pre:onsetsInx(jj)+onset_post);
                 
                 % Evoked
-                trials.evoked.(data.task_label{cTask})(ii,:,jj,cRun) = smooth(data.signal{cTask,cRun}(ecog_chans(ii),onsetsInx(jj)-onset_pre:onsetsInx(jj)+onset_post),8);
+                trials.evoked.(data.task_label{cTask})(ii,:,jj,cRun) = data.signal{cTask,cRun}(ecog_chans(ii),onsetsInx(jj)-onset_pre:onsetsInx(jj)+onset_post);
                 
                 % Get event indices
                 trials.events.(data.task_label{cTask})(:,cRun) = data.events{cTask,cRun}.trial_type;
+                
             end
+            
+            % Apply baseline correction
+            broadband_baseline = mean(mean(trials.broadband.(data.task_label{cTask})(ii,baseline_start:baseline_stop,:),2),3);
+            trials.broadband.(data.task_label{cTask})(ii,:,:,:) =  trials.broadband.(data.task_label{cTask})(ii,:,:,:) - broadband_baseline;
+            
+            evoked_baseline = mean(mean(trials.evoked.(data.task_label{cTask})(ii,baseline_start:baseline_stop,:),2),3);
+            trials.evoked.(data.task_label{cTask})(ii,:,:,:) =  trials.evoked.(data.task_label{cTask})(ii,:,:,:) - evoked_baseline;
         end
     end
 end
 
 disp('done');
 
-trials.time = -prestim:(1/data.fsample):poststim;
-trials.fsample = data.fsample;
 
 %% Save preprocessed data for further analysis
 
