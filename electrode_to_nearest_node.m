@@ -180,8 +180,15 @@ for a = 1:length(atlasNames)
                 
             otherwise
                 
-                A = load(['colormap_' atlasNames{a}]);
+                A = load(['colormap_' currentAtlas]);
+                disp(['loading colormap_' currentAtlas]);
                 area_cmap = A.cmap(:,2:4);
+                
+                switch currentAtlas
+                    case 'benson14_eccen'
+                        atlas(atlas>12) = 12;
+                end
+                        
                 atlas_range = range(atlas);
                 cmap_index = round(linspace(1,length(area_cmap),atlas_range));
                 area_cmap = area_cmap(cmap_index,:);
