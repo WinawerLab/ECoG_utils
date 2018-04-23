@@ -8,18 +8,18 @@ tbUse('ECoG_utils');
 specs.pID      = 'ny648';
 specs.elecFile = '/Volumes/server/Projects/BAIR/Data/BIDS/visual/sub-ny648/ses-NYUECOG01/ieeg/sub-ny648_ses-NYUECOG01_electrodes.tsv';
 specs.fsDir    = '/Volumes/server/Freesurfer_subjects/som648';
-specs.thresh   = []; % default is 20 mm
+specs.thresh   = []; 
 specs.patientPool = 'BAIR';
 
 % specs.pID      = 'beilen';
 % specs.elecFile = '/Volumes/server/Projects/BAIR/Data/BIDS/visual/sub-beilen/ses-day03/sub-beilen_acq-clinicalprojectedregions_electrodes.tsv';
 % specs.fsDir    = '/Volumes/server/Freesurfer_subjects/umcu_beilen';
-% specs.thresh   = []; % default is 20 mm
+% specs.thresh   = []; 
 
 % specs.pID      = '668';
 % specs.elecFile = [];
 % specs.fsDir    = '/Volumes/server/Freesurfer_subjects/som668';
-% specs.thresh   = []; % default is 20 mm
+% specs.thresh   = []; 
 % specs.patientPool = 'SOM';
 
 specs.plotmesh  = 'yes'; % plot meshes with atlases for each subject: yes or no

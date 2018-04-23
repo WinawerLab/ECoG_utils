@@ -150,8 +150,7 @@ indices = indices(keep_idx);
 elec_xyz = elec_xyz(keep_idx,:);
 
 % node indices to atlases
-atlasNames = {'wang2015_atlas', 'benson14_varea', 'benson14_eccen', 'benson14_angle', 'benson14_sigma'};
-%'template_areas', 'template_angle', 'template_eccen'};
+atlasNames = {'wang2015_atlas', 'benson14_varea', 'benson14_eccen', 'benson14_angle', 'benson14_sigma', 'template_areas'};
 
 % Output
 out.patientID = pID;
@@ -167,9 +166,9 @@ for a = 1:length(atlasNames)
         [atlas_rh] = load_mgh(atlas_file_rh);
         [atlas_lh] = load_mgh(atlas_file_lh);
     else
-        disp('no atlas annotations found - exiting');
-        out = [];
-        return
+        disp(['no annotations found for ' currentAtlas]);
+        out.(currentAtlas) = [];
+        continue
     end
     
     % Match nearest nodes to atlas labels
@@ -178,7 +177,17 @@ for a = 1:length(atlasNames)
     [elec_indices] = find(atlas_elec);
     elec_labels_found = elec_labels(elec_indices);
     node_indices = indices(elec_indices);
-         
+    
+    % Clip Benson atlases (results in better colormap scaling)
+    switch currentAtlas
+        case 'benson14_eccen'
+            atlas(atlas>12) = 12.00;
+        case 'benson14_sigma'
+            atlas(atlas>6) = 6.00;
+        case 'benson14_angle'
+            %area_cmap_rh = A.cmap(:,6:8);
+    end
+    
     if ~isempty(elec_labels_found)
 
         % Get names / colormaps associated with each atlas
@@ -232,29 +241,56 @@ for a = 1:length(atlasNames)
                                  0 255 255;   0 255   0]./255;
                 out.(currentAtlas).area_names   = area_labels;
                 
+            case 'template_areas' % old Noah templates
+                
+                area_labels = {'V1', 'V2', 'V3'}; 
+                area_cmap   = [255 255 0; 0 255 255; 0 0 255]./255;
+                out.(currentAtlas).area_names   = area_labels;
+
             otherwise
                 
-                A = load(['colormap_' currentAtlas]);
-                disp(['loading colormap_' currentAtlas]);
-                area_cmap = A.cmap(:,2:4);
-
-                switch currentAtlas
-                    case 'benson14_eccen'
-                        atlas(atlas>12) = 12.00;
-                    case 'benson14_sigma'
-                        atlas(atlas>6) = 6.00;
-                    case 'benson14_angle'
-                        %area_cmap_rh = A.cmap(:,6:8);
-                end
+                switch specs.plotmesh
+                    case 'yes'
                         
-                atlas_range = range(atlas);
-                cmap_index = round(linspace(1,length(area_cmap),atlas_range));
-                area_cmap = area_cmap(cmap_index,:);
-                
+                        A = load(['colormap_' currentAtlas]);
+                        disp(['loading colormap_' currentAtlas]);
+                        area_cmap = A.cmap(:,2:4);
+
+                        atlas_range = range(atlas);
+                        cmap_index = round(linspace(1,length(area_cmap),atlas_range));
+                        area_cmap = area_cmap(cmap_index,:);  
+                    otherwise
+                        % do nothing
+                end
         end
-   
+        
+        % Get area labels and specs for matched nodes
+        switch currentAtlas
+            case {'wang2015_atlas', 'benson14_varea', 'template_areas'}
+
+                area_count = zeros(1,length(area_labels));
+                for i = 1:length(elec_labels_found)
+                    area_count(atlas_elec(elec_indices(i))) = area_count(atlas_elec(elec_indices(i))) + 1;
+                end
+                area_labels_found = area_labels(round(atlas_elec(elec_indices)));
+
+                out.(currentAtlas).area_count   = area_count;
+                out.(currentAtlas).elec_labels  = elec_labels_found;
+                out.(currentAtlas).area_labels  = area_labels_found;
+                out.(currentAtlas).node_indices = node_indices;
+
+            case 'benson14_eccen'
+                out.benson14_varea.node_eccen = round(atlas(out.benson14_varea.node_indices),2)';
+
+            case 'benson14_angle' 
+                out.benson14_varea.node_angle = round(atlas(out.benson14_varea.node_indices),2)';
+
+            case 'benson14_sigma'
+                out.benson14_varea.node_sigma = round(atlas(out.benson14_varea.node_indices),2)';
+        end
     else
         disp(['no electrodes in ' currentAtlas]);
+        out.(currentAtlas) = [];
     end
         
     % Plot
@@ -293,47 +329,25 @@ for a = 1:length(atlasNames)
         otherwise
             % Do not plot
     end
-
-	% Get area labels and specs for matched nodes
-    switch currentAtlas
-        case {'wang2015_atlas', 'benson14_varea'}
-            
-            area_count = zeros(1,length(area_labels));
-           	for i = 1:length(elec_labels_found)
-                area_count(atlas_elec(elec_indices(i))) = area_count(atlas_elec(elec_indices(i))) + 1;
-            end
-            area_labels_found = area_labels(round(atlas_elec(elec_indices)));
-            
-            out.(currentAtlas).area_count   = area_count;
-            out.(currentAtlas).elec_labels  = elec_labels_found;
-            out.(currentAtlas).area_labels  = area_labels_found;
-            out.(currentAtlas).node_indices = node_indices;
-        
-        case 'benson14_eccen'
-            out.benson14_varea.node_eccen = round(atlas(out.benson14_varea.node_indices),2)';
-        
-        case 'benson14_angle' 
-            out.benson14_varea.node_angle = round(atlas(out.benson14_varea.node_indices),2)';
-        
-        case 'benson14_sigma'
-            out.benson14_varea.node_sigma = round(atlas(out.benson14_varea.node_indices),2)';
-    end
 end
 
 
 % Print to window how many maps were found, and
 % make a count per area (across hemispheres)
 
-for a = 1:2
+% node indices to atlases
+atlasNames = {'wang2015_atlas', 'benson14_varea', 'template_areas'};
+
+for a = 1:length(atlasNames)
     currentAtlas = atlasNames{a};
     
-    if ~isempty(out.(currentAtlas).elec_labels)
+    if ~isempty(out.(currentAtlas)) && ~isempty(out.(currentAtlas).elec_labels)
         
         disp(['found ' num2str(length(out.(currentAtlas).elec_labels)) ' electrodes in ' currentAtlas ': '])
             
         for i = 1:length(out.(currentAtlas).elec_labels)            
             switch currentAtlas
-                case 'wang2015_atlas'
+                case {'wang2015_atlas', 'template_areas'};
                     disp([out.(currentAtlas).elec_labels{i} ' in area ' out.(currentAtlas).area_labels{i}]);
                 case 'benson14_varea'
                     disp([out.(currentAtlas).elec_labels{i} ' in area ' out.(currentAtlas).area_labels{i} ...

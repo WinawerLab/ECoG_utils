@@ -1,13 +1,13 @@
 %% loop matching script across patients (plotmesh off to prevent many figures):
 
+% list of patient IDs to loop over
 pIDs = [439 496 503 507 516 523 559 560 561 562 563 ...
         564 567 568 569 578 584 590 591 595 596 598 ...
         605 607 608 609 610 615 617 625 626 628 630 ...
         632 633 634 637 638 639 640 646 647  ...
-        651 652 653 660 662 663 664 665]; % list of patient IDs to loop over
-thresh = []; % default is 20 mm
+        651 652 653 660 662 663 664 665]; % SOM patients
 
-pIDs2 = [645 648 661];
+% pIDs2 = [645 648 661 668]; % BAIR patients: can be run when all in BIDS
 
 % run script for each patient
 out_all = cell(length(pIDs),1);
@@ -17,7 +17,7 @@ for i = 1:length(pIDs)
     specs.patientPool = 'SOM';
     specs.elecFile    = [];
     specs.fsDir       = ['/Volumes/server/Freesurfer_subjects/som' specs.pID];
-    specs.thresh      = []; % default is 20 mm
+    specs.thresh      = []; 
     specs.plotmesh  = 'no'; % plot meshes with atlases for each subject: yes or no
     specs.plotlabel = 'no'; % plot electrode labels on mesh: yes or no
 
@@ -33,7 +33,7 @@ for a = 1:length(atlasNames)
     area_names = out_all{1}.(atlasNames{a}).area_names; % first patient in loop should have data
     count_total = zeros(1,length(area_names));
     for i = 1:length(out_all)
-        if ~isempty(out_all{i})
+        if ~isempty(out_all{i}) && ~isempty(out_all{i}.(atlasNames{a}))
             count = out_all{i}.(atlasNames{a}).area_count;
             count_total = count_total+count;
             area_names = out_all{i}.(atlasNames{a}).area_names;
