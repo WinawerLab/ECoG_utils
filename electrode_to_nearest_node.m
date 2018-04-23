@@ -48,12 +48,12 @@ function [out] = electrode_to_nearest_node(specs)
 %   struct with fields:
 %       area_names: {'V1'  'V2'  'V3'  'hV4'  'VO1'  'VO2'  'LO1'  'LO2'  'TO1'  'TO2'  'V3b'  'V3a'}
 %       area_count: [0 2 0 0 0 1 0 0 2 3 1 4]
-%       elec_labels: {13×1 cell}
-%       area_labels: {'V3a'  'V3b'  'TO1'  'TO1'  'TO2'  'TO2'  'TO2'  'VO2'  'V2'  'V2'  'V3a'  'V3a'  'V3a'}
-%       node_indices: [157670 157047 155681 155786 163093 164068 169918 186636 143611 143710 144737 147429 154577]
+%      elec_labels: {'G05'  'G06'  'G07'  'G08'  'G15'  'G16'  'G24'  'IO01'  'MO01'  'MO02'  'MO03'  'MO04'  'DPIL06'}
+%      area_labels: {'V3a'  'V3b'  'TO1'  'TO1'  'TO2'  'TO2'  'TO2'  'VO2'  'V2'  'V2'  'V3a'  'V3a'  'V3a'}
+%     node_indices: [157670 157047 155681 155786 163093 164068 169918 186636 143611 143710 144737 147429 154577]
 %       node_eccen: [1.09 8.29 1.29 0.29 12 0.12 0.08 0.24 4.85 3.85 2.96 10.23 12]
 %       node_angle: [19 142.41 143.17 159.98 69.79 60.39 113.53 99.7 140.68 92.95 162.34 113.24 176.61]
-%       node_sigma: [3.69 6 3.54 2.41 6 0.19 0.07 0.83 0.91 1.04 1.17 1.82 6]
+%       node_sigma: [1.39 3.96 1.94 0.57 6 0.21 0.14 0.49 0.97 0.8 2.06 4.66 6]
 
 pID    = specs.pID;
 thresh = specs.thresh;
@@ -256,9 +256,10 @@ for a = 1:length(atlasNames)
                         disp(['loading colormap_' currentAtlas]);
                         area_cmap = A.cmap(:,2:4);
 
-                        atlas_range = range(atlas);
-                        cmap_index = round(linspace(1,length(area_cmap),atlas_range));
-                        area_cmap = area_cmap(cmap_index,:);  
+                        %atlas_range = range(atlas);
+                        %cmap_index = round(linspace(1,length(area_cmap),atlas_range));
+                        %area_cmap = area_cmap(cmap_index,:);  
+                    
                     otherwise
                         % do nothing
                 end
@@ -275,7 +276,7 @@ for a = 1:length(atlasNames)
                 area_labels_found = area_labels(round(atlas_elec(elec_indices)));
 
                 out.(currentAtlas).area_count   = area_count;
-                out.(currentAtlas).elec_labels  = elec_labels_found;
+                out.(currentAtlas).elec_labels  = elec_labels_found';
                 out.(currentAtlas).area_labels  = area_labels_found;
                 out.(currentAtlas).node_indices = node_indices;
 
@@ -308,7 +309,7 @@ for a = 1:length(atlasNames)
             t_l.LineStyle = 'none';             
             cmap = [[1 1 1]*.7; area_cmap];
             colormap(cmap); 
-            caxis([0 length(area_cmap)]);
+            caxis([0 max(atlas)]); %length(area_cmap)]);
 
             plot_electrodes(vertices(indices,:), [1 1 1]*0.8, 1);
             plot_electrodes(vertices(indices(elec_indices),:), [1 1 1], 1);
