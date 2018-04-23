@@ -1,10 +1,5 @@
 % close all;
-
 tbUse('ECoG_utils');
-
-% % check paths
-% if isempty(which('mrVista')), tbUse('vistasoft'); end
-% 
 
 %% run script for a specific patient (with plotmesh on) to look at electrodes on brain
 
@@ -30,7 +25,7 @@ specs.patientPool = 'BAIR';
 specs.plotmesh  = 'yes'; % plot meshes with atlases for each subject: yes or no
 specs.plotlabel = 'yes'; % plot electrode labels on mesh: yes or no
 
-retinotopicElecs = electrode_to_nearest_node(specs);
+out = electrode_to_nearest_node(specs);
 
 %% PATH TO NOAH COLORMAPS:
 % '/Volumes/server/Projects/HCP/analysis/images'

@@ -1,9 +1,59 @@
 
 function [out] = electrode_to_nearest_node(specs)
 
-% pID = patient ID (number)
-% thresh = maximal distance electrode to nearest node, in mm
-% plotmesh = 'yes' or 'no'
+% This function matches a list of electrode locations in an ECoG patient to
+% the nearest node in their T1s freesurfer pial surface reconstruction,
+% determines which of those nodes fall within a set of visual regions
+% specified by two probabilistic atlases, and extracts node information.
+% Note that electrode coordinates should be specified in the T1 volume
+% space that was used to obtain the freesurfer reconstruction.
+%
+% INPUT: a struct containing the following fields:
+% specs.pID         = patient ID 
+% specs.elecFile    = file with electrode coordinates (include full path)
+% specs.fsDir       = freesurfer directory of patient (include full path);
+%                     should contain the wang and benson atlases that can
+%                     be obtained through the nben/neuropythy docker
+% specs.thresh      = maximum allowed distance between electrode and node,
+%                     in mm (if left empty, thresh is infinite, meaning
+%                     that the electrode can be infinitely far)
+% specs.patientPool = should be either 'BAIR' or 'SOM' (may be removed
+%                     later but necessary now to deal with differences in
+%                     formatting of electrode files between bids-formatted
+%                     bair data and non-bids-formatted SOM data)
+% specs.plotmesh    = flag to plot meshes with atlases: yes/no
+% specs.plotlabel   = flag to plot electrode labels on mesh: yes/no                    
+%
+% OUTPUT: a struct containing the following fields for two probablistic
+% atlases of visual brain regions (wang2015 and benson14)
+% out.area_names    = list of all areas in the atlas
+% out.area_count    = number of nodes with matches in area_names
+% out.elec_labels   = names of electrodes with matches in visual regions
+% out.area_labels   = names of areas with matched electrodes
+% node_indices      = indices of the matched electrodes; the benson14 atlas
+%                     additionally contains eccentricity, polar angle and
+%                     sigma estimates for these nodes (probabilistic)
+%   
+% EXAMPLE INPUT:
+% specs.pID      = 'ny648';
+% specs.elecFile = '/Volumes/server/Projects/BAIR/Data/BIDS/visual/sub-ny648/ses-NYUECOG01/ieeg/sub-ny648_ses-NYUECOG01_electrodes.tsv';
+% specs.fsDir    = '/Volumes/server/Freesurfer_subjects/som648';
+% specs.thresh   = []; % default is 20 mm
+% specs.patientPool = 'BAIR';
+% specs.plotmesh  = 'yes'; % plot meshes with atlases for each subject: yes or no
+% specs.plotlabel = 'yes'; % plot electrode labels on mesh: yes or no
+%
+% EXAMPLE OUTPOUT:
+% out.benson14_varea
+%   struct with fields:
+%       area_names: {'V1'  'V2'  'V3'  'hV4'  'VO1'  'VO2'  'LO1'  'LO2'  'TO1'  'TO2'  'V3b'  'V3a'}
+%       area_count: [0 2 0 0 0 1 0 0 2 3 1 4]
+%       elec_labels: {13×1 cell}
+%       area_labels: {'V3a'  'V3b'  'TO1'  'TO1'  'TO2'  'TO2'  'TO2'  'VO2'  'V2'  'V2'  'V3a'  'V3a'  'V3a'}
+%       node_indices: [157670 157047 155681 155786 163093 164068 169918 186636 143611 143710 144737 147429 154577]
+%       node_eccen: [1.09 8.29 1.29 0.29 12 0.12 0.08 0.24 4.85 3.85 2.96 10.23 12]
+%       node_angle: [19 142.41 143.17 159.98 69.79 60.39 113.53 99.7 140.68 92.95 162.34 113.24 176.61]
+%       node_sigma: [3.69 6 3.54 2.41 6 0.19 0.07 0.83 0.91 1.04 1.17 1.82 6]
 
 pID    = specs.pID;
 thresh = specs.thresh;
@@ -46,9 +96,9 @@ switch specs.patientPool
     case 'SOM'
         
         % check which directory patient is in main BAIR directory, if not find it in SoM
-        patientDir = '/Volumes/server/Projects/BAIR/ECoG/';
+        patientDir = '/Volumes/server/Projects/BAIR/Data/Raw/ECoG/';
         if ~isdir([patientDir num2str(pID)])
-            patientDir = '/Volumes/server/Projects/BAIR/ECoG/SoM/';
+            patientDir = '/Volumes/server/Projects/BAIR/Data/Raw/ECoG/SoM/';
             if ~isdir([patientDir num2str(pID)])
                 disp('patient directory not found - exiting');
                 out = [];
@@ -76,6 +126,10 @@ end
 % Read surface reconstructions from Freesurfer_subjects directory
 surf_file_rh = [specs.fsDir '/surf/rh.pial'];
 surf_file_lh = [specs.fsDir '/surf/lh.pial'];
+% FOR TESTING COLORMAPS (if we want to plot inflated/sphere versions, need
+% to adjust center coordinates which default to zero in freesurfer
+%surf_file_rh = [specs.fsDir '/surf/rh.sphere'];
+%surf_file_lh = [specs.fsDir '/surf/lh.sphere'];
 
 if exist(surf_file_rh, 'file') && exist(surf_file_lh, 'file')
     [vertices_r, faces_r] = read_surf(surf_file_rh);
@@ -183,10 +237,14 @@ for a = 1:length(atlasNames)
                 A = load(['colormap_' currentAtlas]);
                 disp(['loading colormap_' currentAtlas]);
                 area_cmap = A.cmap(:,2:4);
-                
+
                 switch currentAtlas
                     case 'benson14_eccen'
-                        atlas(atlas>12) = 12;
+                        atlas(atlas>12) = 12.00;
+                    case 'benson14_sigma'
+                        atlas(atlas>6) = 6.00;
+                    case 'benson14_angle'
+                        %area_cmap_rh = A.cmap(:,6:8);
                 end
                         
                 atlas_range = range(atlas);
@@ -211,11 +269,11 @@ for a = 1:length(atlasNames)
             t_r.LineStyle = 'none';
             axis equal; hold on;
             t_l = trimesh(faces_l+1, vertices_l(:,1), vertices_l(:,2), vertices_l(:,3), atlas_lh, 'FaceColor', 'flat'); 
-            t_l.LineStyle = 'none';
+            t_l.LineStyle = 'none';             
             cmap = [[1 1 1]*.7; area_cmap];
             colormap(cmap); 
             caxis([0 length(area_cmap)]);
-            
+
             plot_electrodes(vertices(indices,:), [1 1 1]*0.8, 1);
             plot_electrodes(vertices(indices(elec_indices),:), [1 1 1], 1);
             switch plotlabel
@@ -252,13 +310,13 @@ for a = 1:length(atlasNames)
             out.(currentAtlas).node_indices = node_indices;
         
         case 'benson14_eccen'
-            out.benson14_varea.node_eccen = round(atlas(out.benson14_varea.node_indices),2);
+            out.benson14_varea.node_eccen = round(atlas(out.benson14_varea.node_indices),2)';
         
         case 'benson14_angle' 
-            out.benson14_varea.node_angle = round(atlas(out.benson14_varea.node_indices),2);
+            out.benson14_varea.node_angle = round(atlas(out.benson14_varea.node_indices),2)';
         
         case 'benson14_sigma'
-            out.benson14_varea.node_sigma = round(atlas(out.benson14_varea.node_indices),2);
+            out.benson14_varea.node_sigma = round(atlas(out.benson14_varea.node_indices),2)';
     end
 end
 
