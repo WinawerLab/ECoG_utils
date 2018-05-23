@@ -5,22 +5,22 @@ tbUse('ECoG_utils');
 
 % Inputting entire paths for now until folder structure is settled
 
-specs.pID      = 'ny648';
-specs.elecFile = '/Volumes/server/Projects/BAIR/Data/BIDS/visual/sub-ny648/ses-NYUECOG01/ieeg/sub-ny648_ses-NYUECOG01_electrodes.tsv';
-specs.fsDir    = '/Volumes/server/Freesurfer_subjects/som648';
-specs.thresh   = []; 
-specs.patientPool = 'BAIR';
+% specs.pID      = 'ny648';
+% specs.elecFile = '/Volumes/server/Projects/BAIR/Data/BIDS/visual/sub-ny648/ses-NYUECOG01/ieeg/sub-ny648_ses-NYUECOG01_electrodes.tsv';
+% specs.fsDir    = '/Volumes/server/Freesurfer_subjects/som648';
+% specs.thresh   = []; 
+% specs.patientPool = 'BAIR';
 
 % specs.pID      = 'beilen';
 % specs.elecFile = '/Volumes/server/Projects/BAIR/Data/BIDS/visual/sub-beilen/ses-day03/sub-beilen_acq-clinicalprojectedregions_electrodes.tsv';
 % specs.fsDir    = '/Volumes/server/Freesurfer_subjects/umcu_beilen';
 % specs.thresh   = []; 
 
-% specs.pID      = '668';
-% specs.elecFile = [];
-% specs.fsDir    = '/Volumes/server/Freesurfer_subjects/som668';
-% specs.thresh   = []; 
-% specs.patientPool = 'SOM';
+specs.pID      = '674';
+specs.elecFile = [];
+specs.fsDir    = '/Volumes/server/Freesurfer_subjects/som674';
+specs.thresh   = []; 
+specs.patientPool = 'SOM';
 
 specs.plotmesh  = 'yes'; % plot meshes with atlases for each subject: yes or no
 specs.plotlabel = 'yes'; % plot electrode labels on mesh: yes or no
