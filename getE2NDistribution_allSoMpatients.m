@@ -1,23 +1,22 @@
 %% loop matching script across patients (plotmesh off to prevent many figures):
 
 % list of patient IDs to loop over
-pIDs = [439 496 503 507 516 523 559 560 561 562 563 ...
+pIDs  = [648 645 661 668 674 682]; % BAIR patients
+
+pIDs2 = [439 496 503 507 516 523 559 560 561 562 563 ...
         564 567 568 569 578 584 590 591 595 596 598 ...
         605 607 608 609 610 615 617 625 626 628 630 ...
-        632 633 634 637 638 639 640 646 647  ...
-        651 652 653 660 662 663 664 665]; % SOM patients
+        632 633 634 637 638 639 640 646 647 651 652 ...
+        653 660 662 663 664 665 671 673 679 684]; % SOM patients
 
-% pIDs2 = [645 648 661 668]; % BAIR patients: can be run when all in BIDS
+
+pIDs = [pIDs pIDs2];
 
 % run script for each patient
 out_all = cell(length(pIDs),1);
 for i = 1:length(pIDs)
     
     specs.pID         = num2str(pIDs(i));
-    specs.patientPool = 'SOM';
-    specs.elecFile    = [];
-    specs.fsDir       = ['/Volumes/server/Freesurfer_subjects/som' specs.pID];
-    specs.thresh      = []; 
     specs.plotmesh  = 'no'; % plot meshes with atlases for each subject: yes or no
     specs.plotlabel = 'no'; % plot electrode labels on mesh: yes or no
 
@@ -26,7 +25,7 @@ for i = 1:length(pIDs)
 end
 
 %% calculate distribution or electrodes across atlas regions:
-atlasNames = {'wang2015_atlas','template_areas'};
+atlasNames = {'wang2015_atlas','template_areas', 'benson14_varea'};
 
 patient_count = 0;
 for a = 1:length(atlasNames)
@@ -55,16 +54,25 @@ disp(['patients with data from list: ' num2str(patient_count) ' out of ' num2str
 
 %% identify which patients had any visual coverage
 
-VisCov.wang      = [];
-VisCov.templates = [];
-for p = 1:length(out_all)
-    if ~isempty(out_all{p})
-        if ~isempty(out_all{p}.template_areas.elec_labels)
-            VisCov.templates = [VisCov.templates {out_all{p}.patientID}];
+VisCov.names = [];
+VisCov.indices = [];
+
+for a = 1:length(atlasNames)
+    VisCov.names.(atlasNames{a}) = [];
+	VisCov.indices.(atlasNames{a}) = [];
+    for p = 1:length(out_all)
+        if ~isempty(out_all{p})
+            if ~isempty(out_all{p}.(atlasNames{a}))
+                if ~isempty(out_all{p}.(atlasNames{a}).elec_labels)
+                    VisCov.names.(atlasNames{a}) = [VisCov.names.(atlasNames{a}) {out_all{p}.patientID}];
+                    VisCov.indices.(atlasNames{a}) = [VisCov.indices.(atlasNames{a}) p];
+                end
+            end
         end
-        if ~isempty(out_all{p}.wang2015_atlas.elec_labels)
-            VisCov.wang = [VisCov.wang {out_all{p}.patientID}];
-        end  
     end
 end
+
+% To get a list with all the subjects with coverage in Wang atlas:
+test = out_all(VisCov.indices.wang2015_atlas);
+
 

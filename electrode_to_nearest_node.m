@@ -10,19 +10,21 @@ function [out] = electrode_to_nearest_node(specs)
 %
 % INPUT: a struct containing the following fields:
 % specs.pID         = patient ID 
-% specs.elecFile    = file with electrode coordinates (include full path)
+% specs.plotmesh    = flag to plot meshes with atlases: yes/no
+% specs.plotlabel   = flag to plot electrode labels on mesh: yes/no
+%
+% OPTIONAL additional fields: 
+% specs.thresh      = maximum allowed distance between electrode and node,
+%                     in mm (if empty, thresh is infinite, meaning that the
+%                     electrode can be infinitely far) - default empty
 % specs.fsDir       = freesurfer directory of patient (include full path);
 %                     should contain the wang and benson atlases that can
-%                     be obtained through the nben/neuropythy docker
-% specs.thresh      = maximum allowed distance between electrode and node,
-%                     in mm (if left empty, thresh is infinite, meaning
-%                     that the electrode can be infinitely far)
+%                     be obtained through the nben/neuropythy docker >
+%                     default '/Volumes/server/Freesurfer_subjects/som
 % specs.patientPool = should be either 'BAIR' or 'SOM' (may be removed
 %                     later but necessary now to deal with differences in
 %                     formatting of electrode files between bids-formatted
-%                     bair data and non-bids-formatted SOM data)
-% specs.plotmesh    = flag to plot meshes with atlases: yes/no
-% specs.plotlabel   = flag to plot electrode labels on mesh: yes/no                    
+%                     and non-bids-formatted data) - default SOM
 %
 % OUTPUT: a struct containing the following fields for two probablistic
 % atlases of visual brain regions (wang2015 and benson14)
@@ -35,8 +37,7 @@ function [out] = electrode_to_nearest_node(specs)
 %                     sigma estimates for these nodes (probabilistic)
 %   
 % EXAMPLE INPUT:
-% specs.pID      = 'ny648';
-% specs.elecFile = '/Volumes/server/Projects/BAIR/Data/BIDS/visual/sub-ny648/ses-NYUECOG01/ieeg/sub-ny648_ses-NYUECOG01_electrodes.tsv';
+% specs.pID      = '648';
 % specs.fsDir    = '/Volumes/server/Freesurfer_subjects/som648';
 % specs.thresh   = []; % default is 20 mm
 % specs.patientPool = 'BAIR';
@@ -55,28 +56,44 @@ function [out] = electrode_to_nearest_node(specs)
 %       node_angle: [19 142.41 143.17 159.98 69.79 60.39 113.53 99.7 140.68 92.95 162.34 113.24 176.61]
 %       node_sigma: [1.39 3.96 1.94 0.57 6 0.21 0.14 0.49 0.97 0.8 2.06 4.66 6]
 
-pID    = specs.pID;
-thresh = specs.thresh;
+if ~isfield(specs, 'patientPool') || isempty(specs.patientPool)
+    specs.patientPool = 'SOM'; 
+end
 
-if isempty(thresh)
-    thresh = inf;
+if ~isfield(specs, 'fsDir') || isempty(specs.fsDir)
+    specs.fsDir = ['/Volumes/server/Freesurfer_subjects/som' num2str(specs.pID)]; 
+end
+
+if ~isfield(specs, 'thresh') || isempty(specs.thresh)
+    specs.thresh = inf;
 end
 
 plotlabel = specs.plotlabel;
 plotmesh  = specs.plotmesh;
 
 % RUN
-disp(['running patient ' num2str(pID)]);
+if ~isfield(specs, 'pID') || isempty(specs.pID)
+    disp('please specify a patient ID');
+    return
+else
+    disp(['running patient ' num2str(specs.pID)]);
+end
 
 % Read electrode coordinate file from BAIR/ECOG directory
-elec_file = specs.elecFile;
-
 switch specs.patientPool
     case 'BAIR'
-        if exist(elec_file, 'file')
+        
+        patientDir = ['/Volumes/server/Projects/BAIR/Data/BIDS/visual/sub-som' num2str(specs.pID) '/ses-nyuECOG01/ieeg']; 
+        
+        D = dir([patientDir '/*electrodes*.tsv']);
+        if ~isempty(D)
+           
+            elec_file = D(1).name;
+            disp(['reading ' elec_file]); 
 
             % Prefer to use readtable for tsv files because it doesn't require
             % knowing the order of the columns beforehand (as textscan does). 
+            
             E = readtable(elec_file, 'FileType', 'text');
             elec_labels = E.name;
             if iscell(E.x)
@@ -97,9 +114,9 @@ switch specs.patientPool
         
         % check which directory patient is in main BAIR directory, if not find it in SoM
         patientDir = '/Volumes/server/Projects/BAIR/Data/Raw/ECoG/';
-        if ~isdir([patientDir num2str(pID)])
+        if ~isdir([patientDir num2str(specs.pID)])
             patientDir = '/Volumes/server/Projects/BAIR/Data/Raw/ECoG/SoM/';
-            if ~isdir([patientDir num2str(pID)])
+            if ~isdir([patientDir num2str(specs.pID)])
                 disp('patient directory not found - exiting');
                 out = [];
                 return
@@ -107,11 +124,11 @@ switch specs.patientPool
         end
         
         % read electrode coordinate file from ECOG/SoM directory
-        D = dir([patientDir num2str(pID) '/*coor_T1*.txt']);
+        D = dir([patientDir num2str(specs.pID) '/*coor_T1*.txt']);
         if ~isempty(D)
             elec_file = D(1).name;
-            disp(['reading ' D(1).name]); % if there are multiple coor_T1 files for separate hemisphere, D(1) will always be the full list
-            fid = fopen([patientDir num2str(pID) '/' elec_file]); E = textscan(fid, '%s%f%f%f%s'); fclose(fid);
+            disp(['reading ' elec_file]); % if there are multiple coor_T1 files for separate hemisphere, D(1) will always be the full list
+            fid = fopen([patientDir num2str(specs.pID) '/' elec_file]); E = textscan(fid, '%s%f%f%f%s'); fclose(fid);
             elec_xyz = [E{2} E{3} E{4}]; 
             elec_labels = E{1};
             elec_types = unique(E{5});
@@ -145,7 +162,7 @@ end
 [indices, bestSqDist] = nearpoints(elec_xyz', vertices'); % function from vistasoft
 
 % ignore electrodes that are more than [thresh] away from any surface node
-keep_idx = find(bestSqDist<thresh);
+keep_idx = find(bestSqDist<specs.thresh);
 indices = indices(keep_idx);
 elec_xyz = elec_xyz(keep_idx,:);
 
@@ -153,7 +170,7 @@ elec_xyz = elec_xyz(keep_idx,:);
 atlasNames = {'wang2015_atlas', 'benson14_varea', 'benson14_eccen', 'benson14_angle', 'benson14_sigma', 'template_areas'};
 
 % Output
-out.patientID = pID;
+out.patientID = specs.pID;
     
 for a = 1:length(atlasNames)
     
@@ -297,7 +314,7 @@ for a = 1:length(atlasNames)
     % Plot
     switch plotmesh
         case 'yes'
-            figure('Name', [num2str(pID) ' ' currentAtlas]); hold on;
+            figure('Name', [num2str(specs.pID) ' ' currentAtlas]); hold on;
             
             plot_electrodes(elec_xyz, [1 1 1]*0.2,2);
             plot_electrodes(elec_xyz(elec_indices,:), [0 0 0],2);
@@ -395,5 +412,16 @@ function [x, y, z] = adjust_elec_label(xyz,radius)
     y = xyz(2);
 
 end
+
+
+%% PATH TO NOAH COLORMAPS:
+% '/Volumes/server/Projects/HCP/analysis/images'
+
+
+% alignment to fs average
+% find nearest node ID in pial surface of indiv.subj
+% find coordinate of this node ID in indiv.subj lh.sphere.reg
+% find nearest node ID with closest coordinate in fsaverage lh.sphere
+% that node ID gives you coordinates on lh.pial of fsaverage
 
 end
