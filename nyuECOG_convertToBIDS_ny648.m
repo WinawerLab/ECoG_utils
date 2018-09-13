@@ -1,8 +1,9 @@
 tbUse('ECoG_utils');
 
 % SCRIPT DESCRIPTION %
-% Takes BAIR data from NYU School of Medicine, gets onsets, splits runs
-% Adds BIDS Metadata
+% Takes BAIR data from NYU School of Medicine, gets onsets, writes out
+% separate runs for each tasks, including tsv event files
+% TO DO adds BIDS Metadata (json and electrode tsv files)
 
 %% Define paths and BIDS specs %%
 
@@ -13,9 +14,25 @@ BIDSDataDir = '/Volumes/server/Projects/BAIR/Data/BIDS/';
 % BIDS specs
 projectName = 'visual';
 sub_label = 'som648'; 
-ses_label = 'nyuECOG01';
-task_label = {'hrf'; 'soc'};
-run_label = {[1 2]; [1:12]}; %run_label = '01';
+ses_label = 'nyuecog01';
+task_label = {'bairhrfpattern',...
+              'bairsoc', ...
+              'bairsoc', ...
+              'bairsoc', ...
+              'bairsoc', ...
+              'bairsoc', ...
+              'bairsoc', ...            
+              'bairsoc', ...
+              'bairsoc', ... 
+              'bairsoc', ...              
+              'bairsoc', ...              
+              'bairsoc', ...              
+              'bairsoc', ...
+              'bairhrfpattern'};              
+run_label = {'01','01','02', '03','04', '05','06', '07','08', '09', '10','11','12', '02'};
+
+dataWriteDir = fullfile(BIDSDataDir, projectName, sprintf('sub-%s', sub_label), sprintf('ses-%s', ses_label), 'ieeg');
+stimWriteDir = fullfile(BIDSDataDir, projectName, 'stimuli');
 
 %% Read in ECoG data
 
@@ -37,7 +54,7 @@ triggerChannel = 138; % DC10
 
 triggers = data(triggerChannel,:);
 triggers = triggers / max(triggers);
-[~, trigger_onsets] = findpeaks(triggers, hdr.Fs, 'MinPeakHeight', 0.8, 'MinPeakDistance', .5);
+[~,trigger_onsets] = findpeaks(triggers, hdr.Fs, 'MinPeakHeight', 0.8, 'MinPeakDistance', .5);
 t = ((1:hdr.nSamples)/hdr.Fs); % time in seconds
 
 %% Read in stimulus files
@@ -46,94 +63,113 @@ t = ((1:hdr.nSamples)/hdr.Fs); % time in seconds
 stimDir = [RawDataDir num2str(patientID) '/stimdata/'];
 stimFiles = dir([stimDir num2str(patientID) '*2017*.mat']);
 
-%assert(length(stimFiles) == numel(run_label{:}))
-
 for ii = 1:length(stimFiles)
-   fileName = [stimDir filesep stimFiles(ii).name];
-   stimData(ii) = load(fileName) ;    
-   disp(stimData(ii).params.loadMatrix)
-   figure(ii); clf
-   plot(stimData(ii).stimulus.seqtiming, stimData(ii).stimulus.seq, 'o-')
+    fileName = [stimDir filesep stimFiles(ii).name];
+    stimData(ii) = load(fileName) ;    
+    disp(stimData(ii).params.loadMatrix)
+    figure(ii); clf
+    plot(stimData(ii).stimulus.seqtiming, stimData(ii).stimulus.seq, 'o-')
 end
 
-%% Get stimulus onsets from stimulus files (concatenate all runs)
+%% Get stimulus information from stimulus files (concatenate all runs), match to trigger onsets
 
-taskstimuli = []; taskindex = [];
+prescan  = 3; % seconds
+postscan = 3; % seconds
+
+num_trials_total = 0;
+
 for ii = 1:length(stimData)
     
-    stim0 = length(taskstimuli)+1;
+    stim0 = num_trials_total+1;
     
-    if max(taskind_hrf == ii) > 0 % hrf task
-        % For hrf, we just want the time of each event. First, check these from the
-        % stimulus file.
+    % generate filename
+    fname = sprintf('sub-%s_ses-%s_task-%s_run-%s', ...
+            sub_label, ses_label, task_label{ii}, run_label{ii});
+
+    if contains(task_label{ii}, 'hrf') %max(taskind_hrf == ii) > 0 % hrf task
+                
+        % get the timestamps
         blankIdx = mode(stimData(ii).stimulus.seq);
         blanks = stimData(ii).stimulus.seq == blankIdx;
-        num_trials = sum(~blanks);
-        taskindex = [taskindex ones(1,num_trials)];
-        taskstimuli = [taskstimuli 99*ones(size(find(~blanks)))];
         t0 = stimData(ii).stimulus.seqtiming(find(~blanks,1));
-        t = stimData(ii).stimulus.seqtiming(~blanks);
+        t_thisrun = stimData(ii).stimulus.seqtiming(~blanks);
+        
+        num_trials = sum(~blanks);
+        
+        % task-specific input for tsv file
+        duration   = ones(num_trials,1)*0.25;
+        ISI = zeros(num_trials,1);
+        trial_type = ones(num_trials,1);
+        trial_name = repmat('HRFPATTERN', num_trials, 1);
+        stim_file_index = stimData(ii).stimulus.seq(~blanks)';
+        
     else % soc task
-        taskstimuli = [taskstimuli stimData(ii).stimulus.cat];
-        num_trials = length(stimData(ii).stimulus.cat);
-        taskindex = [taskindex ones(1,num_trials)*2];
+        
+        % get the timestamps
         t0 = stimData(ii).stimulus.onsets(1);
-        t = stimData(ii).stimulus.onsets;
+        t_thisrun = stimData(ii).stimulus.onsets;
+        
+        num_trials = length(stimData(ii).stimulus.cat);
+        
+        % task-specific input for tsv file
+        duration   = stimData(ii).stimulus.duration(stimData(ii).stimulus.cat)';
+        ISI        = stimData(ii).stimulus.ISI(stimData(ii).stimulus.cat)';
+        trial_type = stimData(ii).stimulus.cat';
+        trial_name = stimData(ii).stimulus.categories(stimData(ii).stimulus.cat)';
+        stim_file_index = nan(num_trials,1);
+        for jj = 1:num_trials
+            trial_seq = stimData(ii).stimulus.trial(jj).seq;
+            stim_file_index(jj) = trial_seq(1);
+        end      
     end
+    
+    % get the onsets
+    num_trials_total = num_trials_total + num_trials;
+    onsets = trigger_onsets(stim0:num_trials_total);
+
+    % clip data from run using prescan postscan intervals
+    runstart = onsets(1)-prescan; % seconds
+    runstop = onsets(end)+postscan;
+    [~,run_start_inx] = intersect(t,runstart); % index
+    [~,run_stop_inx] = intersect(t,runstop);
+
+    data_thisrun = data(:,run_start_inx:run_stop_inx);
+    hdr_thisrun = hdr;
+    hdr_thisrun.nSamples = size(data_thisrun,2);
+
+    % write out new data file
+    data_fname = fullfile(dataWriteDir, sprintf('%s_ieeg.edf', fname));
+    ft_write_data(data_fname, data_thisrun, 'header', hdr_thisrun, 'dataformat', 'edf');
+
+    % collect info for tsv files
+    onset      = onsets'-onsets(1)+prescan;
+    stim_file  = repmat(fname, num_trials, 1);
+
+    % write out tsv file 
+    tsv_thisrun = table(onset, duration, ISI, trial_type, trial_name, stim_file, stim_file_index);
+    tsv_fname = fullfile(dataWriteDir, sprintf('%s_events.tsv', fname));
+    writetable(tsv_thisrun, tsv_fname, 'FileType','text', 'Delimiter', '\t')
+    
+    % write out stimulus file
+    stimfile_thisrun = stimData(ii);
+    stimfile_fname = fullfile(stimWriteDir, sprintf('%s.mat', fname));
+    save(stimfile_fname, '-struct', 'stimfile_thisrun', '-v7.3')
     
     % Plot the onsets from the stimulus file and the triggers to check whether
     % they are aligned
     figure,
     stem(trigger_onsets(stim0:stim0+num_trials-1)-trigger_onsets(stim0)); 
     hold on,
-    stem(t - t0, ':diamondr')
+    stem(t_thisrun - t0, ':diamondr')
     xlabel('Event number'); ylabel('Time (s)');
     legend('Triggers', 'Stimulus Onsets')
 end
 
 % Check that number of triggers derived from EDF matches number of trials
 % from stimulus files
-assert(isequal(length(trigger_onsets), length(taskstimuli)))
-
-category_names = stimData(2).stimulus.categories;
-
-onsets.hrf = trigger_onsets(taskindex == 1);
-onsets.soc = trigger_onsets(taskindex == 2);
-stimuli.hrf = taskstimuli(taskindex == 1);
-stimuli.soc = taskstimuli(taskindex == 2);
-
-%ft_write_data('test.edf', data, 'header', hdr, 'dataformat', 'edf');
-
-%% Reformat data files into separate runs / tasks    
-
-
-%taskind_hrf = [1 14];
-%soc_taskid  = [2:13];
+assert(isequal(length(trigger_onsets), num_trials_total))
 
 %data = edf2fieldtrip(fileName);
-
-
- 
-%% Load stimulus files
-% should be 2 (hrf) + 12 (soc) stimulus files
-cd(stimpth);
-stimfiles = dir([num2str(patientID) '*2017*.mat']);
-%stimdata = struct([]);
-for ii = 1:length(stimfiles)
-   stimData(ii) = load(stimfiles(ii).name) ;    
-   disp(stimData(ii).params.loadMatrix)
-   figure(ii); clf
-   plot(stimData(ii).stimulus.seqtiming, stimData(ii).stimulus.seq, 'o-')
-end
-%% Load data files
-cd(datapth);
-
-%[hdr.soc, data.soc] = edfread(datafiles(2).name);
-
-% reformat
-
-% save under appropriate subject/session/task/run labels
-
 
 %% rename and save T1 
 
