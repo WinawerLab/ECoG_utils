@@ -112,12 +112,13 @@ for ii = 1:length(stimFiles)
     fileName = [stimDir filesep stimFiles(ii).name];
     stimData(ii) = load(fileName) ;    
     disp(stimData(ii).params.loadMatrix)
-    %figure(ii); clf
-    %plot(stimData(ii).stimulus.seqtiming, stimData(ii).stimulus.seq, 'o-')
+    figure(ii); clf
+    plot(stimData(ii).stimulus.seqtiming, stimData(ii).stimulus.seq, 'o-')
 end
 
 % CHECK: Do we have all the stimfiles?
 assert(isequal(length(stimData), length(run_label)))
+nRuns = length(run_label);
 
 %% Create DATASET-SPECIFIC files %%%%%%%%%%%%%%%%%%
 
@@ -196,7 +197,7 @@ writetable(electrode_table,electrodes_tsv_name,'FileType','text','Delimiter','\t
 %   - ieeg.edf 
 %   - .mat with stimulus info per run (goes in main 'stimuli' folder)
 %   - ieeg.json 
-%   - channels.tsv TO DO
+%   - channels.tsv
 
 %% Big loop across runs
 
@@ -208,14 +209,14 @@ writetable(electrode_table,electrodes_tsv_name,'FileType','text','Delimiter','\t
 
 num_trials_total = 0;
 
-for ii = 1:length(stimData)
+for ii = 1:nRuns
     
     stim0 = num_trials_total+1;
     
     % Generate filename
     fname = sprintf('sub-%s_ses-%s_task-%s_run-%s', ...
             sub_label, ses_label, task_label{ii}, run_label{ii});
-    fprintf('Creating eeg, tsv, json and channel files for %s \n', fname);
+    fprintf('Creating eeg, events, stimuli, json and channel files for %s \n', fname);
     
     % Generate a json file default
     [ieeg_json, json_options] = createBIDS_ieeg_json_nyuSOM();
@@ -283,16 +284,20 @@ for ii = 1:length(stimData)
     hdr_thisrun.nSamples = size(data_thisrun,2);
 
     % Write out new data file
-    % EDF format --> has bug?? 
+    
+    % % EDF format --> has bug?? 
     %data_fname = fullfile(dataWriteDir, sprintf('%s_ieeg.edf', fname));
     %ft_write_data(data_fname, data_thisrun, 'header', hdr_thisrun, 'dataformat', 'edf');
+    
     % BVA format
     data_fname = fullfile(dataWriteDir, sprintf('%s_ieeg', fname));
     ft_write_data(data_fname, data_thisrun, 'header', hdr_thisrun, 'dataformat', 'brainvision_eeg');
+    
+    % % May need to zip files for Flywheel upload (check with Gio)
     %zip(data_fname, {sprintf('%s.eeg', data_fname), sprintf('%s.vhdr', data_fname), sprintf('%s.vmrk', data_fname)});
     %delete(sprintf('%s.eeg', data_fname), sprintf('%s.vhdr', data_fname), sprintf('%s.vmrk', data_fname));
     
-    % Collect info for tsv files
+    % Collect info for tsv file 
     onset      = round(onsets'-onsets(1)+prescan,3);
     stim_file  = repmat(fname, num_trials, 1);
 
@@ -306,25 +311,26 @@ for ii = 1:length(stimData)
     stimfile_fname = fullfile(stimWriteDir, sprintf('%s.mat', fname));
     save(stimfile_fname, '-struct', 'stimfile_thisrun', '-v7.3')
     
-    % Collect info for json_ieeg file for this run
+    % Collect info for json_ieeg file
     ieeg_json.SamplingFrequency = hdr_thisrun.Fs;
     ieeg_json.RecordingDuration = round(hdr_thisrun.nSamples/hdr_thisrun.Fs,3);
     
-    % Write out json_ieeg file for this run
+    % Write out json_ieeg file
     jsonfile_fname = fullfile(dataWriteDir, sprintf('%s_ieeg.json', fname));    
     jsonwrite(jsonfile_fname,ieeg_json,json_options)
     
-    % Write out channels.tsv file for this run
+    % Write out channels.tsv file
     channels_tsv_fname = fullfile(dataWriteDir, sprintf('%s_channels.tsv', fname));    
     writetable(channel_table,channels_tsv_fname,'FileType','text','Delimiter','\t');
     
-%     % CHECK: Are the onsets from the stimulus file and triggers aligned?
-%     figure,
-%     stem(trigger_onsets(stim0:stim0+num_trials-1)-trigger_onsets(stim0)); 
-%     hold on,
-%     stem(t_thisrun - t0, ':diamondr')
-%     xlabel('Event number'); ylabel('Time (s)');
-%     legend('Triggers', 'Stimulus Onsets')
+    % CHECK: Are the onsets from the stimulus file and triggers aligned?
+    figure,
+    stem(trigger_onsets(stim0:stim0+num_trials-1)-trigger_onsets(stim0)); 
+    hold on,
+    stem(t_thisrun - t0, ':diamondr')
+    xlabel('Event number'); ylabel('Time (s)');
+    legend('Triggers', 'Stimulus Onsets')
+
 end
 
 % CHECK: Do number of triggers derived from EDF match number
