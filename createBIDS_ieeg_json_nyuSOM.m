@@ -30,6 +30,12 @@ ieeg_json.SamplingFrequency = ''; % Sampling frequency (in Hz) of all the iEEG c
 ieeg_json.PowerLineFrequency = '60'; % Frequency (in Hz) of the power grid where 
 % the iEEG recording was done (i.e. 50 or 60) 
 
+ieeg_json.HardWareFilters = ''; % List of hardware (amplifier) filters applied with 
+% key:value pairs of filter parameters and their values.
+
+ieeg_json.SoftWareFilters = ''; % List of temporal software filters applied or ideally 
+% key:value pairs of pre-applied filters and their parameter values. (n/a if none).
+
 %% Optional fields:
 
 ieeg_json.Manufacturer = ''; % Manufacturer of the amplifier system  (e.g. "TDT, blackrock")
@@ -103,14 +109,7 @@ ieeg_json.iEEGReference = ''; % General description of the reference scheme used
 % should have a general description and the channel specific reference
 % should be defined in the _channels.tsv file.
 
-
 %% Optional fields:
-
-ieeg_json.HardWareFilters = ''; % List of hardware (amplifier) filters applied with 
-% key:value pairs of filter parameters and their values.
-
-ieeg_json.SoftWareFilters = ''; % List of temporal software filters applied or ideally 
-% key:value pairs of pre-applied filters and their parameter values. (n/a if none).
 
 ieeg_json.ElectrodeManufacturer = ''; % Can be used if all electrodes are of the 
 % same manufacturer (e.g. AD-TECH, DIXI). If electrodes of different manufacturers 
@@ -140,15 +139,8 @@ ieeg_json.Stimulation = ''; % Optional field to specify if electrical stimulatio
 ieeg_json.Medication = ''; %  Optional field to add medication that the patient 
 % was on during a recording. 
 
-%% write
-% jsonSaveDir = fileparts(ieeg_json_name);
-% if ~isdir(jsonSaveDir)
-%     fprintf('Warning: directory to save json file does not exist, create: %s \n',jsonSaveDir)
-% end
-
+%% 
 json_options.indent = '    '; % this just makes the json file look prettier 
 % when opened in a text editor
-
-%jsonwrite(ieeg_json_name,ieeg_json,json_options)
 
 end
