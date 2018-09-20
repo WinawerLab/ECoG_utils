@@ -1,4 +1,3 @@
-
 function [coordsystem_json, json_options] = createBIDS_ieeg_coordsystem_json_nyuSOM()
 
 % Adapted from BIDS_starter_kit createBIDS_ieeg_coordystem_json template
