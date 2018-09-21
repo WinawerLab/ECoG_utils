@@ -1,9 +1,18 @@
-tbUse('ECoG_utils');
+% tbUse('ECoG_utils');
 
 % SCRIPT DESCRIPTION %
 % Takes BAIR data from NYU School of Medicine, gets onsets, writes out
 % separate runs for each tasks, including tsv event files, and required
 % BIDS metadata (coordsystem json and electrodes and channels tsv files). 
+%
+% Remarks:
+% - Now writing data in BVA format (.eeg, .vhdr, .vmrk), because of a bug
+% with EDF writing, but this can easily be changed (comment/uncomment the
+% code below line 295). Can also decide to zip the BVA files for Flywheel
+% (currently turned off).
+% - Should we put the original data in /sourcedata/ folder? (may depend on
+% whether data is sufficiently anonymized)
+% - Should there be a json sidecar with the T1 file?
 
 %% Define paths and BIDS specs %%
 
@@ -333,8 +342,8 @@ for ii = 1:nRuns
 
 end
 
-% CHECK: Do number of triggers derived from EDF match number
-% of trials from stimulus files?
+% CHECK: Do number of triggers derived from EDF data file match the number
+% of trials from the stimulus files?
 assert(isequal(length(trigger_onsets), num_trials_total))
 
 

@@ -18,8 +18,9 @@ data           = ft_preprocessing(cfg);
 
 %%
 %%
-fileName = '/Volumes/server/Projects/BAIR/Data/Raw/ECoG/648/NY648_Winawer.edf';
+%fileName = '/Volumes/server/Projects/BAIR/Data/Raw/ECoG/648/NY648_Winawer.edf';
 
+cd ~/Desktop
 fileName = 'examplerecording.edf';
 data_in = ft_read_data(fileName); 
 hdr_in = ft_read_header(fileName);
