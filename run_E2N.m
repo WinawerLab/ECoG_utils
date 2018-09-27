@@ -5,9 +5,17 @@ tbUse('ECoG_utils');
 
 specs = [];
 
-specs.pID      = '668';
-specs.plotmesh  = 'yes'; % plot meshes with atlases for each subject: yes or no
-specs.plotlabel = 'yes'; % plot electrode labels on mesh: yes or no
+specs.pID           = '668'; % patient ID number
+specs.atlasNames    = {'wang2015_atlas', 'benson14_varea', 'benson14_eccen'}; % default is all of these maps: 
+                                                            % {'wang2015_atlas',
+                                                            % 'benson14_varea',
+                                                            % 'benson14_eccen',
+                                                            % 'benson14_angle',
+                                                            % 'benson14_sigma',
+                                                            % 'template_areas'};
+specs.plotmesh      = 'yes'; % plot meshes with atlases for each subject: yes or no
+specs.plotlabel     = 'yes'; % plot electrode labels on mesh: yes or no
+specs.plotcolorbar  = 'yes'; % plot colorbar
 
 out = electrode_to_nearest_node(specs);
 

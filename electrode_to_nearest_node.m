@@ -43,7 +43,7 @@ function [out] = electrode_to_nearest_node(specs)
 % specs.patientPool = 'BAIR';
 % specs.plotmesh  = 'yes'; % plot meshes with atlases for each subject: yes or no
 % specs.plotlabel = 'yes'; % plot electrode labels on mesh: yes or no
-%
+
 % EXAMPLE OUTPOUT:
 % out.benson14_varea
 %   struct with fields:
@@ -68,8 +68,13 @@ if ~isfield(specs, 'thresh') || isempty(specs.thresh)
     specs.thresh = inf;
 end
 
+if ~isfield(specs, 'atlasNames') || isempty(specs.atlasNames)
+    specs.atlasNames = {'wang2015_atlas', 'benson14_varea', 'benson14_eccen', 'benson14_angle', 'benson14_sigma', 'template_areas'};
+end
+
 plotlabel = specs.plotlabel;
 plotmesh  = specs.plotmesh;
+plotbar   = specs.plotcolorbar;
 
 % RUN
 if ~isfield(specs, 'pID') || isempty(specs.pID)
@@ -166,15 +171,12 @@ keep_idx = find(bestSqDist<specs.thresh);
 indices = indices(keep_idx);
 elec_xyz = elec_xyz(keep_idx,:);
 
-% node indices to atlases
-atlasNames = {'wang2015_atlas', 'benson14_varea', 'benson14_eccen', 'benson14_angle', 'benson14_sigma', 'template_areas'};
-
 % Output
 out.patientID = specs.pID;
     
-for a = 1:length(atlasNames)
+for a = 1:length(specs.atlasNames)
     
-    currentAtlas = atlasNames{a};
+    currentAtlas = specs.atlasNames{a};
     
     % Get atlases for this subject
     atlas_file_rh = [specs.fsDir '/surf/rh.' currentAtlas '.mgz'];
@@ -194,16 +196,6 @@ for a = 1:length(atlasNames)
     [elec_indices] = find(atlas_elec);
     elec_labels_found = elec_labels(elec_indices);
     node_indices = indices(elec_indices);
-    
-    % Clip Benson atlases (results in better colormap scaling)
-    switch currentAtlas
-        case 'benson14_eccen'
-            atlas(atlas>12) = 12.00;
-        case 'benson14_sigma'
-            atlas(atlas>6) = 6.00;
-        case 'benson14_angle'
-            %area_cmap_rh = A.cmap(:,6:8);
-    end
     
     if ~isempty(elec_labels_found)
 
@@ -271,7 +263,7 @@ for a = 1:length(atlasNames)
                         
                         A = load(['colormap_' currentAtlas]);
                         disp(['loading colormap_' currentAtlas]);
-                        area_cmap = A.cmap(:,2:4);
+                        area_cmap = A.cmap(15:end-200,2:4);
 
                         %atlas_range = range(atlas);
                         %cmap_index = round(linspace(1,length(area_cmap),atlas_range));
@@ -296,15 +288,30 @@ for a = 1:length(atlasNames)
                 out.(currentAtlas).elec_labels  = elec_labels_found';
                 out.(currentAtlas).area_labels  = area_labels_found;
                 out.(currentAtlas).node_indices = node_indices;
+                atlasUnits = 'visual area';
 
             case 'benson14_eccen'
                 out.benson14_varea.node_eccen = round(atlas(out.benson14_varea.node_indices),2)';
+                atlasUnits = 'degrees';
+                % bin eccentricity values
+%                 atlas_rh(atlas_rh > 0 & atlas_rh < 2) = 1; 
+%                 atlas_lh(atlas_lh > 0 & atlas_lh < 2) = 1;
+%                 atlas_rh(atlas_rh > 2 & atlas_rh < 8) = 5;
+%                 atlas_lh(atlas_lh > 2 & atlas_lh < 8) = 5;
+%                 atlas_rh(atlas_rh > 8) = 8;
+%                 atlas_lh(atlas_lh > 8) = 8;
+%                atlas_rh = ceil(atlas_rh);
+%                atlas_lh = ceil(atlas_lh);
+%                atlas_rh(atlas_rh > 20) = 20;
 
             case 'benson14_angle' 
                 out.benson14_varea.node_angle = round(atlas(out.benson14_varea.node_indices),2)';
+                atlasUnits = 'degrees';
+                % atlas(atlas>6) = 6.00;
 
             case 'benson14_sigma'
                 out.benson14_varea.node_sigma = round(atlas(out.benson14_varea.node_indices),2)';
+                atlasUnits = 'degrees';
         end
     else
         disp(['no electrodes in ' currentAtlas]);
@@ -315,19 +322,46 @@ for a = 1:length(atlasNames)
     switch plotmesh
         case 'yes'
             figure('Name', [num2str(specs.pID) ' ' currentAtlas]); hold on;
-            
-            plot_electrodes(elec_xyz, [1 1 1]*0.2,2);
-            plot_electrodes(elec_xyz(elec_indices,:), [0 0 0],2);
-
+                    
+            % Plot mesh
             t_r = trimesh(faces_r+1, vertices_r(:,1), vertices_r(:,2), vertices_r(:,3), atlas_rh, 'FaceColor', 'flat'); 
             t_r.LineStyle = 'none';
             axis equal; hold on;
             t_l = trimesh(faces_l+1, vertices_l(:,1), vertices_l(:,2), vertices_l(:,3), atlas_lh, 'FaceColor', 'flat'); 
             t_l.LineStyle = 'none';             
             cmap = [[1 1 1]*.7; area_cmap];
-            colormap(cmap); 
-            caxis([0 max(atlas)]); %length(area_cmap)]);
-
+            colormap(gcf,cmap);
+           
+             % Clip Benson atlases (results in better colormap scaling)
+            switch currentAtlas
+                case 'benson14_eccen'
+                    caxis([0 20]);
+                case 'benson14_sigma'
+                    caxis([0 10]);
+                otherwise
+                    caxis([0 max(atlas)]); %length(area_cmap)]);
+            end
+            
+            % Add colorbar?
+            switch plotbar
+                case 'yes'
+                    cb = colorbar;
+                    cb.FontSize = 18;
+                    cb.Color = [0 0 0];
+                    cb.Label.String = atlasUnits;
+                    cb.Position = [0.8 0.25 0.03 0.5];
+                    switch currentAtlas
+                        case {'wang2015_atlas', 'benson14_varea', 'template_areas'}
+                            cb.Ticks = 0:1:length(area_labels);
+                            cb.TickLabels = ['none', area_labels];
+                    end   
+            end
+            
+            % Plot electrodes
+            plot_electrodes(elec_xyz, [1 1 1]*0.2,2);
+            plot_electrodes(elec_xyz(elec_indices,:), [0 0 0],2);
+  
+            % Plot matched nodes
             plot_electrodes(vertices(indices,:), [1 1 1]*0.8, 1);
             plot_electrodes(vertices(indices(elec_indices),:), [1 1 1], 1);
             switch plotlabel
@@ -337,25 +371,38 @@ for a = 1:length(atlasNames)
                         text('Position',[x y z],'String',elec_labels(i,:),'Color','w','VerticalAlignment','top');
                     end
             end
-            axis off; set(gcf, 'color','black','InvertHardCopy', 'off');
+            
+            % Set view parameters
+            axis off; set(gcf, 'color','white','InvertHardCopy', 'off');
             view(0,0);
             material dull;
 
             h=light; lightangle(h,  45, 45); lighting gouraud;
             h=light; lightangle(h, -45, 45); lighting gouraud;
             h=light; lightangle(h, -45, -90); lighting gouraud;
+%             h=light; lightangle(h, 45, 75); lighting gouraud;
+%             h=light; lightangle(h, -45, 75); lighting gouraud;
+%             h=light; lightangle(h, 0, -90); lighting gouraud;
+%             
+            set(gcf, 'Position', [150 100 1500 1250]);
         otherwise
             % Do not plot
     end
 end
 
-
 % Print to window how many maps were found, and
 % make a count per area (across hemispheres)
 
-% node indices to atlases
-atlasNames = {'wang2015_atlas', 'benson14_varea', 'template_areas'};
+% Check which of these atlases we ran
+atlasNames = intersect({'wang2015_atlas', 'benson14_varea', 'template_areas'}, specs.atlasNames);
 
+% In case not all benson maps were run, fill fields to prevent error below
+if max(contains(atlasNames, 'benson14_varea'))
+    if ~isfield(out.benson14_varea, 'node_eccen'); out.benson14_varea.node_eccen = nan(1,length(out.benson14_varea.node_indices));end
+    if ~isfield(out.benson14_varea, 'node_angle'); out.benson14_varea.node_angle = nan(1,length(out.benson14_varea.node_indices));end
+    if ~isfield(out.benson14_varea, 'node_sigma'); out.benson14_varea.node_sigma = nan(1,length(out.benson14_varea.node_indices));end
+end      
+    
 for a = 1:length(atlasNames)
     currentAtlas = atlasNames{a};
     
@@ -365,7 +412,7 @@ for a = 1:length(atlasNames)
             
         for i = 1:length(out.(currentAtlas).elec_labels)            
             switch currentAtlas
-                case {'wang2015_atlas', 'template_areas'};
+                case {'wang2015_atlas', 'template_areas'}
                     disp([out.(currentAtlas).elec_labels{i} ' in area ' out.(currentAtlas).area_labels{i}]);
                 case 'benson14_varea'
                     disp([out.(currentAtlas).elec_labels{i} ' in area ' out.(currentAtlas).area_labels{i} ...
