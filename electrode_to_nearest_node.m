@@ -4,16 +4,29 @@ function [out] = electrode_to_nearest_node(specs)
 % This function matches a list of electrode locations in an ECoG patient to
 % the nearest node in their T1s freesurfer pial surface reconstruction,
 % determines which of those nodes fall within a set of visual regions
-% specified by two probabilistic atlases, and extracts node information.
-% Note that electrode coordinates should be specified in the T1 volume
-% space that was used to obtain the freesurfer reconstruction.
+% specified by several probabilistic atlases, and extracts node
+% information. Note that electrode coordinates should be specified in the
+% T1 volume space that was used to obtain the freesurfer reconstruction.
 %
-% INPUT: a struct containing the following fields:
+% REQUIRED INPUT: a struct containing the following fields:
 % specs.pID         = patient ID 
-% specs.plotmesh    = flag to plot meshes with atlases: yes/no
-% specs.plotlabel   = flag to plot electrode labels on mesh: yes/no
 %
 % OPTIONAL additional fields: 
+% specs.atlasNames  = list of atlases to match electrode locations with.
+%                     Current options are (default = all):
+%                                         {'wang2015_atlas', ...
+%                                          'benson14_varea', ...
+%                                          'benson14_eccen', ...
+%                                          'benson14_angle', ...
+%                                          'benson14_sigma', ...
+%                                          'template_areas'};
+%                     NOTE: including benson14_varea is required to
+%                     be able to obtain benson14_eccen, angle and sigma
+% specs.plotmesh    = flag to plot meshes with atlases: 'left', 'right',
+%                     'both', 'none';
+% specs.plotelecs   = flag to plot electrodes on mesh: 'yes', 'no'
+% specs.plotlabel   = flag to plot electrode labels on mesh: 'yes', 'no'
+% specs.plotcolorbar= flag to plot colorbar for the atlas: 'yes', 'no'
 % specs.thresh      = maximum allowed distance between electrode and node,
 %                     in mm (if empty, thresh is infinite, meaning that the
 %                     electrode can be infinitely far) - default empty
@@ -37,24 +50,26 @@ function [out] = electrode_to_nearest_node(specs)
 %                     sigma estimates for these nodes (probabilistic)
 %   
 % EXAMPLE INPUT:
-% specs.pID      = '648';
-% specs.fsDir    = '/Volumes/server/Freesurfer_subjects/som648';
-% specs.thresh   = []; % default is 20 mm
-% specs.patientPool = 'BAIR';
-% specs.plotmesh  = 'yes'; % plot meshes with atlases for each subject: yes or no
-% specs.plotlabel = 'yes'; % plot electrode labels on mesh: yes or no
-
+% specs.pID           = '668'; % patient ID number
+% specs.plotmesh      = 'left'; % left, right, both, or none
+% specs.plotelecs     = 'no'; % yes or no
+% out = electrode_to_nearest_node(specs);
+% 
 % EXAMPLE OUTPOUT:
 % out.benson14_varea
 %   struct with fields:
 %       area_names: {'V1'  'V2'  'V3'  'hV4'  'VO1'  'VO2'  'LO1'  'LO2'  'TO1'  'TO2'  'V3b'  'V3a'}
-%       area_count: [0 2 0 0 0 1 0 0 2 3 1 4]
-%      elec_labels: {'G05'  'G06'  'G07'  'G08'  'G15'  'G16'  'G24'  'IO01'  'MO01'  'MO02'  'MO03'  'MO04'  'DPIL06'}
-%      area_labels: {'V3a'  'V3b'  'TO1'  'TO1'  'TO2'  'TO2'  'TO2'  'VO2'  'V2'  'V2'  'V3a'  'V3a'  'V3a'}
-%     node_indices: [157670 157047 155681 155786 163093 164068 169918 186636 143611 143710 144737 147429 154577]
-%       node_eccen: [1.09 8.29 1.29 0.29 12 0.12 0.08 0.24 4.85 3.85 2.96 10.23 12]
-%       node_angle: [19 142.41 143.17 159.98 69.79 60.39 113.53 99.7 140.68 92.95 162.34 113.24 176.61]
-%       node_sigma: [1.39 3.96 1.94 0.57 6 0.21 0.14 0.49 0.97 0.8 2.06 4.66 6]
+%       area_count: [0 0 0 0 0 0 0 4 2 0 1 0]
+%      elec_labels: {'LTO01'  'LTO02'  'LTO03'  'RTO01'  'RTO02'  'DLLT08'  'DLLT09'}
+%      area_labels: {'LO2'  'LO2'  'TO1'  'V3b'  'LO2'  'TO1'  'LO2'}
+%     node_indices: [154623 159762 168662 11390 20685 177358 169529]
+%       node_eccen: [0.39 0.21 0.11 2.42 9.45 5.82 27.62]
+%       node_angle: [106.68 178.32 177.33 136.13 80.88 0 64.06]
+%       node_sigma: [0.75 0.61 0.33 1.87 7.52 8.16 21.11]
+      
+if ~isfield(specs, 'atlasNames') || isempty(specs.atlasNames)
+    specs.atlasNames = {'wang2015_atlas', 'benson14_varea', 'benson14_eccen', 'benson14_angle', 'benson14_sigma', 'template_areas'};
+end
 
 if ~isfield(specs, 'patientPool') || isempty(specs.patientPool)
     specs.patientPool = 'SOM'; 
@@ -68,12 +83,30 @@ if ~isfield(specs, 'thresh') || isempty(specs.thresh)
     specs.thresh = inf;
 end
 
-if ~isfield(specs, 'atlasNames') || isempty(specs.atlasNames)
-    specs.atlasNames = {'wang2015_atlas', 'benson14_varea', 'benson14_eccen', 'benson14_angle', 'benson14_sigma', 'template_areas'};
+if ~isfield(specs, 'plotmesh') || isempty(specs.plotmesh)
+    specs.plotmesh = 'both';
 end
 
-plotlabel = specs.plotlabel;
+if ~isfield(specs, 'plotelecs') || isempty(specs.plotelecs)
+    switch specs.plotmesh
+        case 'none'
+            specs.plotelecs = 'no';
+        otherwise
+            specs.plotelecs = 'yes';
+    end
+end
+
+if ~isfield(specs, 'plotlabel') || isempty(specs.plotlabel)
+    specs.plotlabel = 'yes';
+end
+
+if ~isfield(specs, 'plotcolorbar') || isempty(specs.plotcolorbar)
+    specs.plotcolorbar = 'yes';
+end
+
 plotmesh  = specs.plotmesh;
+plotelecs = specs.plotelecs;
+plotlabel = specs.plotlabel;
 plotbar   = specs.plotcolorbar;
 
 % RUN
@@ -259,18 +292,25 @@ for a = 1:length(specs.atlasNames)
             otherwise
                 
                 switch specs.plotmesh
-                    case 'yes'
-                        
+                    case {'both', 'left', 'right'}
+                    
                         A = load(['colormap_' currentAtlas]);
                         disp(['loading colormap_' currentAtlas]);
-                        area_cmap = A.cmap(15:end-200,2:4);
+                        
+                        switch currentAtlas
+                            case 'benson14_eccen'
+                                area_cmap = A.cmap(15:end-200,2:4);
+                            otherwise
+                                area_cmap = A.cmap(:,2:4); 
+                                % actually different colormaps should be
+                                % used for left and right polar angle, but
+                                % not possible to implement for 'both
+                                % hemisphere ' plot
+                        end
 
                         %atlas_range = range(atlas);
                         %cmap_index = round(linspace(1,length(area_cmap),atlas_range));
-                        %area_cmap = area_cmap(cmap_index,:);  
-                    
-                    otherwise
-                        % do nothing
+                        %area_cmap = area_cmap(cmap_index,:);   
                 end
         end
         
@@ -293,13 +333,7 @@ for a = 1:length(specs.atlasNames)
             case 'benson14_eccen'
                 out.benson14_varea.node_eccen = round(atlas(out.benson14_varea.node_indices),2)';
                 atlasUnits = 'degrees';
-                % bin eccentricity values
-%                 atlas_rh(atlas_rh > 0 & atlas_rh < 2) = 1; 
-%                 atlas_lh(atlas_lh > 0 & atlas_lh < 2) = 1;
-%                 atlas_rh(atlas_rh > 2 & atlas_rh < 8) = 5;
-%                 atlas_lh(atlas_lh > 2 & atlas_lh < 8) = 5;
-%                 atlas_rh(atlas_rh > 8) = 8;
-%                 atlas_lh(atlas_lh > 8) = 8;
+                % bin eccentricity values?
 %                atlas_rh = ceil(atlas_rh);
 %                atlas_lh = ceil(atlas_lh);
 %                atlas_rh(atlas_rh > 20) = 20;
@@ -320,18 +354,41 @@ for a = 1:length(specs.atlasNames)
         
     % Plot
     switch plotmesh
-        case 'yes'
-            figure('Name', [num2str(specs.pID) ' ' currentAtlas]); hold on;
-                    
+        
+        case 'none'
+            % Do nothing
+            
+        otherwise
+            
             % Plot mesh
-            t_r = trimesh(faces_r+1, vertices_r(:,1), vertices_r(:,2), vertices_r(:,3), atlas_rh, 'FaceColor', 'flat'); 
-            t_r.LineStyle = 'none';
+            fig = figure('Name', [num2str(specs.pID) ' ' currentAtlas]); hold on;
+            
+            switch plotmesh
+                case 'both'          
+                    
+                    t_r = trimesh(faces_r+1, vertices_r(:,1), vertices_r(:,2), vertices_r(:,3), atlas_rh, 'FaceColor', 'flat'); 
+                    t_r.LineStyle = 'none';
+                    hold on;
+                    t_l = trimesh(faces_l+1, vertices_l(:,1), vertices_l(:,2), vertices_l(:,3), atlas_lh, 'FaceColor', 'flat'); 
+                    t_l.LineStyle = 'none';             
+                    
+                case 'left'
+
+                    t_l = trimesh(faces_l+1, vertices_l(:,1), vertices_l(:,2), vertices_l(:,3), atlas_lh, 'FaceColor', 'flat'); 
+                    t_l.LineStyle = 'none';             
+                
+                case 'right'
+                    
+                    % Plot mesh
+                    t_r = trimesh(faces_r+1, vertices_r(:,1), vertices_r(:,2), vertices_r(:,3), atlas_rh, 'FaceColor', 'flat'); 
+                    t_r.LineStyle = 'none';
+                    
+            end
+            
             axis equal; hold on;
-            t_l = trimesh(faces_l+1, vertices_l(:,1), vertices_l(:,2), vertices_l(:,3), atlas_lh, 'FaceColor', 'flat'); 
-            t_l.LineStyle = 'none';             
             cmap = [[1 1 1]*.7; area_cmap];
             colormap(gcf,cmap);
-           
+                
              % Clip Benson atlases (results in better colormap scaling)
             switch currentAtlas
                 case 'benson14_eccen'
@@ -356,37 +413,61 @@ for a = 1:length(specs.atlasNames)
                             cb.TickLabels = ['none', area_labels];
                     end   
             end
+    end
+    
+    switch plotelecs
+        
+        case 'yes'            
+            if ~exist('fig','var')
+                fig = figure('Name', [num2str(specs.pID) ' ' currentAtlas]); hold on;
+            end
+
+            switch plotmesh
+                case 'left'
+                    electoplot = find(elec_xyz(:,1) < 0);
+                    elec_indices = intersect(elec_indices,electoplot);
+                    elec_plotindex = electoplot;
+                case 'right'
+                    electoplot = find(elec_xyz(:,1) >= 0);
+                    elec_indices = intersect(elec_indices,electoplot);
+                    elec_plotindex = electoplot;
+                otherwise
+                    elec_plotindex = 1:size(elec_xyz,1);
+            end
             
             % Plot electrodes
-            plot_electrodes(elec_xyz, [1 1 1]*0.2,2);
+            plot_electrodes(elec_xyz(elec_plotindex,:), [1 1 1]*0.2,2);
             plot_electrodes(elec_xyz(elec_indices,:), [0 0 0],2);
-  
+
             % Plot matched nodes
-            plot_electrodes(vertices(indices,:), [1 1 1]*0.8, 1);
+            plot_electrodes(vertices(indices(elec_plotindex),:), [1 1 1]*0.8, 1);
             plot_electrodes(vertices(indices(elec_indices),:), [1 1 1], 1);
+            
             switch plotlabel
                 case 'yes'
-                    for i = 1:size(elec_xyz,1)
-                        [x, y, z] = adjust_elec_label(elec_xyz(i,:),2);
+                    for i = 1:size(elec_xyz(elec_plotindex),1)
+                        [x, y, z] = adjust_elec_label(elec_xyz(elec_plotindex(i),:),2);
                         text('Position',[x y z],'String',elec_labels(i,:),'Color','w','VerticalAlignment','top');
                     end
             end
             
-            % Set view parameters
-            axis off; set(gcf, 'color','white','InvertHardCopy', 'off');
-            view(0,0);
-            material dull;
-
-            h=light; lightangle(h,  45, 45); lighting gouraud;
-            h=light; lightangle(h, -45, 45); lighting gouraud;
-            h=light; lightangle(h, -45, -90); lighting gouraud;
-%             h=light; lightangle(h, 45, 75); lighting gouraud;
-%             h=light; lightangle(h, -45, 75); lighting gouraud;
-%             h=light; lightangle(h, 0, -90); lighting gouraud;
-%             
-            set(gcf, 'Position', [150 100 1500 1250]);
         otherwise
-            % Do not plot
+            % do nothing
+    end
+           
+    if exist('fig','var')
+        
+        % Set view parameters
+        axis off; set(gcf, 'color','white','InvertHardCopy', 'off');
+        view(0,0);
+        material dull;
+
+        h=light; lightangle(h,  45, 45); lighting gouraud;
+        h=light; lightangle(h, -45, 45); lighting gouraud;
+        h=light; lightangle(h, -45, -90); lighting gouraud;
+
+        set(gcf, 'Position', [150 100 1500 1250]);
+        
     end
 end
 
@@ -397,7 +478,7 @@ end
 atlasNames = intersect({'wang2015_atlas', 'benson14_varea', 'template_areas'}, specs.atlasNames);
 
 % In case not all benson maps were run, fill fields to prevent error below
-if max(contains(atlasNames, 'benson14_varea'))
+if max(contains(atlasNames, 'benson14_varea')) &&  ~isempty(out.benson14_varea)
     if ~isfield(out.benson14_varea, 'node_eccen'); out.benson14_varea.node_eccen = nan(1,length(out.benson14_varea.node_indices));end
     if ~isfield(out.benson14_varea, 'node_angle'); out.benson14_varea.node_angle = nan(1,length(out.benson14_varea.node_indices));end
     if ~isfield(out.benson14_varea, 'node_sigma'); out.benson14_varea.node_sigma = nan(1,length(out.benson14_varea.node_indices));end
