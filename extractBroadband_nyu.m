@@ -41,7 +41,7 @@ end
     
 
 % band pass filter each sub-band
-bp  = zeros([size(x) size(bands,1)]);
+bp  = zeros([size(x) size(bands,1)], 'single');
 for ii = 1:size(bands,1)
     bp(:,:, ii) = butterpass_eeglabdata_nyu(x,bands(ii,:),srate);
 end
