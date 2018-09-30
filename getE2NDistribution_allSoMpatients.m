@@ -13,13 +13,13 @@ pIDs2 = [439 496 503 507 516 523 559 560 561 562 563 ...
 pIDs = [pIDs pIDs2];
 
 % run script for each patient
+specs = [];
 out_all = cell(length(pIDs),1);
 for i = 1:length(pIDs)
     
     specs.pID         = num2str(pIDs(i));
-    specs.plotmesh  = 'no'; % plot meshes with atlases for each subject: yes or no
-    specs.plotlabel = 'no'; % plot electrode labels on mesh: yes or no
-
+    specs.plotmesh  = 'none'; % plot meshes with atlases for each subject: yes or no
+  
     out_all{i} = electrode_to_nearest_node(specs);
     %out_all{i} = electrode_to_nearest_node_fsaverage(specs);
 end
@@ -72,7 +72,7 @@ for a = 1:length(atlasNames)
     end
 end
 
-% To get a list with all the subjects with coverage in Wang atlas:
+% To get a list with all the subjects with coverage in e.g. Wang atlas:
 test = out_all(VisCov.indices.wang2015_atlas);
 
 

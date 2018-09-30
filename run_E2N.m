@@ -5,11 +5,27 @@ tbUse('ECoG_utils');
 
 specs = [];
 
-specs.pID      = '668';
-specs.plotmesh  = 'yes'; % plot meshes with atlases for each subject: yes or no
-specs.plotlabel = 'yes'; % plot electrode labels on mesh: yes or no
+specs.pID           = '668'; % patient ID number
+%specs.atlasNames    = {'wang2015_atlas', 'benson14_varea', 'benson14_eccen'}; 
+                        % default is all of these maps: 
+                        % {'wang2015_atlas', ...
+                        % 'benson14_varea', ...
+                        % 'benson14_eccen', ...
+                        % 'benson14_angle', ...
+                        % 'benson14_sigma', ...
+                        % 'template_areas'};
+                        % NOTE: including benson14_varea is required to
+                        % be able to obtain benson14_eccen, angle and sigma
+specs.plotmesh      = 'left'; % left, right, both, or none
+specs.plotelecs     = 'no'; % yes or no
 
 out = electrode_to_nearest_node(specs);
+
+%% to change one of the output figs to an 'empty' brain:
+cmap = [1 1 1] * 0.7;colormap(cmap);colorbar off
+
+%% to change view to lateral:
+view(-90,0);
 
 %% NEED TO FIX:UMCU
 
