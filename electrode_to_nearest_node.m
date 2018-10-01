@@ -206,7 +206,8 @@ elec_xyz = elec_xyz(keep_idx,:);
 
 % Output
 out.patientID = specs.pID;
-    
+
+
 for a = 1:length(specs.atlasNames)
     
     currentAtlas = specs.atlasNames{a};

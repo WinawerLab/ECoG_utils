@@ -1,5 +1,7 @@
 % close all;
-tbUse('ECoG_utils');
+if isempty(which('electrode_to_nearest_node'))
+    tbUse('ECoG_utils');
+end
 
 %% run script for a specific patient (with plotmesh on) to look at electrodes on brain
 
@@ -22,10 +24,47 @@ specs.plotelecs     = 'no'; % yes or no
 out = electrode_to_nearest_node(specs);
 
 %% to change one of the output figs to an 'empty' brain:
-cmap = [1 1 1] * 0.7;colormap(cmap);colorbar off
 
-%% to change view to lateral:
+% Pick one of the figures and get its handle
+fH = gcf;
+
+
+% to change view to lateral:
 view(-90,0);
+
+% Find the patch object
+h = findobj(fH, 'type', 'patch');
+
+% The background color is probably the modal color
+md = mode(h.FaceVertexCData);
+
+% Set all vertices to the modal color
+h.FaceVertexCData(:) = md;
+
+colorbar off
+
+% If desired, get user to click a location
+datacursormode on
+dcmObj = datacursormode(fH);
+set(dcmObj,'SnapToDataVertex','off','Enable','on')
+
+waitforbuttonpress();
+point1 = getCursorInfo(dcmObj);
+x = point1.Position(1);
+y = point1.Position(2);
+z = point1.Position(3);
+
+
+v = h.Vertices;
+xyzdiff = bsxfun(@minus, v, [x y z]);
+
+dist = sqrt(sum(xyzdiff.^2,2));
+
+mask = dist < radius;
+
+h.FaceVertexCData(mask) = 1;
+
+
 
 %% NEED TO FIX:UMCU
 
