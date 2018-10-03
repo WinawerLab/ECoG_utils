@@ -389,7 +389,7 @@ for a = 1:length(specs.atlasNames)
             axis equal; hold on;
             cmap = [[1 1 1]*.7; area_cmap];
             colormap(gcf,cmap);
-                
+                        
              % Clip Benson atlases (results in better colormap scaling)
             switch currentAtlas
                 case 'benson14_eccen'
@@ -407,7 +407,7 @@ for a = 1:length(specs.atlasNames)
                     cb.FontSize = 18;
                     cb.Color = [0 0 0];
                     cb.Label.String = atlasUnits;
-                    cb.Position = [0.8 0.25 0.03 0.5];
+                    cb.Position = [0.92 0.25 0.03 0.5];
                     switch currentAtlas
                         case {'wang2015_atlas', 'benson14_varea', 'template_areas'}
                             cb.Ticks = 0:1:length(area_labels);
@@ -446,9 +446,9 @@ for a = 1:length(specs.atlasNames)
             
             switch plotlabel
                 case 'yes'
-                    for i = 1:size(elec_xyz(elec_plotindex),1)
+                    for i = 1:size(elec_xyz(elec_plotindex,:),1)
                         [x, y, z] = adjust_elec_label(elec_xyz(elec_plotindex(i),:),2);
-                        text('Position',[x y z],'String',elec_labels(i,:),'Color','w','VerticalAlignment','top');
+                        text('Position',[x y z],'String',elec_labels(elec_plotindex(i),:),'Color','w','VerticalAlignment','top');
                     end
             end
             
@@ -468,7 +468,7 @@ for a = 1:length(specs.atlasNames)
         h=light; lightangle(h, -45, -90); lighting gouraud;
 
         set(gcf, 'Position', [150 100 1500 1250]);
-        
+        axis tight
     end
 end
 
