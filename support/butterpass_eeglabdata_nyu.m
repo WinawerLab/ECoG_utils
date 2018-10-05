@@ -1,8 +1,8 @@
-function [band_sig]=butterpass_eeglabdata(signal,band,srate, Rp, Rs, bw)
+function [band_sig]=butterpass_eeglabdata_nyu(signal,band,srate, Rp, Rs, bw)
 %% Bandpass filter a time series using a butterworth filter
 % [band_sig]=butterpass_eeglabdata(signal,band,srate, Rp, Rs, bw)
 %
-% Modified from Dora's code
+% Modified from Dora's code by Jon
 %
 % INPUTS:
 %   signal: ( time X channels)    

@@ -47,9 +47,13 @@ dataWriteDir = fullfile(BIDSDataDir, projectName, sprintf('sub-%s', sub_label), 
 stimWriteDir = fullfile(BIDSDataDir, projectName, 'stimuli');
 T1WriteDir   = fullfile(BIDSDataDir, projectName, sprintf('sub-%s', sub_label), sprintf('ses-%s', ses_labelt1), 'anat');
 
-% Define run pre and post baseline periods
-prescan  = 3; % seconds
-postscan = 3; % seconds
+% Define temporal parameters
+prescan   = 3; % Segment each run with this amount before the first stimulus onset (seconds)
+postscan  = 3; % Segment each run with this amount after the last stimulus onset (seconds)
+nDecimals = 5; % Specify temporal precision of onsets
+
+% Make plots?
+makePlots = 'yes';
 
 %% READ IN relevant data files %%%%%%%%%%%%%%%%%%
 
@@ -121,8 +125,11 @@ for ii = 1:length(stimFiles)
     fileName = [stimDir filesep stimFiles(ii).name];
     stimData(ii) = load(fileName) ;    
     disp(stimData(ii).params.loadMatrix)
-    figure(ii); clf
-    plot(stimData(ii).stimulus.seqtiming, stimData(ii).stimulus.seq, 'o-')
+    switch makePlots 
+        case 'yes'
+            figure(ii); clf
+            plot(stimData(ii).stimulus.seqtiming, stimData(ii).stimulus.seq, 'o-')
+    end
 end
 
 % CHECK: Do we have all the stimfiles?
@@ -261,8 +268,8 @@ for ii = 1:nRuns
         num_trials = length(stimData(ii).stimulus.cat);
         
         % task-specific input for tsv file
-        duration   = round(stimData(ii).stimulus.duration(stimData(ii).stimulus.cat)',4);
-        ISI        = round(stimData(ii).stimulus.ISI(stimData(ii).stimulus.cat)',4);
+        duration   = round(stimData(ii).stimulus.duration(stimData(ii).stimulus.cat)',nDecimals);
+        ISI        = round(stimData(ii).stimulus.ISI(stimData(ii).stimulus.cat)',nDecimals);
         trial_type = stimData(ii).stimulus.cat';
         trial_name = stimData(ii).stimulus.categories(stimData(ii).stimulus.cat)';
         stim_file_index = nan(num_trials,1);
@@ -288,7 +295,7 @@ for ii = 1:nRuns
     [~,run_start_inx] = intersect(t,runstart); % index
     [~,run_stop_inx] = intersect(t,runstop); % index
 
-    data_thisrun = data(:,run_start_inx:run_stop_inx);
+    data_thisrun = data(:,run_start_inx:run_stop_inx-1); % subtract one sample to make length of 'between run' data exactly 6 seconds
     hdr_thisrun = hdr;
     hdr_thisrun.nSamples = size(data_thisrun,2);
 
@@ -307,7 +314,7 @@ for ii = 1:nRuns
     %delete(sprintf('%s.eeg', data_fname), sprintf('%s.vhdr', data_fname), sprintf('%s.vmrk', data_fname));
     
     % Collect info for tsv file 
-    onset      = round(onsets'-onsets(1)+prescan,3);
+    onset      = round(onsets'-onsets(1)+prescan,nDecimals);
     stim_file  = repmat(fname, num_trials, 1);
 
     % Write out tsv file 
@@ -322,7 +329,7 @@ for ii = 1:nRuns
     
     % Collect info for json_ieeg file
     ieeg_json.SamplingFrequency = hdr_thisrun.Fs;
-    ieeg_json.RecordingDuration = round(hdr_thisrun.nSamples/hdr_thisrun.Fs,3);
+    ieeg_json.RecordingDuration = round(hdr_thisrun.nSamples/hdr_thisrun.Fs,nDecimals);
     
     % Write out json_ieeg file
     jsonfile_fname = fullfile(dataWriteDir, sprintf('%s_ieeg.json', fname));    
@@ -333,18 +340,20 @@ for ii = 1:nRuns
     writetable(channel_table,channels_tsv_fname,'FileType','text','Delimiter','\t');
     
     % CHECK: Are the onsets from the stimulus file and triggers aligned?
-    figure,
-    stem(trigger_onsets(stim0:stim0+num_trials-1)-trigger_onsets(stim0)); 
-    hold on,
-    stem(t_thisrun - t0, ':diamondr')
-    xlabel('Event number'); ylabel('Time (s)');
-    legend('Triggers', 'Stimulus Onsets')
+    switch makePlots 
+        case 'yes'
+            figure; hold on;
+            stem(trigger_onsets(stim0:stim0+num_trials-1)-trigger_onsets(stim0)); 
+            stem(t_thisrun - t0, ':diamondr')
+            xlabel('Event number'); ylabel('Time (s)');
+            legend('Triggers', 'Stimulus Onsets')
+    end
 
 end
 
 % CHECK: Do number of triggers derived from EDF data file match the number
 % of trials from the stimulus files?
 assert(isequal(length(trigger_onsets), num_trials_total))
-
+disp('done');
 
 

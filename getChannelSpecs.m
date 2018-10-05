@@ -1,13 +1,15 @@
 function [elecInx, chanNames, chanTypes, chanUnits] = getChannelSpecs(hdr, elecList)
 
-% This function compares channel info from the data (chanList, obtained
-% from the file header) with electrode info (elecList, obtained from
-% electrode coordinate file provided by SOM) to generate the following BIDS
+% This function compares channel info from the data (obtained from the file
+% header hdr) with electrode info (elecList, obtained from electrode
+% coordinate file provided by SOM) to generate the following BIDS
 % compatible outputs:
-% - elecInx: for each matching channel in the datafile the corresponding
-% index into the electrode file (to be used for electrodes.tsv)
+%
+% - elecInx  : for each matching channel in the datafile the corresponding
+%              index into the electrode file to be used for electrodes.tsv 
 % - chanNames: list of shortened names to be used for channels.tsv 
 % - chanTypes: list of types to be used for channels.tsv
+% - chanUnits: reads the chanunits from the header for channels.tsv
 
 elecInx = nan(length(hdr.label),1); % this will be an index into elecList
 chanNames = hdr.label;
