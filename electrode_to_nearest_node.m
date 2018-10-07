@@ -1,5 +1,5 @@
 
-function [out] = electrode_to_nearest_node(specs)
+function [out] = electrode_to_nearest_node(specs, varargin)
 
 % This function matches a list of electrode locations in an ECoG patient to
 % the nearest node in their T1s freesurfer pial surface reconstruction,
@@ -26,7 +26,7 @@ function [out] = electrode_to_nearest_node(specs)
 %                     'both', 'none';
 % specs.plotelecs   = flag to plot electrodes on mesh: 'yes', 'no'
 % specs.plotlabel   = flag to plot electrode labels on mesh: 'yes', 'no'
-% specs.plotcolorbar= flag to plot colorbar for the atlas: 'yes', 'no'
+% specs.plotcbar    = flag to plot colorbar for the atlas: 'yes', 'no'
 % specs.thresh      = maximum allowed distance between electrode and node,
 %                     in mm (if empty, thresh is infinite, meaning that the
 %                     electrode can be infinitely far) - default empty
@@ -76,7 +76,12 @@ if ~isfield(specs, 'patientPool') || isempty(specs.patientPool)
 end
 
 if ~isfield(specs, 'fsDir') || isempty(specs.fsDir)
-    specs.fsDir = ['/Volumes/server/Freesurfer_subjects/som' num2str(specs.pID)]; 
+    switch specs.patientPool
+        case 'SOM'
+            specs.fsDir = fullfile('/Volumes/server/Freesurfer_subjects/som', num2str(specs.pID)); 
+        case 'BAIR'
+            specs.fsDir = fullfile('/Volumes/server/Freesurfer_subjects/', num2str(specs.pID)); 
+    end
 end
 
 if ~isfield(specs, 'thresh') || isempty(specs.thresh)
@@ -100,28 +105,29 @@ if ~isfield(specs, 'plotlabel') || isempty(specs.plotlabel)
     specs.plotlabel = 'yes';
 end
 
-if ~isfield(specs, 'plotcolorbar') || isempty(specs.plotcolorbar)
-    specs.plotcolorbar = 'yes';
+if ~isfield(specs, 'plotcbar') || isempty(specs.plotcbar)
+    specs.plotcbar = 'yes';
 end
 
 plotmesh  = specs.plotmesh;
 plotelecs = specs.plotelecs;
 plotlabel = specs.plotlabel;
-plotbar   = specs.plotcolorbar;
+plotcbar  = specs.plotcbar;
 
-% RUN
+ % Do we have a patient ID?
 if ~isfield(specs, 'pID') || isempty(specs.pID)
     disp('please specify a patient ID');
     return
 else
     disp(['running patient ' num2str(specs.pID)]);
 end
-
-% Read electrode coordinate file from BAIR/ECOG directory
+        
+% Read electrode coordinate file from BAIR or RAW directory
 switch specs.patientPool
     case 'BAIR'
         
-        patientDir = ['/Volumes/server/Projects/BAIR/Data/BIDS/visual/sub-som' num2str(specs.pID) '/ses-nyuECOG01/ieeg']; 
+        % For BIDS formatted data, patient ID is specified in dataDir
+        patientDir = varargin{1};
         
         D = dir([patientDir '/*electrodes*.tsv']);
         if ~isempty(D)
@@ -132,7 +138,7 @@ switch specs.patientPool
             % Prefer to use readtable for tsv files because it doesn't require
             % knowing the order of the columns beforehand (as textscan does). 
             
-            E = readtable(elec_file, 'FileType', 'text');
+            E = readtable(fullfile(D(1).folder, elec_file), 'FileType', 'text');
             elec_labels = E.name;
             if iscell(E.x)
                 for ii = 1:length(elec_labels)
@@ -150,7 +156,7 @@ switch specs.patientPool
         end
     case 'SOM'
         
-        % check which directory patient is in main BAIR directory, if not find it in SoM
+        % Check whether this patient is in the RAW BAIR directory, if not find it in SoM
         patientDir = '/Volumes/server/Projects/BAIR/Data/Raw/ECoG/';
         if ~isdir([patientDir num2str(specs.pID)])
             patientDir = '/Volumes/server/Projects/BAIR/Data/Raw/ECoG/SoM/';
@@ -161,7 +167,7 @@ switch specs.patientPool
             end
         end
         
-        % read electrode coordinate file from ECOG/SoM directory
+        % Read electrode coordinate file from Raw/SoM directory
         D = dir([patientDir num2str(specs.pID) '/*coor_T1*.txt']);
         if ~isempty(D)
             elec_file = D(1).name;
@@ -401,7 +407,7 @@ for a = 1:length(specs.atlasNames)
             end
             
             % Add colorbar?
-            switch plotbar
+            switch plotcbar
                 case 'yes'
                     cb = colorbar;
                     cb.FontSize = 18;

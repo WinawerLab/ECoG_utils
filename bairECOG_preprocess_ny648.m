@@ -1,9 +1,8 @@
 tbUse('ECoG_utils');
 
 % SCRIPT DESCRIPTION %
-% This script preprocesses the BIDS-formatted BAIR ECoG data into an evoked
-% and a broadband response for each individual stimulus. It is meant be run
-% cell-by-cell because some manual inputs are required (for channel
+% This script preprocesses the BIDS-formatted BAIR ECoG data. It is meant
+% be run cell-by-cell because some manual inputs are required (for channel
 % selection) and inspection of data.
 %
 % This is the order of operations:
@@ -15,15 +14,19 @@ tbUse('ECoG_utils');
 % [4] Broadband computation
 % [5] Segmentation
 % 
+% OUTPUT:
+% - data: struct with entire raw and broadband time courses. 
+% - trials: struct with evoked and a broadband response for each stimulus. 
+%
 % Remarks: 
 %
 % Broadband computation: now done across entire concatenated time course,
-% but could also be done for segments (but may introduce edge artifacts)
+% but could also be done for segments (but may introduce edge artifacts?)
 %
-% Include baseline correction here?
-% Add electrode plotting here?
-% What can we take as 'no stimulation' for spectra plots? -> PRF = blanks,
-% how about HRF/SOC?
+% TO DO: add prestimulus baseline correction (here?)
+% TO DO: add electrode plotting (here?), add list of visual electrodes to
+% data outputs
+% TO DO: add 'no stimulation' segments -> PRF = blanks, HRF take -1.5:-0.5
 
 %% [0] Define paths and dataset specs %%
 
@@ -45,43 +48,40 @@ saveDir = fullfile(dataPth, projectName, 'derivatives', 'preprocessed', sprintf(
 
 [data, events, channels]  = ecog_readBIDSData(dataDir, sub_label, ses_label);
 
-%% [2] INSPECTION: Look at powerpectrum of channels to see which ones look bad
+%% [1] Plot electrode locations for this patient to see if there are matches with visual regions
+
+specs = [];
+specs.pID           = sub_label; % patient ID number
+specs.patientPool   = 'BAIR';
+
+visualelectrodes = electrode_to_nearest_node(specs, dataDir);
+
+%% [2] DATA INSPECTION: Look at powerpectrum of channels to see which ones look bad
 
 % Look at data.label to determine which channels are EEG channels: 1:126
 chan_select = contains(channels.type, 'seeg');
 
-% This is one way to calculate the power spectrum and make a plot, the nice
-% thing is that when you click on the lines it returns the channel numbers
-figure;
-spectopo(data.trial{1}(chan_select,:),size(data.trial{1},2),data.fsample);
+% Generate spectral plot; check command window output for outliers 
+outliers = ecog_plotChannelSpectra(data, chan_select);
 
-% This is another way to look at the power spectum and make a plot. This
-% returns the frequency (f) and power (pxx) and you can check for outliers.
-[pxx,f] = pwelch(data.trial{1}(chan_select,:)',data.fsample,0,data.fsample,data.fsample);
-figure,plot(f,log10(pxx));
-xlabel('Frequency (Hz)'); ylabel('Log power');
+% NOTE: outliers (identified as channels with mean power that is more that
+% two standard deviations above or below the average across chanensl should
+% not be used to automatically identify bad channels, because channels with
+% strong activation can have higher power on average! Instead, pay extra
+% attention to those channels when inspecting their time courses:
 
-% Identify channels whose average logpower across frequencies is 2 sd
-% above/below the mean across channels:
-mn = mean(log10(pxx),1);
-sd = std(mn,0,2);
-disp('Two SD above the mean:'); 
-disp(find(mn>(mean(mn,2)+2*sd)));
-disp('Two SD below the mean:');
-disp(find(mn<(mean(mn,2)-2*sd)));
-% !SD should not be used to automatically identify bad channels, because
-% channels with strong activation can have higher power on average!
-% Instead, pay extra attention to those channels when going through them:
+% Inspect the time course for suspicious / outlier channels
+for channel_plot = 1:length(outliers); figure;plot(data.time{1}, data.trial{1}(outliers(channel_plot),:)); title([num2str(outliers(channel_plot)) ': ' data.label{outliers(channel_plot)}]); end
 
-% Look at the entire time course for each channel:
-for cChan = 1:size(data.trial{1},1); figure;plot(data.trial{1}(cChan,:)); title([num2str(cChan) ': ' data.label{cChan}]);waitforbuttonpress;close; end
+% Even better: look at the time course for each channel in succession:
+for channel_plot = 1:size(data.trial{1},1); figure;plot(data.time{1}, data.trial{1}(channel_plot,:)); title([num2str(channel_plot) ': ' data.label{channel_plot}]);waitforbuttonpress;close; end
 
-%% [2] INSPECTION: Identify bad channels here:
+%% [2] Identify bad channels here:
 
 bad_channels = [100 102 126]; % Manually selected based on inspection of spectra and time courses
 good_channels = setdiff(find(chan_select),bad_channels);
 
-%% [2] INSPECTION: Visualize the timeseries of some channels
+%% [2] DATA INSPECTION: Visualize the timeseries of some channels
 
 figure;
 subplot(2,1,1); hold on
@@ -97,12 +97,11 @@ figure,plot(f,log10(pxx(:,good_channels)))
 % Check the timeseries of all the good channels, no noisy moments?
 figure,plot(data.time{1},data.trial{1}(good_channels,:))
 
-%% [3] PREPROCESS: Do a common average reference using the good channels
+%% [3] Do a common average reference using the good channels
 
-signal = data.trial{1};
-[signal] = ecog_CarRegress(signal, good_channels);
+signal = ecog_CarRegress(data.trial{1}, good_channels);
 
-%% [3] INSPECTION: Look at the effect of CAR
+%% [3] DATA INSPECTION: Look at the effect of CAR
 
 figure;
 subplot(1,2,1); hold on
@@ -121,7 +120,7 @@ set(gca, 'YScale', 'log')
 xlabel('Frequency (Hz)'); ylabel('Log power');
 title(data.label(channel_plot));
 
-%% [4] PREPROCESS: Compute time-varying broadband 
+%% [4] Compute time-varying broadband 
 
 % Define frequency bands to filter
 bands = [[70 90]; [90 110]; [130 150]; [150 170]];
@@ -130,48 +129,33 @@ bands = [[70 90]; [90 110]; [130 150]; [150 170]];
 bbmethod = 7;
 
 % Extract broadband
-broadband = extractBroadband_nyu(signal', data.fsample, bbmethod, bands);
-hband_sig = broadband';
+[broadband, methodstr] = extractBroadband_nyu(signal', data.fsample, bbmethod, bands);
 
-%% [4] INSPECTION: Plot filtered time course and broadband for channel(s) of interest
+%% [4] DATA INSPECTION: Plot filtered time course and broadband for channel(s) of interest
 
-% electrodes with coverage in visual areas: 
-eltomatch = {'MO_01'}; %, 'MO_02', 'MO_03', 'MO_04'};
+% Pick one or more of the electrodes with coverage in visual areas: 
+disp(visualelectrodes.benson14_varea);
 
-% NY648 electrodes with coverage in IPS:
-%eltomatch = {'DLPA_07', 'DLPA_08'};
-%eltomatch = {'G_03', 'G_04', 'G_09', 'G_10', 'G_11', 'G_12', 'G_17', 'G_18'};
-%eltomatch = {'G_08', 'G_07'};
+% e.g.
+eltomatch = visualelectrodes.benson14_varea.elec_labels(9:12); %MO01-04
 
-% find matching electrode numbers
-el = ecog_matchchannels(eltomatch, data);
+% Find matching channel number
+el = ecog_matchChannels(eltomatch, data);
 
-% smooth & plot
-figure; hold on
-for ii = 1:length(eltomatch)
-    plot(data.time{1},smooth(hband_sig(el(ii),:),128), 'LineWidth', 2);
-    %plot(data.time{1},smooth(signal(el(ii),:),128), 'LineWidth', 2);
-end
-
-% and plot event onsets on top
-plot(eventsTable.onset, zeros(length(eventsTable.onset),1),'k.','MarkerSize', 25, 'LineStyle','none');
-legend(data.label(el));
-xlabel('time (s)');
-ylabel('broadband power (60-120 Hz)');
-%ylabel('evoked');
-l = line([data.time{1}(1) max(data.time{1})], [0 0],'LineStyle', '-', 'Color', 'k');
-l.Annotation.LegendInformation.IconDisplayStyle = 'off';
+% Plot evoked and broadband
+ecog_plotFullTimeCourse(timecourse,chanstoplot,events)
 
 %% [5] Segment the data (all channels, all tasks)
 
 % TO DO include NO STIM segments --> use HRF runs e.g. 1.5 to 0.5 seconds prestim
+% TO DO no smoothing in preprocessing!
 
-% Segmentation
+% Use fieldtrip trlfunction?
 %epochLength = 1.5; % in seconds
 %baselineLength = -0.5; % in seconds
 
-%eventsInSamples = events.onset*hdr.Fs;
-    %cfg.trl{iRun} = [eventsInSamples eventsInSamples+(epochLength*hdr.Fs) repmat(baselineLength*hdr.Fs, size(eventsInSamples))];
+eventsInSamples = events.onset*hdr.Fs;
+cfg.trl = [eventsInSamples eventsInSamples+(epochLength*hdr.Fs) repmat(baselineLength*hdr.Fs, size(eventsInSamples))];
 
 % set epoch length (in seconds)
 prestim = 0.5; 

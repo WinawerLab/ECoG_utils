@@ -91,6 +91,8 @@ switch method
         methodstr = 'mean(abs(hilbert(bp)).^2)';
 end
 
+broadband = broadband';
+
 return
 
 % 

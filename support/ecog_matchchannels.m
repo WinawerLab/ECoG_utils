@@ -1,4 +1,4 @@
-function elInx = ecog_matchchannels(eltomatch, data)
+function elInx = ecog_matchChannels(eltomatch, data)
 
 % matches an input string to the field data.labels (fieldtrip format),
 % returns indices
@@ -9,7 +9,8 @@ if ~iscell(eltomatch)
     eltomatch = {eltomatch};
 end
 for ii = 1:length(eltomatch)
-    stringtomatch = ['EEG ' eltomatch{ii}];
+    %stringtomatch = ['EEG ' eltomatch{ii}];
+    stringtomatch = eltomatch{ii};
     x = find(strncmp(stringtomatch, data.label,length(stringtomatch)));
     if ~isempty(x)
         elInx(ii) = x;
