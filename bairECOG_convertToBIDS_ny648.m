@@ -1,4 +1,4 @@
-% tbUse('ECoG_utils');
+tbUse('ECoG_utils');
 
 % SCRIPT DESCRIPTION %
 % Takes BAIR data from NYU School of Medicine, gets onsets, writes out
@@ -6,10 +6,9 @@
 % BIDS metadata (coordsystem json and electrodes and channels tsv files). 
 %
 % Remarks:
-% - Now writing data in BVA format (.eeg, .vhdr, .vmrk), because of a bug
-% with EDF writing, but this can easily be changed (comment/uncomment the
-% code below line 295). Can also decide to zip the BVA files for Flywheel
-% (currently turned off).
+% - Data is written in BVA format (.eeg, .vhdr, .vmrk), because of a bug
+% with EDF writing, but this can be changed (see line 295). Can also decide
+% to zip the BVA files for Flywheel (currently turned off).
 % - Should we put the original data in /sourcedata/ folder? (may depend on
 % whether data is sufficiently anonymized)
 % - Should there be a json sidecar with the T1 file?
@@ -50,10 +49,10 @@ T1WriteDir   = fullfile(BIDSDataDir, projectName, sprintf('sub-%s', sub_label), 
 % Define temporal parameters
 prescan   = 3; % Segment each run with this amount before the first stimulus onset (seconds)
 postscan  = 3; % Segment each run with this amount after the last stimulus onset (seconds)
-nDecimals = 5; % Specify temporal precision of onsets
+nDecimals = 6; % Specify temporal precision of time stamps in events files
 
 % Make plots?
-makePlots = 'yes';
+makePlots = 'no';
 
 %% READ IN relevant data files %%%%%%%%%%%%%%%%%%
 
@@ -68,6 +67,7 @@ dataFiles = dir(fullfile(RawDataDir,num2str(patientID), '*.edf'));
 if length(dataFiles) > 1, disp('warning: multiple datafiles found: using first one'); end
 
 fileName = [dataFiles(1).folder filesep dataFiles(1).name];    
+disp(['reading ' fileName '...']);
 data = ft_read_data(fileName);
 hdr = ft_read_header(fileName);
 % To read in EDF data with channels with different sampling rates: data = edf2fieldtrip(fileName);
@@ -124,7 +124,7 @@ stimFiles = dir(fullfile(stimDir, sprintf('%s*2017*.mat', num2str(patientID))));
 for ii = 1:length(stimFiles)
     fileName = [stimDir filesep stimFiles(ii).name];
     stimData(ii) = load(fileName) ;    
-    disp(stimData(ii).params.loadMatrix)
+    disp(['reading ' stimData(ii).params.loadMatrix])
     switch makePlots 
         case 'yes'
             figure(ii); clf
@@ -153,6 +153,7 @@ if length(T1File) < 1
     disp('warning: no T1 found!') 
 else
     T1_name = fullfile(T1WriteDir, sprintf('sub-%s_ses-%s_T1w.nii.gz', sub_label, ses_labelt1));
+    disp(['writing ' T1_name '...']);
     [SUCCESS,MESSAGE,MESSAGEID] = copyfile(fullfile(RawDataDir,num2str(patientID), 'T1.nii.gz'), T1_name);
 end
 
@@ -176,6 +177,7 @@ coordsystem_json.IntendedFor = fullfile(sprintf('sub-%s', sub_label), sprintf('s
     sprintf('sub-%s_ses-%s_T1w.nii.gz', sub_label, ses_labelt1)); % this path must be specified relative to the project folder
 
 % Write coordsystem.json file
+disp(['writing ' coord_json_name '...']);
 jsonwrite(coord_json_name,coordsystem_json,json_options);
 
 % Note on coordystem json file: SOM also provides electrode locations in
@@ -204,6 +206,7 @@ electrode_table.type = elec_types(elecInx);
 electrodes_tsv_name = fullfile(dataWriteDir, sprintf('sub-%s_ses-%s_electrodes.tsv', sub_label, ses_label));
 
 % Write tsv file
+disp(['writing ' electrodes_tsv_name '...']);
 writetable(electrode_table,electrodes_tsv_name,'FileType','text','Delimiter','\t');
 
 %% Create RUN-SPECIFIC files %%%%%%%%%%%%%%%%%%
@@ -232,7 +235,7 @@ for ii = 1:nRuns
     % Generate filename
     fname = sprintf('sub-%s_ses-%s_task-%s_run-%s', ...
             sub_label, ses_label, task_label{ii}, run_label{ii});
-    fprintf('Creating eeg, events, stimuli, json and channel files for %s \n', fname);
+    fprintf('Writing eeg, events, stimuli, json and channel files for %s \n', fname);
     
     % Generate a json file default
     [ieeg_json, json_options] = createBIDS_ieeg_json_nyuSOM();
@@ -288,13 +291,11 @@ for ii = 1:nRuns
     % Get the onsets
     num_trials_total = num_trials_total + num_trials;
     onsets = trigger_onsets(stim0:num_trials_total);
+    [~,onset_indices] = intersect(t, onsets);
 
     % Clip data from run using prescan postscan intervals
-    runstart = onsets(1)-prescan; % seconds
-    runstop = onsets(end)+postscan; % seconds
-    [~,run_start_inx] = intersect(t,runstart); % index
-    [~,run_stop_inx] = intersect(t,runstop); % index
-
+    run_start_inx = onset_indices(1)-prescan*hdr.Fs;
+    run_stop_inx = onset_indices(end)+postscan*hdr.Fs;    
     data_thisrun = data(:,run_start_inx:run_stop_inx-1); % subtract one sample to make length of 'between run' data exactly 6 seconds
     hdr_thisrun = hdr;
     hdr_thisrun.nSamples = size(data_thisrun,2);
@@ -314,11 +315,12 @@ for ii = 1:nRuns
     %delete(sprintf('%s.eeg', data_fname), sprintf('%s.vhdr', data_fname), sprintf('%s.vmrk', data_fname));
     
     % Collect info for tsv file 
-    onset      = round(onsets'-onsets(1)+prescan,nDecimals);
-    stim_file  = repmat(fname, num_trials, 1);
+    onset       = round(onsets'-onsets(1)+prescan,nDecimals);
+    onset_index = (onset_indices - run_start_inx);
+    stim_file   = repmat(fname, num_trials, 1);
 
     % Write out tsv file 
-    tsv_thisrun = table(onset, duration, ISI, trial_type, trial_name, stim_file, stim_file_index);
+    tsv_thisrun = table(onset, onset_index, duration, ISI, trial_type, trial_name, stim_file, stim_file_index);
     tsv_fname = fullfile(dataWriteDir, sprintf('%s_events.tsv', fname));
     writetable(tsv_thisrun, tsv_fname, 'FileType','text', 'Delimiter', '\t')
     

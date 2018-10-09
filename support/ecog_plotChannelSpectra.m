@@ -3,8 +3,8 @@ function [outliers,pxx,f] = ecog_plotChannelSpectra(data, chan_select)
 
 % This is one way to calculate the power spectrum and make a plot, the nice
 % thing is that when you click on the lines it returns the channel numbers
-%figure;
-%spectopo(data.trial{1}(chan_select,:),size(data.trial{1},2),data.fsample);
+figure;
+spectopo(data.trial{1}(chan_select,:),size(data.trial{1},2),data.fsample);
 
 % This is another way to look at the power spectum and make a plot. This
 % returns the frequency (f) and power (pxx) and you can check for outliers.

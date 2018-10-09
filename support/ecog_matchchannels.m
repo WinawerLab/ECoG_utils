@@ -11,7 +11,7 @@ end
 for ii = 1:length(eltomatch)
     %stringtomatch = ['EEG ' eltomatch{ii}];
     stringtomatch = eltomatch{ii};
-    x = find(strncmp(stringtomatch, data.label,length(stringtomatch)));
+    x = find(strncmp(stringtomatch, data.hdr.label,length(stringtomatch)));
     if ~isempty(x)
         elInx(ii) = x;
     end

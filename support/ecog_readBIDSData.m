@@ -12,8 +12,7 @@ chanFiles   = dir(fullfile(dataDir,sprintf('sub-%s_ses-%s_task-*channels.tsv',su
 
 % Pre-allocate list of runs to be concatenated 
 cfg.dataset = [];
-secondsToAdd = 0;
-nDecimals = 5;
+samplesToAdd = 0;
 
 fprintf('concatenating runs \n');
 
@@ -31,15 +30,17 @@ for iRun = 1:length(dataFiles)
         events = eventsTable;
     else
         % Add length of PREVIOUS run in seconds to onsets
-        eventsTable.onset = eventsTable.onset+secondsToAdd; 
+        eventsTable.onset_index = eventsTable.onset_index + samplesToAdd;
+        eventsTable.onset = eventsTable.onset_index/hdr.Fs;
         events = [events; eventsTable];
     end
     
     % Read in hdr for this run; use to update event onsets for next run
     hdr = ft_read_header(fullfile(dataDir,dataFiles(iRun).name));
-    runLengthInSeconds = round(hdr.nSamples/hdr.Fs, nDecimals);
-    secondsToAdd = secondsToAdd + runLengthInSeconds;
-    fprintf('Length of run %d is %s seconds, cumulative length of data is %s seconds \n', iRun, num2str(runLengthInSeconds), num2str(secondsToAdd));
+    runLengthInSamples = hdr.nSamples;
+    runLengthInSeconds = hdr.nSamples/hdr.Fs;
+    samplesToAdd = samplesToAdd + runLengthInSamples;
+    fprintf('Length of run %d is %s seconds, cumulative length of data is %s seconds \n', iRun, num2str(runLengthInSeconds), num2str(samplesToAdd/hdr.Fs));
 end
 
 % Read in the data files (all runs)
@@ -53,6 +54,7 @@ assert(size(chans,1) == length(data.label));
 
 % Replace data.label with names from channels.tsv for better readability
 data.label = chans.name;
+data.hdr.label = chans.name;
 fprintf('done \n');
 
 end

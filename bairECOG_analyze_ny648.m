@@ -1,13 +1,21 @@
 tbUse('ECoG_utils');
 
-%%%% DEFINE PATHS TO DATA, ANALYSIS DIRECTORIES %%%%
+% SCRIPT DESCRIPTION %
 
-anaDir = '/Volumes/server/Projects/BAIR/Analysis/';
+%% [0] Define paths and dataset specs %%
+
+% Dataset specs
 projectName = 'visual';
+sub_label   = 'som648'; 
+ses_label   = 'nyuecog01';
 
-sub_label = 'ny648'; 
-ses_label = 'NYUECOG01';
-task_label = 'soc';
+% Input paths specs
+dataPth     = '/Volumes/server/Projects/BAIR/Data/BIDS/';
+
+% Output paths specs
+dataDir = fullfile(dataPth, projectName, sprintf('sub-%s', sub_label), sprintf('ses-%s', ses_label), 'ieeg');
+saveDir = fullfile(dataPth, projectName, 'derivatives', 'preprocessed', sprintf('sub-%s', sub_label));
+
 
 %% Load preprocessed data
 
