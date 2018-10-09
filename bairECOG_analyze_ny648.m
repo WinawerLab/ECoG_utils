@@ -13,16 +13,14 @@ ses_label   = 'nyuecog01';
 dataPth     = '/Volumes/server/Projects/BAIR/Data/BIDS/';
 
 % Output paths specs
-dataDir = fullfile(dataPth, projectName, sprintf('sub-%s', sub_label), sprintf('ses-%s', ses_label), 'ieeg');
-saveDir = fullfile(dataPth, projectName, 'derivatives', 'preprocessed', sprintf('sub-%s', sub_label));
-
+dataDir = fullfile(dataPth, projectName, 'derivatives', 'preprocessed', sprintf('sub-%s', sub_label));
 
 %% Load preprocessed data
 
-dataToLoad = fullfile(anaDir, projectName, ['sub-' sub_label], ...
-    ['sub-' sub_label '_' 'ses-' ses_label '_' 'task-' task_label '_epoched']);
+dataName = fullfile(dataDir, sprintf('sub-%s_ses-%s_preproc', sub_label, ses_label));
+load(dataName);
 
-load(dataToLoad);
+dataName = fullfile(dataDir, sprintf('sub-%s_ses-%s_epoched', sub_label, ses_label));
 
 %% Plot trial averages for channel(s) of interest
 
@@ -42,7 +40,7 @@ eltomatch = {'MO_01', 'MO_02', 'MO_03', 'MO_04'};
 % eltomatch = {'G_05', 'G_06', 'G_07', 'G_08', 'G_16', 'G_19'};
 
 % find matching electrode numbers
-el = ecog_matchchannels(eltomatch, trials);
+el = ecog_matchChannels(eltomatch, trials);
 
 for tl = 1:length(tasklabels)
     

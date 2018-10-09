@@ -1,12 +1,23 @@
 function [trials] = ecog_epochData(data, epochDur)
 
-trials = struct();
+% Do this to make sure methods and specs of preproc get inherited by trials
+trials = data;
 
-% determine how many samples to go back and forth to extract epoch
+% Remove fields specific to continuous data
+if isfield(trials, 'raw'); trials = rmfield(trials, 'raw'); end
+if isfield(trials, 'car_reref'); trials = rmfield(trials, 'car_reref'); end
+if isfield(trials, 'broadband'); trials = rmfield(trials, 'broadband'); end
+if isfield(trials, 'cfg'); trials = rmfield(trials, 'cfg'); end
+if isfield(trials, 'hdr'); trials = rmfield(trials, 'hdr'); end
+
+% Determine how many samples to go back and forth to extract epoch
 onset_pre = epochDur(1)/(1/data.hdr.Fs);
 onset_post = epochDur(2)/(1/data.hdr.Fs)-1;
 
 onsetInx = data.events.onset_index;
+
+% Overwrite trials
+trials.time  = epochDur(1):(1/data.hdr.Fs):epochDur(2)-(1/data.hdr.Fs);
 
 % Extract epochs
 for ii = 1:length(onsetInx)  
@@ -18,8 +29,6 @@ end
 
 disp('done');
 
-trials.label    = data.hdr.label;
-trials.time     = epochDur(1):(1/data.hdr.Fs):epochDur(2)-(1/data.hdr.Fs);
 trials.events   = data.events;
 trials.fsample  = data.hdr.Fs;
 

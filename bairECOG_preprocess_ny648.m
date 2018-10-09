@@ -175,9 +175,13 @@ baseline_epoch = [-1.5 -0.5];
 baseline_trials = ecog_epochData(mockdata, baseline_epoch);
 baseline_trials.events = [];
 
-%% Save epoched data for further analysis
+%% Save preprocessed and epoched data for further analysis
 
 disp('saving preprocessed data...');
 saveName = fullfile(saveDir, sprintf('sub-%s_ses-%s_preproc', sub_label, ses_label));
-save(saveName, 'data', 'trials', 'baseline_trials'); 
+save(saveName, 'data'); 
+
+disp('saving epoched data...');
+saveName = fullfile(saveDir, sprintf('sub-%s_ses-%s_epoched', sub_label, ses_label));
+save(saveName, 'trials', 'baseline_trials'); 
 disp('done');
