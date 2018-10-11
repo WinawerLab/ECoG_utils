@@ -14,12 +14,12 @@ end
 % Find electrodes in data
 el_index = ecog_matchChannels(whichElectrodes, trials);
 
-trialindex = [];
+trial_index = [];
 % Find trials in data
 if isempty(trialType)
-	trial_index = 1:size(trials.events,1);
+    trialType = {'all trials'};
+	trial_index{1} = 1:size(trials.events,1);
 else
-    trial_index = [];
     switch collapseTrialTypes
         case 'yes'
             trial_index{1} = (contains(trials.events.trial_name, trialType));
@@ -36,7 +36,7 @@ colors = copper(length(trial_index));
 out = struct;
 
 % Plot
-for dataType = {'broadband'}%, 'evoked'}
+for dataType = {'broadband', 'evoked'}
     
     thisDataType = dataType{:};
     figure('Name', thisDataType); 

@@ -1,7 +1,9 @@
 function elInx = ecog_matchChannels(eltomatch, data)
 
+% elInx = ecog_matchChannels(eltomatch, data)
+% 
 % matches an input string to the field data.labels (fieldtrip format),
-% returns indices
+% returns indices into data label
 
 elInx = [];
 
