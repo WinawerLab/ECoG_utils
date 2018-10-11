@@ -1,4 +1,10 @@
-function [] = ecog_plotTrials(trials, whichElectrodes, trialType, collapseTrialTypes)
+function [out] = ecog_plotTrials(trials, whichElectrodes, trialType, collapseTrialTypes, smoothLevel)
+
+if nargin < 5 || isempty(smoothLevel)
+    smoothLevel = 0;
+else 
+    smoothLevel = ceil(smoothLevel);
+end
 
 if nargin < 4 || isempty(collapseTrialTypes)
     collapseTrialTypes = 'no';
@@ -23,11 +29,13 @@ else
     end 
 end
 
+% Plot specs
 colors = copper(length(trial_index));
 
-% Plot
+out = struct;
 
-for dataType = {'broadband', 'evoked'}
+% Plot
+for dataType = {'broadband'}%, 'evoked'}
     
     thisDataType = dataType{:};
     figure('Name', thisDataType); 
@@ -57,11 +65,19 @@ for dataType = {'broadband', 'evoked'}
             ulim(:,jj) = mean(elData(:,trial_index{jj}),2)+std(elData(:,trial_index{jj}),0,2)/sqrt(size(elData(:,trial_index{jj}),2));    
         end
 
+        % Smooth the data?
+        if smoothLevel > 0
+            temp = smooth(mnToPlot, smoothLevel); mnToPlot = reshape(temp, size(mnToPlot));
+            temp = smooth(llim, smoothLevel); llim = reshape(temp, size(llim));
+            temp = smooth(ulim, smoothLevel); ulim = reshape(temp, size(ulim));
+        end
+        
         % Plot standard errors
         for jj = 1:length(trial_index)
             h = ciplot(llim(:,jj),ulim(:,jj),trials.time,colors(jj,:), 0.25);
             h.Annotation.LegendInformation.IconDisplayStyle = 'off';
         end
+        
         % Plot means
         for jj = 1:length(trial_index)
             plot(trials.time, mnToPlot(:,jj),'Color', colors(jj,:), 'LineWidth',2);
@@ -73,18 +89,28 @@ for dataType = {'broadband', 'evoked'}
             case 'evoked'
                 ylabel('evoked response amplitude');
         end
-        title(whichElectrodes{ii});
+        
+        % Check if these electrodes have matches with visual atlases, if so, add
+        % that to the plot title
+        viselec_name = [];
+        for atlas = {'wang2015_atlas','benson14_varea'}
+            viselec = contains(trials.viselec.(atlas{:}).elec_labels, whichElectrodes(ii));
+            if any(viselec)
+                viselec_name = [viselec_name atlas{:}(1:8) ':' trials.viselec.(atlas{:}).area_labels{viselec} ' '];
+            end
+        end
+        title([whichElectrodes{ii} ' ' viselec_name]);
 
-        % set y-axis limits
+        % Set y-axis limits
         lim = [min(mnToPlot(:)) max(mnToPlot(:))];
         ylim = [lim(1)-(0.2*lim(1)*sign(lim(1))) lim(2)+(0.2*lim(2)*sign(lim(2)))];
         set(gca, 'YLim', ylim);
 
-        % add stim onset and zero lines
+        % Add stim onset and zero lines
         line([0 0], ylim,'LineStyle', ':', 'Color', 'k');
         line([trials.time(1) trials.time(end)], [0 0],'LineStyle', ':', 'Color', 'k');
 
-        % add legend
+        % Add legend
         switch collapseTrialTypes
             case 'no'
                 legend(trialType);
@@ -93,5 +119,9 @@ for dataType = {'broadband', 'evoked'}
         end
     end
     set(gcf, 'Position', [150 100 1500 1250]);
+    
+    out.(thisDataType).mn = mnToPlot';
+    out.(thisDataType).se = (ulim-mnToPlot)';
+   
 end
 

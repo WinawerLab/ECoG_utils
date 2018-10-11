@@ -17,21 +17,43 @@ dataDir = fullfile(dataPth, projectName, 'derivatives', 'preprocessed', sprintf(
 
 %% Load preprocessed data
 
+% This file contains the full concatenated data (raw voltages, common
+% average rereferenced voltages, broadband time series):
 dataName = fullfile(dataDir, sprintf('sub-%s_ses-%s_preproc', sub_label, ses_label));
-load(dataName);
+% load(dataName);
 
+% This file contains stimulus-defined epochs of the rereferenced voltages
+% (trials.evoked) and the broadband time series (trials.broadband) plus a
+% separate trials struct which has 'baseline' epochs (no stimulus shown).
+% Note that there is prestimulus baseline correction has not yet been
+% performed, this happens in the plotting script below.
 dataName = fullfile(dataDir, sprintf('sub-%s_ses-%s_epoched', sub_label, ses_label));
 load(dataName);
 
 %% Plot responses for visual electrodes
 
-% plot specs
+% Which electrodes to plot? (Each electrode gets a subplot)
 whichElectrodes = trials.viselec.benson14_varea.elec_labels;
-trialType = {'CRF','ONEPULSE', 'TWOPULSE'}; %{'HRFPATTERN'};
-%trialType = {'HRFPATTERN'};
-%trialType = {'SCENES', 'FACES', 'LETTERS'};
-collapseTrialTypes = 'no';
+
+% Which stimulus conditions to plot? 
+whichTrials = {'HRFPATTERN','CRF','ONEPULSE', 'TWOPULSE', 'GRATING', 'FACES'}; 
+%whichTrials = {'SPARSITY', 'SCENES','FACES', 'LETTERS'};
+%whichTrials = {'CIRCULAR', 'GRATING','PLAID'};
+%whichTrials = {'CRF-1','CRF-2', 'CRF-3','CRF-4', 'CRF-5'};
+%whichTrials = {'SPARSITY-1','SPARSITY-2', 'SPARSITY-3','SPARSITY-4'};
+%whichTrials = {'ONEPULSE-1','ONEPULSE-2', 'ONEPULSE-3','ONEPULSE-4', 'ONEPULSE-5'};
+%whichTrials = {'TWOPULSE-1','TWOPULSE-2', 'TWOPULSE-3','TWOPULSE-4', 'TWOPULSE-5'};
+%whichTrials = {'HRFPATTERN','CRF-5','ONEPULSE-5', 'TWOPULSE-5'}; 
+
+% Plot each type individually or combine?
+collapseTrialTypes = 'no'; % if yes, plots average across all trial types listed under 'whichTrials'
+
+% Smooth the timecourses?
+smoothLevel = 0.05*trials.fsample; % if 0 or empty, no smoothing will be applied
 
 % Plot both broadband and evoked response per electrode
-ecog_plotTrials(trials, whichElectrodes, trialType, collapseTrialTypes);
+% 'out' contains the plotted time courses and SEs
+[out] = ecog_plotTrials(trials, whichElectrodes, whichTrials, collapseTrialTypes, smoothLevel);
+
+
 
