@@ -93,14 +93,20 @@ for dataType = {'broadband'}%, 'evoked'}
         
         % Check if these electrodes have matches with visual atlases, if so, add
         % that to the plot title
+         if iscell(whichElectrodes)
+            electrodeName = whichElectrodes{ii};
+        else
+            electrodeName = whichElectrodes;
+        end
         viselec_name = [];
         for atlas = {'wang2015_atlas','benson14_varea'}
-            viselec = contains(trials.viselec.(atlas{:}).elec_labels, whichElectrodes(ii));
+            viselec = contains(trials.viselec.(atlas{:}).elec_labels, electrodeName);
             if any(viselec)
                 viselec_name = [viselec_name atlas{:}(1:8) ':' trials.viselec.(atlas{:}).area_labels{viselec} ' '];
             end
         end
-        title([whichElectrodes{ii} ' ' viselec_name]);
+       
+        title([electrodeName ' ' viselec_name]);
 
         % Set y-axis limits
         lim = [min(mnToPlot(:)) max(mnToPlot(:))];

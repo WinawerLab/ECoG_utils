@@ -11,7 +11,7 @@ end
 for ii = 1:length(eltomatch)
     %stringtomatch = ['EEG ' eltomatch{ii}];
     stringtomatch = eltomatch{ii};
-    if isfield(data, 'hdr');
+    if isfield(data, 'hdr')
         chanList = data.hdr.label;
     elseif isfield(data, 'label')
         chanList = data.label;
