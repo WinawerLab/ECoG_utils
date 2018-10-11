@@ -49,11 +49,11 @@ whichTrials = {'HRFPATTERN','CRF','ONEPULSE', 'TWOPULSE', 'GRATING', 'FACES'};
 collapseTrialTypes = 'no'; % if yes, plots average across all trial types listed under 'whichTrials'
 
 % Smooth the timecourses?
-smoothLevel = 0.05*trials.fsample; % if 0 or empty, no smoothing will be applied
+smoothingLevelInMs = 20; % defined in milliseconds; if 0 or empty, no smoothing will be applied
 
 % Plot both broadband and evoked response per electrode
 % 'out' contains the plotted time courses and SEs
-[out] = ecog_plotTrials(trials, whichElectrodes, whichTrials, collapseTrialTypes, smoothLevel);
+[out] = ecog_plotTrials(trials, whichElectrodes, whichTrials, collapseTrialTypes, smoothingLevelInMs);
 
 
 

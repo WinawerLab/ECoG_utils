@@ -1,9 +1,10 @@
-function [out] = ecog_plotTrials(trials, whichElectrodes, trialType, collapseTrialTypes, smoothLevel)
+function [out] = ecog_plotTrials(trials, whichElectrodes, trialType, collapseTrialTypes, smoothingLevelInMs)
 
-if nargin < 5 || isempty(smoothLevel)
+if nargin < 5 || isempty(smoothingLevelInMs)
     smoothLevel = 0;
 else 
-    smoothLevel = ceil(smoothLevel);
+    smoothLevel = round(smoothingLevelInMs/(1000/trials.fsample)); 
+    % number of samples to smooth over
 end
 
 if nargin < 4 || isempty(collapseTrialTypes)

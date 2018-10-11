@@ -31,5 +31,5 @@ if isempty(elInx)
     disp('could not match this electrode name')
     return
 end
-emd
+end
    
