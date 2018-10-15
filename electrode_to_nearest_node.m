@@ -78,7 +78,7 @@ end
 if ~isfield(specs, 'fsDir') || isempty(specs.fsDir)
     switch specs.patientPool
         case 'SOM'
-            specs.fsDir = fullfile('/Volumes/server/Freesurfer_subjects/som', num2str(specs.pID)); 
+            specs.fsDir = fullfile(filesep, 'Volumes', 'server', 'Freesurfer_subjects', sprintf('som%s',specs.pID)); 
         case 'BAIR'
             specs.fsDir = fullfile('/Volumes/server/Freesurfer_subjects/', num2str(specs.pID)); 
     end

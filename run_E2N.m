@@ -7,7 +7,7 @@ end
 
 specs = [];
 
-specs.pID           = '648'; % patient ID number
+specs.pID           = '692'; % patient ID number
 specs.atlasNames    = {'wang2015_atlas', 'benson14_varea', 'benson14_eccen'}; 
                         % default is all of these maps: 
                         % {'wang2015_atlas', ...
@@ -19,7 +19,7 @@ specs.atlasNames    = {'wang2015_atlas', 'benson14_varea', 'benson14_eccen'};
                         % NOTE: including benson14_varea is required to
                         % be able to obtain benson14_eccen, angle and sigma
 specs.plotmesh      = 'both'; % left, right, both, or none
-specs.plotelecs     = 'yes'; % yes or no
+specs.plotelecs     = 'no'; % yes or no
 
 out = electrode_to_nearest_node(specs);
 
@@ -28,21 +28,26 @@ out = electrode_to_nearest_node(specs);
 % Pick one of the figures and get its handle
 fH = gcf;
 
+radius = 25;
 
 % to change view to lateral:
 view(-90,0);
 
+
 % Find the patch object
 h = findobj(fH, 'type', 'patch');
 
-% The background color is probably the modal color
-md = mode(h.FaceVertexCData);
+for ii = 1:length(h)
+    % The background color is probably the modal color
+    md = mode(h(ii).FaceVertexCData);
+    
+    % Set all vertices to the modal color
+    h(ii).FaceVertexCData(:) = md;
+    
+    colorbar off
+end
 
-% Set all vertices to the modal color
-h.FaceVertexCData(:) = md;
-
-colorbar off
-
+ii = 1;
 % If desired, get user to click a location
 datacursormode on
 dcmObj = datacursormode(fH);
@@ -55,14 +60,14 @@ y = point1.Position(2);
 z = point1.Position(3);
 
 
-v = h.Vertices;
+v = h(ii).Vertices;
 xyzdiff = bsxfun(@minus, v, [x y z]);
 
 dist = sqrt(sum(xyzdiff.^2,2));
 
 mask = dist < radius;
 
-h.FaceVertexCData(mask) = 1;
+h(ii).FaceVertexCData(mask) = 1;
 
 
 
