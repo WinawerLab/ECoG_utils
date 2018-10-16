@@ -28,11 +28,9 @@ out = electrode_to_nearest_node(specs);
 % Pick one of the figures and get its handle
 fH = gcf;
 
-radius = 25;
-
 % to change view to lateral:
-view(-90,0);
-
+%view(-90,0);
+view(0,0);
 
 % Find the patch object
 h = findobj(fH, 'type', 'patch');
@@ -47,11 +45,16 @@ for ii = 1:length(h)
     colorbar off
 end
 
-ii = 1;
+%% to generate a circle with a specific radius in Euclidean distance
+
+radius = 25;
+
+ii = 2; % do separately for each hemisphere (1 = left, 2 = right)
+
 % If desired, get user to click a location
 datacursormode on
 dcmObj = datacursormode(fH);
-set(dcmObj,'SnapToDataVertex','off','Enable','on')
+set(dcmObj,'SnapToDataVertex','off','Enable','on', 'DisplayStyle', 'window')
 
 waitforbuttonpress();
 point1 = getCursorInfo(dcmObj);
@@ -69,15 +72,9 @@ mask = dist < radius;
 
 h(ii).FaceVertexCData(mask) = 1;
 
+%% views used on 10-15-18
 
-
-%% NEED TO FIX:UMCU
-
-% UMCU patient electrode locations seem incorrect??
-
-% specs = [];
-% specs.pID      = 'beilen';
-% specs.elecFile = '/Volumes/server/Projects/BAIR/Data/BIDS/visual/sub-umcubeilen/ses-umcuecogday03/ieeg/sub-beilen_ses-umcuecogday03_acq-clinical_electrodes.tsv';
-% specs.fsDir    = '/Volumes/server/Freesurfer_subjects/umcu_beilen';
-% specs.thresh   = []; 
-% specs.patientPool = 'BAIR';
+view(0,0) %posterior
+view(-90,0) % lateral LH
+view(-30,0) % lateral LH rotated
+% set(gcf, 'color','black')
