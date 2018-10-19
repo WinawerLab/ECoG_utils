@@ -3,7 +3,15 @@ function [out] = ecog_plotFullTimeCourse(data,dataType,chanstoplot,smoothLevel)
 if nargin < 4 || isempty(smoothLevel)
     smoothLevel = 0;
 end
-    
+
+switch data.channels.type{chanstoplot}
+    case 'trig'
+        data.(dataType)(chanstoplot,:) = data.(dataType)(chanstoplot,:)/max(data.(dataType)(chanstoplot,:));
+        yval_onsets = max(data.(dataType)(chanstoplot(:),:));
+    otherwise
+        yval_onsets = mode(data.(dataType)(chanstoplot(:),:));
+end
+
 % Smooth & plot
 figure; hold on
 for ii = 1:length(chanstoplot)
@@ -15,7 +23,7 @@ for ii = 1:length(chanstoplot)
 end
 
 % Plot event onsets on top
-plot(data.events.onset, zeros(length(data.events.onset),1),'k.','MarkerSize', 25, 'LineStyle','none');
+plot(data.events.onset, ones(length(data.events.onset),1)*yval_onsets,'k.','MarkerSize', 25, 'LineStyle','none');
 legend(data.hdr.label(chanstoplot));
 xlabel('time (s)');
 switch dataType

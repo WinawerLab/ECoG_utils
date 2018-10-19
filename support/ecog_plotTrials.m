@@ -1,5 +1,8 @@
-function [out] = ecog_plotTrials(trials, whichElectrodes, trialType, collapseTrialTypes, smoothingLevelInMs)
+function [out] = ecog_plotTrials(trials, whichElectrodes, trialType, collapseTrialTypes, smoothingLevelInMs, baselineType)
 
+if nargin < 6 || isempty(baselineType)
+    baselineType = 'all';
+end
 if nargin < 5 || isempty(smoothingLevelInMs)
     smoothLevel = 0;
 else 
@@ -22,11 +25,13 @@ if isempty(trialType)
 else
     switch collapseTrialTypes
         case 'yes'
-            trial_index{1} = (contains(trials.events.trial_name, trialType));
+            trial_index{1} = find((contains(trials.events.trial_name, trialType)));
+            baseline_index = trial_index{1};
         case 'no'
             for ii = 1:length(trialType)
                 trial_index{ii} = find(contains(trials.events.trial_name, trialType{ii}));
             end
+            baseline_index = vertcat(trial_index{:});
     end 
 end
 
@@ -46,9 +51,16 @@ for dataType = {'broadband', 'evoked'}
         % Make a separate plot for each channel
         subplot(ceil(sqrt(length(el_index))),ceil(sqrt(length(el_index))), ii); hold on;
 
-        % Baseline correction: across all trials 
         elData = squeeze(trials.(thisDataType)(el_index(ii),:,:));
-        baseline = mean(mean(elData(trials.time<0,:),1),2);
+        
+        % Baseline correction: 
+        switch baselineType
+            case 'all'
+                baseline = mean(mean(elData(trials.time<0,:),1),2);
+            case 'selectedtrials'
+                baseline = mean(mean(elData(trials.time<0,baseline_index),1),2);
+        end
+        
         switch thisDataType
             case 'broadband'
                 % percent signal? (similar to 'relchange' in fieldtrip)
@@ -118,11 +130,13 @@ for dataType = {'broadband', 'evoked'}
         line([trials.time(1) trials.time(end)], [0 0],'LineStyle', ':', 'Color', 'k');
 
         % Add legend
-        switch collapseTrialTypes
-            case 'no'
-                legend(trialType);
-            case 'yes'
-                legend([trialType{:}])
+        if ii == 1
+            switch collapseTrialTypes
+                case 'no'
+                    legend(trialType);
+                case 'yes'
+                    legend([trialType{:}])
+            end
         end
     end
     set(gcf, 'Position', [150 100 1500 1250]);

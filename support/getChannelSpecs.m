@@ -17,30 +17,78 @@ chanTypes = hdr.chantype;
 chanUnits = hdr.chanunit;
 
 % Match channel names from data header with names from electrode file
-for ii = 1:length(hdr.label)
-    C = strsplit(hdr.label{ii}, {' ', '_', '-'});
-    % get rid of -REF field
-    C = C(1:end-1);
-    switch C{1}
-        case 'EEG'
-            chanName = strcat(C{2:end});
-            inx = find(contains(elecList, chanName));
-            if length(inx) == 1
-                elecInx(ii) = inx;
-            elseif length(inx) < 1
-                fprintf('Warning: could not match SEEG channel %s! \n', chanName);
-            elseif length(inx) > 1
-                fprintf('Warning: multiple matches with SEEG channel %s! \n', chanName);
-            end
-            chanNames{ii} = chanName;
-            chanTypes{ii} = 'seeg';
-        case 'ECG'   
-            chanName = strcat(C{2:end});
+
+if max(contains(hdr.label, 'REF')) == 1
+    % this is an older SOM dataset in which channels have not been renamed
+    for ii = 1:length(hdr.label)
+        C = strsplit(hdr.label{ii}, {' ', '_', '-'});
+        % get rid of -REF field
+        C = C(1:end-1);
+        switch C{1}
+            case 'EEG'
+                chanName = strcat(C{2:end});
+                inx = find(contains(elecList, chanName));
+                if length(inx) == 1
+                    elecInx(ii) = inx;
+                elseif length(inx) < 1
+                    fprintf('Warning: could not match SEEG channel %s! \n', chanName);
+                elseif length(inx) > 1
+                    fprintf('Warning: multiple matches with SEEG channel %s! \n', chanName);
+                end
+                chanNames{ii} = chanName;
+                chanTypes{ii} = 'seeg';
+            case 'ECG'   
+                chanName = strcat(C{2:end});
+                chanNames{ii} = chanName;
+                chanTypes{ii} = 'ecg';
+            otherwise
+                chanNames{ii} = strcat(C{:});
+                chanTypes{ii} = 'other'; 
+        end
+    end
+else
+	% this is a newer SOM dataset in which channels been renamed to no
+	% longer have 'REF' or dahes, but the numbering style is different in
+	% the elecfile and the hdr so we still need to rename. In this case
+	% we'll rename the elecList (remove the 0s):
+    elecList_renamed = elecList;
+    for ii = 1:length(elecList)
+        zeroIdx = strfind(elecList{ii}, '0'); % find the location of 0
+        lastIdx = length(elecList{ii}); % check if location of 0 is not at the end 
+        if ~isempty(zeroIdx) && zeroIdx ~= lastIdx
+            keepIdx = setdiff(1:lastIdx, zeroIdx);
+            elecList_renamed{ii} = elecList{ii}(keepIdx);
+        end
+    end
+    % Now, loop across all the channels to get their elecInx
+    for ii = 1:length(hdr.label)
+        chanName = hdr.label{ii};
+        if contains(chanName, {'EKG', 'ECG'})
+            % this is an ECG channel
             chanNames{ii} = chanName;
             chanTypes{ii} = 'ecg';
-        otherwise
-            chanNames{ii} = strcat(C{:});
-            chanTypes{ii} = 'other'; 
+        elseif contains(chanName, 'DC')
+            % this is a DC channel
+            chanNames{ii} = chanName;
+            chanTypes{ii} = 'other';
+        else
+            %inx = find(contains(elecList_renamed, chanName));
+            inx = find(strcmp(chanName,elecList_renamed));
+            if length(inx) == 1
+                elecInx(ii) = inx;
+                chanNames{ii} = elecList{inx};
+                chanTypes{ii} = 'seeg';
+            elseif length(inx) < 1
+                fprintf('Warning: could not match channel %s! \n', chanName);
+                chanNames{ii} = chanName;
+                chanTypes{ii} = 'unknown';
+            elseif length(inx) > 1
+                error('Multiple matches with channel %s! \n', chanName);
+                %fprintf('Warning: multiple matches with channel %s! \n', chanName);
+                %chanNames{ii} = chanName;
+                %chanTypes{ii} = 'unknown';
+            end
+        end
     end
 end
 

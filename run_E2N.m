@@ -19,7 +19,7 @@ specs.atlasNames    = {'wang2015_atlas', 'benson14_varea', 'benson14_eccen'};
                         % NOTE: including benson14_varea is required to
                         % be able to obtain benson14_eccen, angle and sigma
 specs.plotmesh      = 'both'; % left, right, both, or none
-specs.plotelecs     = 'no'; % yes or no
+specs.plotelecs     = 'yes'; % yes or no
 
 out = electrode_to_nearest_node(specs);
 

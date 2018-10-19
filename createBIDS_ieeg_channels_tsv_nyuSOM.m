@@ -44,19 +44,19 @@ group = repmat('unknown', n, 1); % RECOMMENDED Which group of channels
 sampling_frequency = repmat('unknown', n, 1); % OPTIONAL. Sampling rate of 
 % the channel in Hz
 
-description = repmat('  ', n, 1); % OPTIONAL. Brief free-text description 
+description = repmat('n/a', n, 1); % OPTIONAL. Brief free-text description 
 % of the channel, or other information of interest (e.g. position (e.g.,
 % ?left lateral temporal surface?, etc.)
 
 notch = repmat('n/a', n, 1); % OPTIONAL. Frequencies used for the notch 
 % filter applied to the channel, in Hz. If no notch filter applied, use n/a 
 
-status = repmat(' ', n, 1); % OPTIONAL. Data quality observed on the 
+status = repmat('n/a', n, 1); % OPTIONAL. Data quality observed on the 
 % channel (good/bad). A channel is considered bad if its data quality is
 % compromised by excessive noise. Description of noise type SHOULD be
 % provided in [status_description].
 
-status_description = repmat(' ', n, 1); % OPTIONAL. Freeform text description of noise 
+status_description = repmat('n/a', n, 1); % OPTIONAL. Freeform text description of noise 
 % or artifact affecting data quality on the channel. It is meant to explain
 % why the channel was declared bad in [status].
 
