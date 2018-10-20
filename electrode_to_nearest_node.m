@@ -242,7 +242,7 @@ for a = 1:length(specs.atlasNames)
         % Get names / colormaps associated with each atlas
         switch currentAtlas
 
-            case 'wang2015_atlas' % Wang atlas
+            case {'wang2015_atlas', 'wang15_mplbl'} % Wang atlas
 
                 % Labels come from: '/Volumes/server/Projects/Kastner2015Atlas/ProbAtlas_v4/ROIfiles_Labeling.txt';
                 area_labels =  {'V1v','V1d', ...
@@ -323,7 +323,7 @@ for a = 1:length(specs.atlasNames)
         
         % Get area labels and specs for matched nodes
         switch currentAtlas
-            case {'wang2015_atlas', 'benson14_varea', 'template_areas'}
+            case {'wang2015_atlas', 'wang15_mplbl', 'benson14_varea', 'template_areas'}
 
                 area_count = zeros(1,length(area_labels));
                 for i = 1:length(elec_labels_found)
@@ -415,7 +415,7 @@ for a = 1:length(specs.atlasNames)
                     cb.Label.String = atlasUnits;
                     cb.Position = [0.92 0.25 0.03 0.5];
                     switch currentAtlas
-                        case {'wang2015_atlas', 'benson14_varea', 'template_areas'}
+                        case {'wang2015_atlas', 'wang15_mplbl', 'benson14_varea', 'template_areas'}
                             cb.Ticks = 0:1:length(area_labels);
                             cb.TickLabels = ['none', area_labels];
                     end   
@@ -482,7 +482,7 @@ end
 % make a count per area (across hemispheres)
 
 % Check which of these atlases we ran
-atlasNames = intersect({'wang2015_atlas', 'benson14_varea', 'template_areas'}, specs.atlasNames);
+atlasNames = intersect({'wang2015_atlas','wang15_mplbl', 'benson14_varea', 'template_areas'}, specs.atlasNames);
 
 % In case not all benson maps were run, fill fields to prevent error below
 if max(contains(atlasNames, 'benson14_varea')) &&  ~isempty(out.benson14_varea)
@@ -500,7 +500,7 @@ for a = 1:length(atlasNames)
             
         for i = 1:length(out.(currentAtlas).elec_labels)            
             switch currentAtlas
-                case {'wang2015_atlas', 'template_areas'}
+                case {'wang2015_atlas', 'template_areas', 'wang15_mplbl'}
                     disp([out.(currentAtlas).elec_labels{i} ' in area ' out.(currentAtlas).area_labels{i}]);
                 case 'benson14_varea'
                     disp([out.(currentAtlas).elec_labels{i} ' in area ' out.(currentAtlas).area_labels{i} ...
