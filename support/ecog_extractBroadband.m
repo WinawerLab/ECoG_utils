@@ -89,6 +89,16 @@ switch method
         % -- Method 7: mean after hilbert; regular mean; power-> BEST IN SIMULATION
         broadband = mean(abs(hilbert(bp)).^2, banddim);
         methodstr = 'mean(abs(hilbert(bp)).^2)';
+    
+    case {8}
+        % -- Method 8: mean after hilbert; regular mean; amplitude
+        broadband = mean(abs(hilbert(bp)), banddim);
+        methodstr = 'mean(abs(hilbert(bp)))';
+       
+    case {9}
+        % -- Method 8: mean after hilbert; regular mean; logpower
+        broadband = mean(abs(hilbert(bp)).^2, banddim);
+        methodstr = 'mean(log10(abs(hilbert(bp)).^2))';
 end
 
 broadband = broadband';

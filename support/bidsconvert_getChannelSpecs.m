@@ -1,4 +1,4 @@
-function [elecInx, chanNames, chanTypes, chanUnits] = getChannelSpecs(hdr, elecList)
+function [elecInx, chanNames, chanTypes, chanUnits] = bidsconvert_getChannelSpecs(hdr, elecList, elecTypes)
 
 % This function compares channel info from the data (obtained from the file
 % header hdr) with electrode info (elecList, obtained from electrode
@@ -10,6 +10,10 @@ function [elecInx, chanNames, chanTypes, chanUnits] = getChannelSpecs(hdr, elecL
 % - chanNames: list of shortened names to be used for channels.tsv 
 % - chanTypes: list of types to be used for channels.tsv
 % - chanUnits: reads the chanunits from the header for channels.tsv
+
+if nargin < 3 || isempty(elecTypes)
+    elecTypes = cell(size(elecList));
+end
 
 elecInx = nan(length(hdr.label),1); % this will be an index into elecList
 chanNames = hdr.label;
@@ -31,12 +35,13 @@ if max(contains(hdr.label, 'REF')) == 1
                 if length(inx) == 1
                     elecInx(ii) = inx;
                 elseif length(inx) < 1
-                    fprintf('Warning: could not match SEEG channel %s! \n', chanName);
+                    fprintf('Warning: could not match channel %s! \n', chanName);
+                    chanNames{ii} = chanName;
+                    chanTypes{ii} = 'unknown';
                 elseif length(inx) > 1
-                    fprintf('Warning: multiple matches with SEEG channel %s! \n', chanName);
+                    error('Multiple matches with channel %s! \n', chanName);
                 end
                 chanNames{ii} = chanName;
-                chanTypes{ii} = 'seeg';
             case 'ECG'   
                 chanName = strcat(C{2:end});
                 chanNames{ii} = chanName;
@@ -72,22 +77,30 @@ else
             chanNames{ii} = chanName;
             chanTypes{ii} = 'other';
         else
-            %inx = find(contains(elecList_renamed, chanName));
             inx = find(strcmp(chanName,elecList_renamed));
             if length(inx) == 1
                 elecInx(ii) = inx;
                 chanNames{ii} = elecList{inx};
-                chanTypes{ii} = 'seeg';
             elseif length(inx) < 1
                 fprintf('Warning: could not match channel %s! \n', chanName);
                 chanNames{ii} = chanName;
                 chanTypes{ii} = 'unknown';
             elseif length(inx) > 1
                 error('Multiple matches with channel %s! \n', chanName);
-                %fprintf('Warning: multiple matches with channel %s! \n', chanName);
-                %chanNames{ii} = chanName;
-                %chanTypes{ii} = 'unknown';
             end
+        end
+    end
+end
+
+for ii = 1:length(elecInx)
+    if ~isnan(elecInx(ii))
+        switch elecTypes{elecInx(ii)}
+            case 'depth'
+                chanTypes{ii} = 'seeg';
+            case 'surface'
+                chanTypes{ii} = 'ecog';
+            otherwise
+                chanTypes{ii} = 'other';
         end
     end
 end

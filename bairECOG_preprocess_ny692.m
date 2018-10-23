@@ -84,7 +84,7 @@ bands = [[70 90]; [90 110]; [130 150]; [150 170]];
 bbmethod = 7;
 
 % Extract broadband
-[broadband, methodstr] = extractBroadband_nyu(signal', ftdata.fsample, bbmethod, bands);
+[broadband, methodstr] = ecog_extractBroadband(signal', ftdata.fsample, bbmethod, bands);
 
 %% Create a data structure to save
 

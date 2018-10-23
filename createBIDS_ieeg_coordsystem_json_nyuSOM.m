@@ -15,7 +15,7 @@ function [coordsystem_json, json_options] = createBIDS_ieeg_coordsystem_json_nyu
 
 %%  Required fields
 
-coordsystem_json.iEEGCoordinateSystem  = 'T1w'; % REQUIRED. Defines the coordinate 
+coordsystem_json.iEEGCoordinateSystem  = 'other'; % REQUIRED. Defines the coordinate 
 % system for the iEEG electrodes. See Appendix VIII: preferred names of Coordinate 
 % systems. If "Other" (e.g. individual subject MRI), provide definition of the 
 % coordinate system in  [iEEGCoordinateSystemDescription]. If positions correspond to 
@@ -35,7 +35,7 @@ coordsystem_json.IntendedFor = ''; % REQUIRED. This can be an MRI/CT or a file c
 
 %% Optional fields
 
-coordsystem_json.iEEGCoordinateSystemDescription  = 'native-acpc';% %OPTIONAL. Freeform text description or 
+coordsystem_json.iEEGCoordinateSystemDescription  = 'native T1w - acpc';% %OPTIONAL. Freeform text description or 
 % link to document describing the iEEG coordinate system system in detail (e.g. ?ACPC?). 
 
 coordsystem_json.iEEGCoordinateProcessingReference = 'unknown'; % RECOMMENDED. A reference to a paper that defines in more detail 

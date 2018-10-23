@@ -134,7 +134,7 @@ triggers = data(triggerChannel,:);
 triggers = triggers / max(triggers);
 
 disp('Reading triggers from data');
-[~,trigger_onsets] = findpeaks(triggers, hdr.Fs, 'MinPeakHeight', 0.8, 'MinPeakDistance', .5);
+[~,trigger_onsets] = findpeaks(triggers, hdr.Fs, 'MinPeakHeight', 0.8, 'MinPeakDistance', 0.5);
 
 switch makePlots 
     case 'yes'
@@ -217,7 +217,7 @@ else
 end
 
 % Match elec names; sort coordinates and electrode types based on matching
-[elecInx, chanNames, chanTypes, chanUnits] = getChannelSpecs(hdr, elec_labels);
+[elecInx, chanNames, chanTypes, chanUnits] = bidsconvert_getChannelSpecs(hdr, elec_labels);
 
 % Generate a channel table default (written out for each run in big loop below)
 [channel_table] = createBIDS_ieeg_channels_tsv_nyuSOM(length(chanNames));
@@ -335,6 +335,13 @@ writetable(electrode_table,electrodes_tsv_name,'FileType','text','Delimiter','\t
 %   - splits data up in separate runs
 %   - writes out all the run specific files required for BIDS
 
+% Generate an _ieeg.json file default
+[ieeg_json, json_options] = createBIDS_ieeg_json_nyuSOM();
+
+% Add a count of all the channels (based on channel_table)
+[ieeg_json] = bidsconvert_addChannelCounts(ieeg_json, channel_table);
+
+% Initialize trigger count
 num_triggers_total = 0;
 
 for ii = 1:nRuns
@@ -346,10 +353,7 @@ for ii = 1:nRuns
             sub_label, ses_label, task_label{ii}, run_label{ii});
     fprintf('Writing eeg, events, stimuli, json and channel files for %s \n', fname);
     
-    % Generate a json file default
-    [ieeg_json, json_options] = createBIDS_ieeg_json_nyuSOM();
-    
-    % Collect info for json file   
+    % Collect task-specific info for json file   
     if contains(task_label{ii}, 'hrf')                 
         ieeg_json.TaskName = 'bair_hrfpattern';
         ieeg_json.TaskDescription = 'Visual textures presented at irregular intervals';        

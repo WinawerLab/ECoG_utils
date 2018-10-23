@@ -54,6 +54,12 @@ nDecimals = 6; % Specify temporal precision of time stamps in events files
 % Make plots?
 makePlots = 'no';
 
+%% Create write directories
+
+if ~exist(dataWriteDir, 'dir'); mkdir(dataWriteDir);end
+if ~exist(stimWriteDir, 'dir'); mkdir(stimWriteDir);end
+if ~exist(T1WriteDir, 'dir'); mkdir(T1WriteDir);end
+
 %% READ IN relevant data files %%%%%%%%%%%%%%%%%%
 
 %   - ECoG data file
@@ -72,16 +78,95 @@ data = ft_read_data(fileName);
 hdr = ft_read_header(fileName);
 % To read in EDF data with channels with different sampling rates: data = edf2fieldtrip(fileName);
 
-% Identify trigger channel and task indices
-% for cChan = size(data,1):-1:1; figure;plot(data(cChan,:)); title([num2str(cChan) ': ' hdr.label{cChan}]);waitforbuttonpress;close; end
+%% MANUAL STEP:  Identify the trigger channel
 
-% Get trigger time points from data file
+% Plot the raw voltage time course of each channel
+t = ((1:hdr.nSamples)/hdr.Fs); % time in seconds
+switch makePlots 
+    case 'yes'
+        for cChan = size(data,1):-1:1; figure;plot(t,data(cChan,:)); title([num2str(cChan) ': ' hdr.label{cChan}]); waitforbuttonpress; close; end
+end
+
+% Write down the trigger channel (probably one labeled 'DC', see hdr.label)
 triggerChannel = 138; % DC10 
+% Also write down any obviously bad channels (e.g. those with big spikes)
+badChannels = [81 82 100 102 125 126]; %DAIL08, DPIL02, SF06
 
+%% MANUAL STEP: Check channel selection
+
+% Generate spectral plot; check command window output for outliers; 
+switch makePlots 
+    case 'yes'
+        [outliers] = ecog_plotChannelSpectra(data, find(contains(hdr.chantype, 'eeg'), hdr);
+end
+
+% Are the outliers in the list of badChannels?
+% NOTE: outliers (identified as channels with mean power that is more that
+% two standard deviations above or below the average across channels) should
+% not be used to automatically identify bad channels, because channels with
+% strong activation can have higher power on average! Instead, look at
+% the time courses of those channels again to see what makes them stand out:
+
+switch makePlots 
+    case 'yes'
+        for cChan = 1:length(outliers);figure; plot(t, data(outliers(cChan),:)); title([num2str(outliers(cChan)) ': ' hdr.label{outliers(cChan)}]); end
+end
+
+% If necessary, update badChannels:
+morebadChannels = [];
+badChannels = [badChannels morebadChannels];
+
+% Indicate the reason why channels were marked as bad
+badChannelsDescriptions = repmat({'spikes'}, 1,length(badChannels)); 
+
+% All sEEG channels not labeled as bad will be labeled good
+goodChannels = setdiff(find(contains(hdr.chantype, 'eeg')),badChannels)';
+
+% Check selection of good channels:
+switch makePlots 
+    case 'yes'
+        % Check the powerplot of all the good channels, no leftover outliers?
+        ecog_plotChannelSpectra(data, goodChannels, hdr)
+
+        % Check the timeseries of all the good channels, no noisy moments?
+        figure;plot(t,data(goodChannels,:)); xlabel('Time (s)'); ylabel('Amplitude'); set(gca,'fontsize',16);
+end
+
+%% Get trigger time points from data file
 triggers = data(triggerChannel,:);
 triggers = triggers / max(triggers);
+
+disp('Reading triggers from data');
 [~,trigger_onsets] = findpeaks(triggers, hdr.Fs, 'MinPeakHeight', 0.8, 'MinPeakDistance', .5);
-t = ((1:hdr.nSamples)/hdr.Fs); % time in seconds
+
+switch makePlots 
+    case 'yes'
+        figure;hold on
+        plot(t,triggers)
+        stem(trigger_onsets,ones(length(trigger_onsets),1)*0.9,'r');
+        legend({'trigger channel', 'detected trigger onsets'}); xlabel('time (s)'); ylabel('amplitude');
+        set(gca, 'ylim', [0 1]);
+end
+
+%% Read in stimulus files
+
+stimDir = fullfile(RawDataDir,num2str(patientID), 'stimdata');
+stimFiles = dir(fullfile(stimDir, sprintf('%s*2017*.mat', num2str(patientID))));
+
+for ii = 1:length(stimFiles)
+    fileName = [stimDir filesep stimFiles(ii).name];
+    stimData(ii) = load(fileName) ;    
+    disp(['reading ' stimData(ii).params.loadMatrix])
+    switch makePlots 
+        case 'yes'
+            figure; hold on
+            plot(stimData(ii).stimulus.seqtiming, stimData(ii).stimulus.seq, 'o-')
+    end
+end
+
+% CHECK: Do we have all the stimfiles?
+assert(isequal(length(stimData), length(run_label)))
+nRuns = length(run_label);
 
 %% Read in electrode information
 
@@ -106,7 +191,7 @@ else
 end
 
 % Match elec names; sort coordinates and electrode types based on matching
-[elecInx, chanNames, chanTypes, chanUnits] = getChannelSpecs(hdr, elec_labels);
+[elecInx, chanNames, chanTypes, chanUnits] = bidsconvert_getChannelSpecs(hdr, elec_labels, elec_types);
 
 % Generate a channel table default (written out for each run in big loop below)
 [channel_table] = createBIDS_ieeg_channels_tsv_nyuSOM(length(chanNames));
@@ -114,27 +199,23 @@ channel_table.name  = chanNames;
 channel_table.type  = chanTypes;
 channel_table.units = chanUnits;
 channel_table.sampling_frequency = repmat(hdr.Fs,size(channel_table,1),1);
+
+% Indicate which channel is the trigger channel in channels.tsv
 channel_table.type{triggerChannel} = 'trig';
 
-%% Read in stimulus files
-
-stimDir = fullfile(RawDataDir,num2str(patientID), 'stimdata');
-stimFiles = dir(fullfile(stimDir, sprintf('%s*2017*.mat', num2str(patientID))));
-
-for ii = 1:length(stimFiles)
-    fileName = [stimDir filesep stimFiles(ii).name];
-    stimData(ii) = load(fileName) ;    
-    disp(['reading ' stimData(ii).params.loadMatrix])
-    switch makePlots 
-        case 'yes'
-            figure(ii); clf
-            plot(stimData(ii).stimulus.seqtiming, stimData(ii).stimulus.seq, 'o-')
+% Indicate channel statuses
+channel_table.status = cell(height(channel_table),1);
+channel_table.status_description = cell(height(channel_table),1);
+ecogChannels = find(contains(channel_table.type,{'seeg', 'ecog'}));
+for ii = 1:length(ecogChannels)
+    channel_table.status{ecogChannels(ii)} = 'good';
+end
+for ii = 1:length(badChannels)
+    channel_table.status{badChannels(ii)} = 'bad';
+    if exist('badChannelsDescriptions', 'var')
+        channel_table.status_description{badChannels(ii)} = badChannelsDescriptions{ii};
     end
 end
-
-% CHECK: Do we have all the stimfiles?
-assert(isequal(length(stimData), length(run_label)))
-nRuns = length(run_label);
 
 %% Create DATASET-SPECIFIC files %%%%%%%%%%%%%%%%%%
 
@@ -226,20 +307,25 @@ writetable(electrode_table,electrodes_tsv_name,'FileType','text','Delimiter','\t
 %   - splits data up in separate runs
 %   - writes out all the run specific files required for BIDS
 
-num_trials_total = 0;
+% Generate an _ieeg.json file default
+[ieeg_json, json_options] = createBIDS_ieeg_json_nyuSOM();
+
+% Add a count of all the channels (based on channel_table)
+[ieeg_json] = bidsconvert_addChannelCounts(ieeg_json, channel_table);
+
+% Initialize trigger count
+num_triggers_total = 0;
 
 for ii = 1:nRuns
     
-    stim0 = num_trials_total+1;
+    stim0 = num_triggers_total+1;
     
     % Generate filename
     fname = sprintf('sub-%s_ses-%s_task-%s_run-%s', ...
             sub_label, ses_label, task_label{ii}, run_label{ii});
     fprintf('Writing eeg, events, stimuli, json and channel files for %s \n', fname);
     
-    % Generate a json file default
-    [ieeg_json, json_options] = createBIDS_ieeg_json_nyuSOM();
-    
+    % Collect task-specific info for json file   
     if contains(task_label{ii}, 'hrf') %max(taskind_hrf == ii) > 0 % hrf task
                 
         % get the timestamps
@@ -289,8 +375,8 @@ for ii = 1:nRuns
     end
     
     % Get the onsets
-    num_trials_total = num_trials_total + num_trials;
-    onsets = trigger_onsets(stim0:num_trials_total);
+    num_triggers_total = num_triggers_total + num_trials;
+    onsets = trigger_onsets(stim0:num_triggers_total);
     [~,onset_indices] = intersect(t, onsets);
 
     % Clip data from run using prescan postscan intervals
@@ -355,7 +441,7 @@ end
 
 % CHECK: Do number of triggers derived from EDF data file match the number
 % of trials from the stimulus files?
-assert(isequal(length(trigger_onsets), num_trials_total))
+assert(isequal(length(trigger_onsets), num_triggers_total))
 disp('done');
 
 
