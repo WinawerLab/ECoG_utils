@@ -71,55 +71,71 @@ if ~exist(T1WriteDir, 'dir'); mkdir(T1WriteDir);end
 
 % Read ECoG data
 dataFiles = dir(fullfile(RawDataDir,num2str(patientID), '*.edf'));
-if length(dataFiles) > 1, disp('warning: multiple datafiles found: using first one'); end
+if length(dataFiles) > 1, disp('Warning: multiple datafiles found: using first one'); end
 
 fileName = [dataFiles(1).folder filesep dataFiles(1).name];    
-disp(['reading ' fileName '...']);
+disp(['Reading ' fileName '...']);
 hdr = ft_read_header(fileName);
 data = ft_read_data(fileName);
 % To read in EDF data with channels with different sampling rates: data = edf2fieldtrip(fileName);
 
-%% MANUAL STEP:  Inspect the time course of each of the channels 
+%% Read in ECoG data
 
-% Write down the trigger channel (probably one labeled 'DC', see hdr.label)
-% Write down bad channels (e.g. those with big spikes)
+% Read ECoG data
+dataFiles = dir(fullfile(RawDataDir,num2str(patientID), '*.edf'));
+if length(dataFiles) > 1, disp('Warning: multiple datafiles found: using first one'); end
+
+fileName = [dataFiles(1).folder filesep dataFiles(1).name];    
+disp(['Reading ' fileName '...']);
+data = ft_read_data(fileName);
+hdr = ft_read_header(fileName);
+% To read in EDF data with channels with different sampling rates: data = edf2fieldtrip(fileName);
+
+%% MANUAL STEP:  Identify the trigger channel
+
+% Plot the raw voltage time course of each channel
 t = ((1:hdr.nSamples)/hdr.Fs); % time in seconds
 switch makePlots 
     case 'yes'
-        for cChan = size(data,1):-1:1; figure;plot(t,data(cChan,:)); title([num2str(cChan) ': ' hdr.label{cChan}]);waitforbuttonpress; close; end
+        for cChan = size(data,1):-1:1; figure;plot(t,data(cChan,:)); title([num2str(cChan) ': ' hdr.label{cChan}]); waitforbuttonpress; close; end
 end
 
-% Specify the trigger channel
+% Write down the trigger channel (probably one labeled 'DC', see hdr.label)
 triggerChannel = 153; % DC1
+% Also write down any obviously bad channels (e.g. those with big spikes)
 badChannels = [33 48 89 93 94 96 112 124 127:150];
-badChannelsDescriptions = repmat({'spikes'}, 1,length(badChannels)); % use this to indicate the reason why channels were marked as bad
 
 %% MANUAL STEP: Check channel selection
 
-% Specify the ecog channels (look at hdr.label to guess from the channel
-% names, or by looking at the time courses at previous step)
-seegChannels = 1:150;
-
 % Generate spectral plot; check command window output for outliers; 
-% Are they all in the list of badChannels?
 switch makePlots 
     case 'yes'
-        [outliers] = ecog_plotChannelSpectra(data, seegChannels, hdr);
+        [outliers] = ecog_plotChannelSpectra(data, find(contains(hdr.chantype, 'eeg'), hdr));
 end
 
+% Are the outliers in the list of badChannels?
 % NOTE: outliers (identified as channels with mean power that is more that
-% two standard deviations above or below the average across channels should
+% two standard deviations above or below the average across channels) should
 % not be used to automatically identify bad channels, because channels with
 % strong activation can have higher power on average! Instead, look at
-% the time courses of those channels again
+% the time courses of those channels again to see what makes them stand out:
 
 switch makePlots 
     case 'yes'
-        for cChan = 1:length(outliers);figure; plot(t, data(outliers(cChan),:)); title([num2str(outliers(cChan)) ': ' hdr.label{outliers(cChan)}]); waitforbuttonpress; close; end
+        for cChan = 1:length(outliers);figure; plot(t, data(outliers(cChan),:)); title([num2str(outliers(cChan)) ': ' hdr.label{outliers(cChan)}]); end
 end
 
-goodChannels = setdiff(find(seegChannels),badChannels);
+% If necessary, update badChannels:
+morebadChannels = [];
+badChannels = [badChannels morebadChannels];
 
+% Indicate the reason why channels were marked as bad
+badChannelsDescriptions = repmat({'spikes'}, 1,length(badChannels)); 
+
+% All sEEG channels not labeled as bad will be labeled good
+goodChannels = setdiff(find(contains(hdr.chantype, 'eeg')),badChannels)';
+
+% Check selection of good channels:
 switch makePlots 
     case 'yes'
         % Check the powerplot of all the good channels, no leftover outliers?
@@ -199,9 +215,9 @@ assert(isequal(requestedTriggerCount, length(trigger_onsets)))
 % Locate and read the electrode file provided by SOM
 % We want the one that matches the T1
 ElecFile = dir(fullfile(RawDataDir,num2str(patientID),'*coor_T1*.txt'));
-if length(ElecFile) > 1, disp('warning: multiple elec files found: using first one'); end
+if length(ElecFile) > 1, disp('Warning: multiple elec files found: using first one'); end
 if length(ElecFile) < 1
-    disp('warning: no coordinate file found!') 
+    disp('Warning: no coordinate file found!') 
 else
     disp(['Reading electrode information from: ' ElecFile.name]); % if there are multiple coor_T1 files for separate hemispheres, D(1) will always be the full list
     elec_fname = fullfile(ElecFile.folder,ElecFile.name);
@@ -217,7 +233,7 @@ else
 end
 
 % Match elec names; sort coordinates and electrode types based on matching
-[elecInx, chanNames, chanTypes, chanUnits] = bidsconvert_getChannelSpecs(hdr, elec_labels);
+[elecInx, chanNames, chanTypes, chanUnits] = bidsconvert_getChannelSpecs(hdr, elec_labels, elec_types);
 
 % Generate a channel table default (written out for each run in big loop below)
 [channel_table] = createBIDS_ieeg_channels_tsv_nyuSOM(length(chanNames));
@@ -232,9 +248,9 @@ channel_table.type{triggerChannel} = 'trig';
 % Indicate channel statuses
 channel_table.status = cell(height(channel_table),1);
 channel_table.status_description = cell(height(channel_table),1);
-seegChannels = find(contains(channel_table.type,'seeg'));
-for ii = 1:length(seegChannels)
-    channel_table.status{seegChannels(ii)} = 'good';
+ecogChannels = find(contains(channel_table.type,{'seeg', 'ecog'}));
+for ii = 1:length(ecogChannels)
+    channel_table.status{ecogChannels(ii)} = 'good';
 end
 for ii = 1:length(badChannels)
     channel_table.status{badChannels(ii)} = 'bad';
@@ -255,11 +271,11 @@ end
 
 % Locate T1 provided by SoM
 T1File = dir(fullfile(RawDataDir,num2str(patientID), 'T1.nii.gz'));
-if length(T1File) > 1, disp('warning: multiple T1s found: using first one'); end
+if length(T1File) > 1, disp('Warning: multiple T1s found: using first one'); end
 
 % Copy file: rename and save in appropriate folder
 if length(T1File) < 1
-    disp('warning: no T1 found!') 
+    disp('Warning: no T1 found!') 
 else
     T1_name = fullfile(T1WriteDir, sprintf('sub-%s_ses-%s_T1w.nii.gz', sub_label, ses_labelt1));
     disp(['Writing ' T1_name '...']);
@@ -405,10 +421,9 @@ for ii = 1:nRuns
     events_table = stimData(ii).stimulus.tsv;
     
     % Overwrite onset with onsets of triggers
-    %events_table.onset       = round(onsets'-onsets(1)+prescan,nDecimals);
-    events_table.onset_index = (onset_indices - run_start_inx);
-    events_table.onset       = round(events_table.onset_index/hdr.Fs,nDecimals);
-    events_table.stim_file   = repmat(fname, height(events_table), 1);
+    events_table.event_sample = (onset_indices - run_start_inx);
+    events_table.onset        = round(events_table.event_sample/hdr.Fs,nDecimals);
+    events_table.stim_file    = repmat(fname, height(events_table), 1);
 
     % Write out tsv file 
     tsv_thisrun = events_table;

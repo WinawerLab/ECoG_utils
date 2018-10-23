@@ -70,10 +70,10 @@ if ~exist(T1WriteDir, 'dir'); mkdir(T1WriteDir);end
 
 % Read ECoG data
 dataFiles = dir(fullfile(RawDataDir,num2str(patientID), '*.edf'));
-if length(dataFiles) > 1, disp('warning: multiple datafiles found: using first one'); end
+if length(dataFiles) > 1, disp('Warning: multiple datafiles found: using first one'); end
 
 fileName = [dataFiles(1).folder filesep dataFiles(1).name];    
-disp(['reading ' fileName '...']);
+disp(['Reading ' fileName '...']);
 data = ft_read_data(fileName);
 hdr = ft_read_header(fileName);
 % To read in EDF data with channels with different sampling rates: data = edf2fieldtrip(fileName);
@@ -97,7 +97,7 @@ badChannels = [81 82 100 102 125 126]; %DAIL08, DPIL02, SF06
 % Generate spectral plot; check command window output for outliers; 
 switch makePlots 
     case 'yes'
-        [outliers] = ecog_plotChannelSpectra(data, find(contains(hdr.chantype, 'eeg'), hdr);
+        [outliers] = ecog_plotChannelSpectra(data, find(contains(hdr.chantype, 'eeg'), hdr));
 end
 
 % Are the outliers in the list of badChannels?
@@ -156,7 +156,7 @@ stimFiles = dir(fullfile(stimDir, sprintf('%s*2017*.mat', num2str(patientID))));
 for ii = 1:length(stimFiles)
     fileName = [stimDir filesep stimFiles(ii).name];
     stimData(ii) = load(fileName) ;    
-    disp(['reading ' stimData(ii).params.loadMatrix])
+    disp(['Reading ' stimData(ii).params.loadMatrix])
     switch makePlots 
         case 'yes'
             figure; hold on
@@ -173,17 +173,17 @@ nRuns = length(run_label);
 % Locate and read the electrode file provided by SOM
 % We want the one that matches the T1
 ElecFile = dir(fullfile(RawDataDir,num2str(patientID),'*coor_T1*.txt'));
-if length(ElecFile) > 1, disp('warning: multiple elec files found: using first one'); end
+if length(ElecFile) > 1, disp('Warning: multiple elec files found: using first one'); end
 if length(ElecFile) < 1
-    disp('warning: no coordinate file found!') 
+    disp('Warning: no coordinate file found!') 
 else
-    disp(['reading ' ElecFile.name]); % if there are multiple coor_T1 files for separate hemispheres, D(1) will always be the full list
+    disp(['Reading ' ElecFile.name]); % if there are multiple coor_T1 files for separate hemispheres, D(1) will always be the full list
     elec_fname = fullfile(ElecFile.folder,ElecFile.name);
     fid = fopen(elec_fname); E = textscan(fid, '%s%f%f%f%s'); fclose(fid);
     elec_xyz = [E{2} E{3} E{4}]; 
     elec_labels = E{1};
     elec_types = E{5};
-    disp(['types of electrodes found: ' unique(strcat(elec_types{:}))]);
+    disp(['Types of electrodes found: ' unique(strcat(elec_types{:}))]);
     % Replace elec_types with BIDS terminology
     elec_types = replace(elec_types, 'G', 'surface');
     elec_types = replace(elec_types, 'D', 'depth');
@@ -227,11 +227,11 @@ end
 
 % Locate T1 provided by SoM
 T1File = dir(fullfile(RawDataDir,num2str(patientID), 'T1.nii.gz'));
-if length(T1File) > 1, disp('warning: multiple T1s found: using first one'); end
+if length(T1File) > 1, disp('Warning: multiple T1s found: using first one'); end
 
 % Copy file: rename and save in appropriate folder
 if length(T1File) < 1
-    disp('warning: no T1 found!') 
+    disp('Warning: no T1 found!') 
 else
     T1_name = fullfile(T1WriteDir, sprintf('sub-%s_ses-%s_T1w.nii.gz', sub_label, ses_labelt1));
     disp(['writing ' T1_name '...']);
@@ -401,12 +401,12 @@ for ii = 1:nRuns
     %delete(sprintf('%s.eeg', data_fname), sprintf('%s.vhdr', data_fname), sprintf('%s.vmrk', data_fname));
     
     % Collect info for tsv file 
-    onset       = round(onsets'-onsets(1)+prescan,nDecimals);
-    onset_index = (onset_indices - run_start_inx);
-    stim_file   = repmat(fname, num_trials, 1);
+    onset        = round(onsets'-onsets(1)+prescan,nDecimals);
+    event_sample = (onset_indices - run_start_inx);
+    stim_file    = repmat(fname, num_trials, 1);
 
     % Write out tsv file 
-    tsv_thisrun = table(onset, onset_index, duration, ISI, trial_type, trial_name, stim_file, stim_file_index);
+    tsv_thisrun = table(onset, event_sample, duration, ISI, trial_type, trial_name, stim_file, stim_file_index);
     tsv_fname = fullfile(dataWriteDir, sprintf('%s_events.tsv', fname));
     writetable(tsv_thisrun, tsv_fname, 'FileType','text', 'Delimiter', '\t')
     

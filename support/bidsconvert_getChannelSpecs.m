@@ -35,11 +35,11 @@ if max(contains(hdr.label, 'REF')) == 1
                 if length(inx) == 1
                     elecInx(ii) = inx;
                 elseif length(inx) < 1
-                    fprintf('Warning: could not match channel %s! \n', chanName);
+                    fprintf('Warning: could not match channel %s with electrode information! \n', chanName);
                     chanNames{ii} = chanName;
                     chanTypes{ii} = 'unknown';
                 elseif length(inx) > 1
-                    error('Multiple matches with channel %s! \n', chanName);
+                    error('Multiple matches for channel %s with electrode information! \n', chanName);
                 end
                 chanNames{ii} = chanName;
             case 'ECG'   

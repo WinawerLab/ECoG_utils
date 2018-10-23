@@ -14,7 +14,7 @@ if isfield(trials, 'hdr'); trials = rmfield(trials, 'hdr'); end
 onset_pre = epochDur(1)/(1/data.hdr.Fs);
 onset_post = epochDur(2)/(1/data.hdr.Fs)-1;
 
-onsetInx = data.events.onset_index;
+onsetInx = data.events.event_sample;
 
 % Overwrite trials
 trials.time  = epochDur(1):(1/data.hdr.Fs):epochDur(2)-(1/data.hdr.Fs);
