@@ -46,85 +46,46 @@ saveDir = fullfile(dataPth, projectName, 'derivatives', 'preprocessed', sprintf(
 specs = [];
 specs.pID           = sub_label; % patient ID number
 specs.patientPool   = 'BAIR';
-
+specs.plotmesh      = 'none';
 visualelectrodes = electrode_to_nearest_node(specs, dataDir);
-
-%% [2] DATA INSPECTION: Look at powerpectrum of channels to see which ones look bad
-
-% Look at data.label to determine which channels are EEG channels: 1:126
-chan_select = contains(channels.type, 'seeg');
-
-% Generate spectral plot; check command window output for outliers 
-[outliers,pxx,freqs] = ecog_plotChannelSpectra(ftdata, chan_select);
-
-% NOTE: outliers (identified as channels with mean power that is more that
-% two standard deviations above or below the average across chanensl should
-% not be used to automatically identify bad channels, because channels with
-% strong activation can have higher power on average! Instead, pay extra
-% attention to those channels when inspecting their time courses:
-
-% Inspect the time course for suspicious / outlier channels
-for channel_plot = 1:length(outliers); figure;plot(ftdata.time{1}, ftdata.trial{1}(outliers(channel_plot),:)); title([num2str(outliers(channel_plot)) ': ' ftdata.label{outliers(channel_plot)}]); end
-
-% Even better: look at the time course for each channel in succession:
-% for channel_plot = 1:size(ftdata.trial{1},1); figure;plot(ftdata.time{1}, ftdata.trial{1}(channel_plot,:)); title([num2str(channel_plot) ': ' ftdata.label{channel_plot}]);waitforbuttonpress;close; end
-
-%% [2] Identify bad channels here:
-
-bad_channels = [100 102 126]; % Manually selected based on inspection of spectra and time courses
-good_channels = setdiff(find(chan_select),bad_channels);
-
-%% [2] DATA INSPECTION: Visualize the timeseries of some channels
-
-figure;
-subplot(2,1,1); hold on
-plot(ftdata.time{1},ftdata.trial{1}(bad_channels(1),:),'r')
-title('first bad channel')
-subplot(2,1,2); hold on
-plot(ftdata.time{1},ftdata.trial{1}(good_channels(1),:),'k')
-title('first good channel')
-
-% Check the powerplot of all the good channels, no leftover outliers?
-ecog_plotChannelSpectra(ftdata, good_channels)
-
-% Check the timeseries of all the good channels, no noisy moments?
-figure,plot(ftdata.time{1},ftdata.trial{1}(good_channels,:))
 
 %% [3] Do a common average reference using the good channels
 
-signal = ecog_CarRegress(ftdata.trial{1}, good_channels);
+signal = ecog_CarRegress(ftdata.trial{1}, find(contains(channels.status, 'good')));
 
-%% [3] DATA INSPECTION: Look at the effect of CAR
-
-figure;
-subplot(1,2,1); hold on
-channel_plot = good_channels(1);
-plot(ftdata.time{1},ftdata.trial{1}(channel_plot,:),'k')
-plot(ftdata.time{1},signal(channel_plot,:),'g')
-legend({'before CAR','after CAR'})
-xlabel('Time (s)'); ylabel('Voltage');
-title(ftdata.label(channel_plot));
-
-subplot(1,2,2),hold on
-[pxx2,freqs] = pwelch(signal',ftdata.fsample,0,ftdata.fsample,ftdata.fsample);
-plot(freqs,pxx(:,channel_plot),'k')
-plot(freqs,pxx2(:,channel_plot),'g'); 
-set(gca, 'YScale', 'log')
-xlabel('Frequency (Hz)'); ylabel('Log power');
-title(ftdata.label(channel_plot));
+% %% [3] DATA INSPECTION: Look at the effect of CAR
+% 
+% figure;
+% subplot(1,2,1); hold on
+% channel_plot = good_channels(1);
+% plot(ftdata.time{1},ftdata.trial{1}(channel_plot,:),'k')
+% plot(ftdata.time{1},signal(channel_plot,:),'g')
+% legend({'before CAR','after CAR'})
+% xlabel('Time (s)'); ylabel('Voltage');
+% title(ftdata.label(channel_plot));
+% 
+% subplot(1,2,2),hold on
+% [pxx2,freqs] = pwelch(signal',ftdata.fsample,0,ftdata.fsample,ftdata.fsample);
+% plot(freqs,pxx(:,channel_plot),'k')
+% plot(freqs,pxx2(:,channel_plot),'g'); 
+% set(gca, 'YScale', 'log')
+% xlabel('Frequency (Hz)'); ylabel('Log power');
+% title(ftdata.label(channel_plot));
 
 %% [4] Compute time-varying broadband 
 
 % Define frequency bands to filter
-bands = [[70 90]; [90 110]; [130 150]; [150 170]];
+bands = [[70 80]; [80 90]; [90 100]; [100 110]; [130 140]; [140 150]; [150 160]; [160 170]];
+%bands = [[70 90]; [90 110]; [130 150]; [150 170]];
+%bands = [[70 110]; [130 170]];
 
-% Define broadband extraction method (see help extractBroadband_nyu)
-bbmethod = 8;
+% Define broadband extraction method
+bbmethod = 9;
 
 % Extract broadband
 [broadband, methodstr] = ecog_extractBroadband(signal', ftdata.fsample, bbmethod, bands);
 
-%% Create a data structure to save
+% Create a data structure to save
 
 data = struct();
 
@@ -140,23 +101,23 @@ data.channels   = channels;
 data.viselec    = visualelectrodes;
 data.cfg        = ftdata.cfg;
 
-%% [4] DATA INSPECTION: Plot filtered time course and broadband for channel(s) of interest
+% %% [4] DATA INSPECTION: Plot filtered time course and broadband for channel(s) of interest
+% 
+% % Pick one or more of the electrodes with coverage in visual areas: 
+% disp(data.viselec.benson14_varea);
+% 
+% % e.g.
+% eltomatch = visualelectrodes.benson14_varea.elec_labels(9); %MO01-04
+% 
+% % Find matching channel number
+% el = ecog_matchChannels(eltomatch, data);
+% 
+% % Plot voltage and broadband
+% ecog_plotFullTimeCourse(data,'car_reref', el);
+% ecog_plotFullTimeCourse(data,'broadband', el); % no smoothing
+% ecog_plotFullTimeCourse(data,'broadband', el, data.hdr.Fs/2); % with smoothing
 
-% Pick one or more of the electrodes with coverage in visual areas: 
-disp(data.viselec.benson14_varea);
-
-% e.g.
-eltomatch = visualelectrodes.benson14_varea.elec_labels(9:12); %MO01-04
-
-% Find matching channel number
-el = ecog_matchChannels(eltomatch, data);
-
-% Plot voltage and broadband
-ecog_plotFullTimeCourse(data,'car_reref', el);
-ecog_plotFullTimeCourse(data,'broadband', el); % no smoothing
-ecog_plotFullTimeCourse(data,'broadband', el, data.hdr.Fs/2); % with smoothing
-
-%% [5] Segment the data (all channels, all tasks)
+% [5] Segment the data (all channels, all tasks)
 
 % Set epoch length (in seconds)
 epoch = [-0.5 1.5];
@@ -175,13 +136,13 @@ baseline_epoch = [-1.5 -0.5];
 baseline_trials = ecog_epochData(mockdata, baseline_epoch);
 baseline_trials.events = [];
 
-%% Save preprocessed and epoched data for further analysis
-
-disp('saving preprocessed data...');
-saveName = fullfile(saveDir, sprintf('sub-%s_ses-%s_preproc', sub_label, ses_label));
-save(saveName, 'data'); 
+% Save preprocessed and epoched data for further analysis
+% 
+% disp('saving preprocessed data...');
+% saveName = fullfile(saveDir, sprintf('sub-%s_ses-%s_preproc_bbmethod%d_bandwidth%d', sub_label, ses_label, bbmethod, bands(1,2)-bands(1,1)));
+% save(saveName, 'data'); 
 
 disp('saving epoched data...');
-saveName = fullfile(saveDir, sprintf('sub-%s_ses-%s_epoched', sub_label, ses_label));
+saveName = fullfile(saveDir, sprintf('sub-%s_ses-%s_epoched_bbmethod%d_bandwidth%d', sub_label, ses_label, bbmethod, bands(1,2)-bands(1,1)));
 save(saveName, 'trials', 'baseline_trials'); 
 disp('done');
