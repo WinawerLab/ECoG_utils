@@ -145,6 +145,7 @@ for dataType = {'broadband'}%, 'evoked'}
     end
     %set(gcf, 'Position', [150 100 1500 1250]);
     set(gcf, 'Position', [150 100 750 625]);
-    
+	out.time = trials.time;
+
 end
 

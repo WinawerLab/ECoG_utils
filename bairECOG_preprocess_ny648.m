@@ -75,9 +75,37 @@ signal = ecog_CarRegress(ftdata.trial{1}, find(contains(channels.status, 'good')
 %% [4] Compute time-varying broadband 
 
 % Define frequency bands to filter
-bands = [[70 80]; [80 90]; [90 100]; [100 110]; [130 140]; [140 150]; [150 160]; [160 170]];
+% 10 Hz bands
+%bands = [[70 80]; [80 90]; [90 100]; [100 110]; [130 140]; [140 150]; [150 160]; [160 170]];
+% 20 Hz bands
 %bands = [[70 90]; [90 110]; [130 150]; [150 170]];
+% 40 Hz bands
 %bands = [[70 110]; [130 170]];
+% 5 Hz bands
+% bands = [70 75];
+% for ii = 2:20
+%     bands(ii,:) = bands(ii-1,:)+5;
+% end
+% bands(bands<130 & bands>110) = nan; % avoid 120
+% bands2=[];
+% for ii = 1:size(bands,1)
+%     if ~any(isnan(bands(ii,:)))
+%         bands2 = [bands2;bands(ii,:)];
+%     end
+% end
+% bands = bands2;
+% % 1 Hz bands
+bands = 71:2:170;
+bands = reshape(bands,[2 size(bands,2)/2]);
+bands = bands';
+bands(bands<130 & bands>110) = nan; % avoid 120
+bands2=[];
+for ii = 1:size(bands,1)
+    if ~any(isnan(bands(ii,:)))
+        bands2 = [bands2;bands(ii,:)];
+    end
+end
+bands = bands2;
 
 % Define broadband extraction method
 bbmethod = 9;
