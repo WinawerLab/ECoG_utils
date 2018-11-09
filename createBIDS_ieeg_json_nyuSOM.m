@@ -40,7 +40,7 @@ ieeg_json.SoftWareFilters = 'n/a'; % List of temporal software filters applied o
 
 ieeg_json.Manufacturer = 'Natus'; % Manufacturer of the amplifier system  (e.g. "TDT, blackrock")
 
-ieeg_json.ManufacturersModelName = 'Quantum 64 Amplifier PK1256'; % Manufacturer's designation of the 
+ieeg_json.ManufacturersModelName = 'Natus Quantum PK1171'; % Manufacturer's designation of the 
 % iEEG amplifier model (e.g. "TDT"). 
 
 ieeg_json.TaskDescription = 'n/a'; % Longer description of the task.
