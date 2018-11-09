@@ -361,7 +361,6 @@ writetable(electrode_table,electrodes_tsv_name,'FileType','text','Delimiter','\t
 % Manufacturers Model Name:
 switch patientID
     case {645, 648, 661, 668, 674}
-        disp(1)
         ieeg_json.ManufacturersModelName = 'Natus NicoletOne C64';
 end  
 

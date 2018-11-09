@@ -24,20 +24,20 @@ type = repmat(' ', n, 1); % Type of intracranial electrode, one of [?surface?,  
 
 %% optional columns
 
-material = repmat('Platinum', n, 1); % Recommended. Material of the electrodes
+material = repmat('platinum', n, 1); % Recommended. Material of the electrodes
 
 manufacturer = repmat('AdTech', n, 1); % Optional field to specify the electrode manufacturer 
 % for each electrode. Can be used if electrodes were manufactured by more than one company.
 
-group = repmat('unknown', n, 1); % Optional field to specify the group that the electrode 
+group = repmat('n/a', n, 1); % Optional field to specify the group that the electrode 
 % is a part of. Note that any group specified here should match a group 
 % specified in `_channels.tsv` (details of grid size can be added in _ieeg.json 
 % the iEEGElectrodeGroups field. )
 
-hemisphere = repmat('unknown', n, 1); % Optional field to specify the hemisphere in which the 
+hemisphere = repmat('n/a', n, 1); % Optional field to specify the hemisphere in which the 
 % electrode is placed, one of [?L? or ?R?] (use capital).
 
-tissue = repmat('unknown', n, 1); % If a clinician has made an observation about the tissue 
+tissue = repmat('n/a', n, 1); % If a clinician has made an observation about the tissue 
 % underneath the electrode  (e.g. epilepsy, tumor, if nothing state n/a)
 
 %% generate table
