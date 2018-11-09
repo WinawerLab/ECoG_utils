@@ -116,7 +116,7 @@ ieeg_json.ElectrodeManufacturer = 'AdTech'; % Can be used if all electrodes are 
 % same manufacturer (e.g. AD-TECH, DIXI). If electrodes of different manufacturers 
 % are used, please use the corresponding table in the _electrodes.tsv file. 
 
-ieeg_json.ElectrodeManufacturersModelName = 'n/a'; % If different electrode types are used, 
+ieeg_json.ElectrodeManufacturersModelName = 'Standard ad-tech grids (64 8x8 1cm spacing) and strips (1 cm spacing) 4mm contacts, 2.3 mm exposed'; % If different electrode types are used, 
 % please use the corresponding table in the _electrodes.tsv file.
 
 ieeg_json.iEEGGround = 'Two contact subdural strips either flipped facing the skull or screwed into the skull'; 

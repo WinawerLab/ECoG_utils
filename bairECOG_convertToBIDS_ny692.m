@@ -357,6 +357,14 @@ writetable(electrode_table,electrodes_tsv_name,'FileType','text','Delimiter','\t
 % Add a count of all the channels (based on channel_table)
 [ieeg_json] = bidsconvert_addChannelCounts(ieeg_json, channel_table);
 
+% If patient was collected at the OLD SOM location, overwrite the
+% Manufacturers Model Name:
+switch patientID
+    case {645, 648, 661, 668, 674}
+        disp(1)
+        ieeg_json.ManufacturersModelName = 'Natus NicoletOne C64';
+end  
+
 % Initialize trigger count
 num_triggers_total = 0;
 
