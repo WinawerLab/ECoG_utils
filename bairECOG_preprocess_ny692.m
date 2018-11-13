@@ -80,7 +80,7 @@ title(ftdata.label(channel_plot));
 % Define frequency bands to filter
 bands = [[70 90]; [90 110]; [130 150]; [150 170]];
 
-% Define broadband extraction method (see help extractBroadband_nyu)
+% Define broadband extraction method (see help ecog_extractBroadband)
 bbmethod = 7;
 
 % Extract broadband
@@ -116,9 +116,9 @@ eltomatch = visualelectrodes.benson14_varea.elec_labels(12:15); %MO01-04
 el = ecog_matchChannels(eltomatch, data);
 
 % Plot voltage and broadband
-ecog_plotFullTimeCourse(data,'car_reref', el);
-ecog_plotFullTimeCourse(data,'broadband', el); % no smoothing
-ecog_plotFullTimeCourse(data,'broadband', el, data.hdr.Fs/2); % with smoothing
+%ecog_plotFullTimeCourse(data,'car_reref', el);
+%ecog_plotFullTimeCourse(data,'broadband', el); % no smoothing
+%ecog_plotFullTimeCourse(data,'broadband', el, data.hdr.Fs/2); % with smoothing
 
 %% Check whether the onsets align with the triggers by plotting trigger channel itself
 

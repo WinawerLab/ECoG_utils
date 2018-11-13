@@ -1,17 +1,11 @@
 tbUse('ECoG_utils');
 
 % SCRIPT DESCRIPTION %
-% Takes BAIR data from NYU School of Medicine, gets onsets, writes out
-% separate runs for each tasks, including tsv event files, and required
-% BIDS metadata (coordsystem json and electrodes and channels tsv files). 
-%
-% Remarks:
-% - Data is written in BVA format (.eeg, .vhdr, .vmrk), because of a bug
-% with EDF writing, but this can be changed (see line 295). Can also decide
-% to zip the BVA files for Flywheel (currently turned off).
-% - Should we put the original data in /sourcedata/ folder? (may depend on
-% whether data is sufficiently anonymized)
-% - Should there be a json sidecar with the T1 file?
+% This script Takes BAIR data from NYU School of Medicine, gets onsets,
+% writes out separate runs for each tasks, including tsv event files, and
+% required BIDS metadata (coordsystem json and electrodes and channels tsv
+% files). It is meant to be run cell-by-cell because some manual inputs are
+% required for trigger channel selection and identifying noisy channels.
 
 %% Define paths and BIDS specs %%
 
@@ -51,7 +45,7 @@ T1WriteDir   = fullfile(BIDSDataDir, projectName, sprintf('sub-%s', sub_label), 
 % --> These data have task onset and offset triggers.
 prescan   = 0; % Segment each run with this amount before the first stimulus onset (seconds)
 postscan  = 0; % Segment each run with this amount after the last stimulus onset (seconds)
-nDecimals = 6; % Specify temporal precision of time stamps in events files
+nDecimals = 4; % Specify temporal precision of time stamps in events files
 
 % Make plots?
 makePlots = 'no';
@@ -206,6 +200,7 @@ end
 % that were detected in the trigger channel?
 disp('Checking whether all triggers are in the data')
 assert(isequal(requestedTriggerCount, length(trigger_onsets)))
+stimData = stimData_sorted;
 
 %read in tsv files later to replace onset with segmented trigger onsets
 %readtable([stimDir filesep stimTSVFiles(ii).name], 'FileType');
@@ -429,9 +424,11 @@ for ii = 1:nRuns
     
     % Overwrite onset with onsets of triggers
     events_table.event_sample = (onset_indices - run_start_inx);
-    events_table.onset        = round(events_table.event_sample/hdr.Fs,nDecimals);
+    events_table.onset        = strtrim(cellstr(num2str(events_table.event_sample/hdr.Fs,['%.' num2str(nDecimals) 'f']))); %round(events_table.event_sample/hdr.Fs,nDecimals);
     events_table.stim_file    = repmat(fname, height(events_table), 1);
-
+    events_table.duration     = strtrim(cellstr(num2str(events_table.duration,['%.' num2str(nDecimals) 'f']))); 
+    events_table.ISI          = strtrim(cellstr(num2str(events_table.ISI,['%.' num2str(nDecimals) 'f']))); 
+    
     % Write out tsv file 
     tsv_thisrun = events_table;
     tsv_fname = fullfile(dataWriteDir, sprintf('%s_events.tsv', fname));

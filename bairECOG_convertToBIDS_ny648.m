@@ -1,16 +1,19 @@
 tbUse('ECoG_utils');
 
 % SCRIPT DESCRIPTION %
-% Takes BAIR data from NYU School of Medicine, gets onsets, writes out
-% separate runs for each tasks, including tsv event files, and required
-% BIDS metadata (coordsystem json and electrodes and channels tsv files). 
-%
+% This script Takes BAIR data from NYU School of Medicine, gets onsets,
+% writes out separate runs for each tasks, including tsv event files, and
+% required BIDS metadata (coordsystem json and electrodes and channels tsv
+% files). It is meant to be run cell-by-cell because some manual inputs are
+% required for trigger channel selection and identifying noisy channels.
+
 % Remarks:
-% - Data is written in BVA format (.eeg, .vhdr, .vmrk), because of a bug
-% with EDF writing, but this can be changed (see line 295). Can also decide
-% to zip the BVA files for Flywheel (currently turned off).
-% - Should we put the original data in /sourcedata/ folder? (may depend on
-% whether data is sufficiently anonymized)
+% - Data is written in BVA format (.eeg, .vhdr, .vmrk), because of
+% difficulties with EDF writing using fieldtrips ft_read_data and
+% ft_write_data functions at the time of writing this code, but this can be
+% changed (see line 295). Can also decide to zip the BVA files for Flywheel
+% (currently turned off). 
+% - Should we put the original data in /sourcedata/ folder?
 % - Should there be a json sidecar with the T1 file?
 
 %% Define paths and BIDS specs %%
@@ -49,7 +52,7 @@ T1WriteDir   = fullfile(BIDSDataDir, projectName, sprintf('sub-%s', sub_label), 
 % Define temporal parameters
 prescan   = 3; % Segment each run with this amount before the first stimulus onset (seconds)
 postscan  = 3; % Segment each run with this amount after the last stimulus onset (seconds)
-nDecimals = 6; % Specify temporal precision of time stamps in events files
+nDecimals = 4; % Specify temporal precision of time stamps in events files
 
 % Make plots?
 makePlots = 'no';
@@ -364,8 +367,8 @@ for ii = 1:nRuns
         num_trials = length(stimData(ii).stimulus.cat);
         
         % task-specific input for tsv file
-        duration   = round(stimData(ii).stimulus.duration(stimData(ii).stimulus.cat)',nDecimals);
-        ISI        = round(stimData(ii).stimulus.ISI(stimData(ii).stimulus.cat)',nDecimals);
+        duration   = stimData(ii).stimulus.duration(stimData(ii).stimulus.cat)';
+        ISI        = stimData(ii).stimulus.ISI(stimData(ii).stimulus.cat)';
         trial_type = stimData(ii).stimulus.cat';
         trial_name = stimData(ii).stimulus.categories(stimData(ii).stimulus.cat)';
         stim_file_index = nan(num_trials,1);
@@ -408,10 +411,12 @@ for ii = 1:nRuns
     %delete(sprintf('%s.eeg', data_fname), sprintf('%s.vhdr', data_fname), sprintf('%s.vmrk', data_fname));
     
     % Collect info for tsv file 
-    onset        = round(onsets'-onsets(1)+prescan,nDecimals);
+    onset        = strtrim(cellstr(num2str(onsets'-onsets(1)+prescan,['%.' num2str(nDecimals) 'f']))); %round(onsets'-onsets(1)+prescan,nDecimals);
     event_sample = (onset_indices - run_start_inx);
     stim_file    = repmat(fname, num_trials, 1);
-
+    duration     = strtrim(cellstr(num2str(duration,['%.' num2str(nDecimals) 'f'])));
+    ISI          = strtrim(cellstr(num2str(ISI,['%.' num2str(nDecimals) 'f'])));
+    
     % Write out tsv file 
     tsv_thisrun = table(onset, event_sample, duration, ISI, trial_type, trial_name, stim_file, stim_file_index);
     tsv_fname = fullfile(dataWriteDir, sprintf('%s_events.tsv', fname));

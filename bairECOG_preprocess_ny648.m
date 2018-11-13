@@ -47,7 +47,7 @@ specs = [];
 specs.pID           = sub_label; % patient ID number
 specs.patientPool   = 'BAIR';
 specs.plotmesh      = 'none';
-visualelectrodes = electrode_to_nearest_node(specs, dataDir);
+visualelectrodes    = electrode_to_nearest_node(specs, dataDir);
 
 %% [3] Do a common average reference using the good channels
 
