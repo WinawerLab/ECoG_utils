@@ -9,6 +9,28 @@ disp(['Reading ' fileName '...']);
 data = ft_read_data(fileName);
 hdr = ft_read_header(fileName);
 
+%% which task?
+task = 'soc'; % soc or hrf
+which_run = 2;
+
+switch task
+    case 'hrf'
+        if which_run == 1
+            which_trials = 1:32;
+        else 
+            which_trials = 465:496;
+        end
+        
+        stim_file = sprintf('sub-som648_ses-nyuecog01_task-hrfpattern_run-%02d.mat', ...
+            which_run);
+    case 'soc'
+        
+        which_trials = 32+36*(which_run-1) + (1:36);
+        stim_file = sprintf('sub-som648_ses-nyuecog01_task-soc_run-%02d.mat', ...
+            which_run);
+end
+
+
 %% Get trigger time points from data file
 triggerChannel = 138; % DC10 
 t = ((1:hdr.nSamples)/hdr.Fs); % time in seconds
@@ -18,11 +40,12 @@ triggers = triggers / max(triggers);
 
 disp('Reading triggers from data');
 [~,trigger_onsets] = findpeaks(triggers, hdr.Fs, 'MinPeakHeight', 0.8, 'MinPeakDistance', .5);
-triggerTimes =  trigger_onsets(1:32); % get triggers from just the first run (hrf)
+triggerTimes =  trigger_onsets(which_trials); % get triggers from just the first run (hrf)
 
 %% Plot found trigger onsets on top of trigger channel
 figure('Name', 'NY648 triggers'); hold on
-plot(t(1:205000),triggers(1:205000))
+%plot(t(1:205000),triggers(1:205000))
+plot(t,triggers)
 plot(triggerTimes, ones(length(triggerTimes),1)*1,'r.','MarkerSize', 25, 'LineStyle','none');
 %stem(triggerTimes,ones(length(triggerTimes),1)*0.9,'r');
 legend({'trigger channel', 'detected trigger onsets'}); xlabel('time (s)'); ylabel('amplitude');
@@ -31,13 +54,20 @@ legend({'trigger channel', 'detected trigger onsets'}); xlabel('time (s)'); ylab
 title('NY648 HRF run 1');
 
 %% load stimulus data
-load('/Volumes/server/Projects/BAIR/Data/BIDS/visual/stimuli/sub-som648_ses-nyuecog01_task-hrfpattern_run-01.mat');
+stim_path = '/Volumes/server/Projects/BAIR/Data/BIDS/visual/stimuli/';
+load(fullfile(stim_path, stim_file));
+
 onsetIndices = [false diff(stimulus.seq)<0];
 
+if strcmp(task, 'soc')
+   tmp = find(onsetIndices);
+   duplicates = find(diff([false stimulus.seq(tmp)]) == 0);
+   onsetIndices(tmp(duplicates))=0;
+end
 %% compare detected triggers, requested triggers, and flips
 
 % get requested onsets and flip onsets
-triggerTimes =  trigger_onsets(1:32); % get triggers from just the first run (hrf)
+triggerTimes =  trigger_onsets(which_trials); % get triggers from just the first run (hrf)
 requestedTimes = stimulus.seqtiming(onsetIndices);
 flipTimes = response.flip(onsetIndices);
 
@@ -75,7 +105,7 @@ requestedTimes = requestedTimes * 1000;
 subplot(2,2,3);hold on
 stem((flipTimes-flipTimes(1))-(requestedTimes-requestedTimes(1)),'m');
 stem((triggerTimes-triggerTimes(1))-(flipTimes-flipTimes(1)),'c');
-stem((triggerTimes-triggerTimes(1))-(requestedTimes-requestedTimes(1)),'k');
+%stem((triggerTimes-triggerTimes(1))-(requestedTimes-requestedTimes(1)),'k');
 
 legend({'flip minus requested', 'trigger minus flip', 'trigger minus requested'});
 xlabel('Trial Number')
