@@ -1,15 +1,13 @@
 tbUse('ECoG_utils');
 
 % SCRIPT DESCRIPTION %
-% This script preprocesses the BIDS-formatted BAIR ECoG data. It is meant
-% be run cell-by-cell because some manual inputs are required (for channel
-% selection) and inspection of data.
-%
+% This script preprocesses the BIDS-formatted BAIR ECoG data. 
+
 % This is the order of operations:
 %
 % [0] Path specifications: data should be in BIDS
 % [1] Reading in data, events and channel info
-% [2] Channel inspection, selection of bad channels (MANUAL)
+% [2] Computing matches with visual atlases (wang and benson)
 % [3] Common average reference (regression based)
 % [4] Broadband computation
 % [5] Segmentation
@@ -17,11 +15,6 @@ tbUse('ECoG_utils');
 % OUTPUT:
 % - data: struct with entire raw and broadband time courses. 
 % - trials: struct with evoked and a broadband response for each stimulus. 
-%
-% Remarks: 
-%
-% Broadband computation: now done across entire concatenated time course,
-% but could also be done for segments (but may introduce edge artifacts?)
 
 %% [0] Define paths and dataset specs %%
 

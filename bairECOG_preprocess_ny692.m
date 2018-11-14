@@ -58,22 +58,22 @@ signal = ecog_CarRegress(ftdata.trial{1}, good_channels);
 
 %% [3] DATA INSPECTION: Look at the effect of CAR
 
-figure;
-subplot(1,2,1); hold on
-channel_plot = good_channels(1);
-plot(ftdata.time{1},ftdata.trial{1}(channel_plot,:),'k')
-plot(ftdata.time{1},signal(channel_plot,:),'g')
-legend({'before CAR','after CAR'})
-xlabel('Time (s)'); ylabel('Voltage');
-title(ftdata.label(channel_plot));
-
-subplot(1,2,2),hold on
-[pxx2,freqs] = pwelch(signal',ftdata.fsample,0,ftdata.fsample,ftdata.fsample);
-plot(freqs,pxx(:,channel_plot),'k')
-plot(freqs,pxx2(:,channel_plot),'g'); 
-set(gca, 'YScale', 'log')
-xlabel('Frequency (Hz)'); ylabel('Log power');
-title(ftdata.label(channel_plot));
+% figure;
+% subplot(1,2,1); hold on
+% channel_plot = good_channels(1);
+% plot(ftdata.time{1},ftdata.trial{1}(channel_plot,:),'k')
+% plot(ftdata.time{1},signal(channel_plot,:),'g')
+% legend({'before CAR','after CAR'})
+% xlabel('Time (s)'); ylabel('Voltage');
+% title(ftdata.label(channel_plot));
+% 
+% subplot(1,2,2),hold on
+% [pxx2,freqs] = pwelch(signal',ftdata.fsample,0,ftdata.fsample,ftdata.fsample);
+% plot(freqs,pxx(:,channel_plot),'k')
+% plot(freqs,pxx2(:,channel_plot),'g'); 
+% set(gca, 'YScale', 'log')
+% xlabel('Frequency (Hz)'); ylabel('Log power');
+% title(ftdata.label(channel_plot));
 
 %% [4] Compute time-varying broadband 
 

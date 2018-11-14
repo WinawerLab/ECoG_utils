@@ -1,4 +1,3 @@
-tbUse('ECoG_utils');
 
 % SCRIPT DESCRIPTION %
 % This script Takes BAIR data from NYU School of Medicine, gets onsets,
@@ -73,18 +72,6 @@ hdr = ft_read_header(fileName);
 data = ft_read_data(fileName);
 % To read in EDF data with channels with different sampling rates: data = edf2fieldtrip(fileName);
 
-%% Read in ECoG data
-
-% Read ECoG data
-dataFiles = dir(fullfile(RawDataDir,num2str(patientID), '*.edf'));
-if length(dataFiles) > 1, disp('Warning: multiple datafiles found: using first one'); end
-
-fileName = [dataFiles(1).folder filesep dataFiles(1).name];    
-disp(['Reading ' fileName '...']);
-data = ft_read_data(fileName);
-hdr = ft_read_header(fileName);
-% To read in EDF data with channels with different sampling rates: data = edf2fieldtrip(fileName);
-
 %% MANUAL STEP:  Identify the trigger channel
 
 % Plot the raw voltage time course of each channel
@@ -149,8 +136,10 @@ disp('Reading triggers from data');
 switch makePlots 
     case 'yes'
         figure;hold on
-        plot(t,data(triggerChannel,:))
-        stem(trigger_onsets,ones(length(trigger_onsets),1)*(max(data(triggerChannel,:))/2),'r');
+        %plot(t,data(triggerChannel,:))
+        plot(t,triggers);
+        plot(trigger_onsets, ones(length(trigger_onsets),1),'r.','MarkerSize', 25, 'LineStyle','none');
+        %stem(trigger_onsets,ones(length(trigger_onsets),1)*(max(data(triggerChannel,:))),'r');
         legend({'trigger data', 'trigger onsets'}); xlabel('time (s)'); ylabel('amplitude');
 end
 
@@ -425,9 +414,17 @@ for ii = 1:nRuns
     % Overwrite onset with onsets of triggers
     events_table.event_sample = (onset_indices - run_start_inx);
     events_table.onset        = strtrim(cellstr(num2str(events_table.event_sample/hdr.Fs,['%.' num2str(nDecimals) 'f']))); %round(events_table.event_sample/hdr.Fs,nDecimals);
+    
+    % Update a number of other fields in events 
     events_table.stim_file    = repmat(fname, height(events_table), 1);
     events_table.duration     = strtrim(cellstr(num2str(events_table.duration,['%.' num2str(nDecimals) 'f']))); 
     events_table.ISI          = strtrim(cellstr(num2str(events_table.ISI,['%.' num2str(nDecimals) 'f']))); 
+    
+    if contains(task_label{ii}, 'prf')
+        for jj = 1:length(events_table.trial_name)
+            events_table.trial_name{jj} = ['PRF-' events_table.trial_name{jj}];
+        end
+    end
     
     % Write out tsv file 
     tsv_thisrun = events_table;
