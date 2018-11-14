@@ -37,6 +37,7 @@ onsetIndices = [false diff(stimulus.seq)<0];
 %% compare detected triggers, requested triggers, and flips
 
 % get requested onsets and flip onsets
+triggerTimes =  trigger_onsets(1:32); % get triggers from just the first run (hrf)
 requestedTimes = stimulus.seqtiming(onsetIndices);
 flipTimes = response.flip(onsetIndices);
 
