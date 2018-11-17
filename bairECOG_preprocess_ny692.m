@@ -150,12 +150,12 @@ trials = ecog_epochData(data, epoch);
 
 %% Save preprocessed and epoched data for further analysis
 
-disp('saving preprocessed data...');
-saveName = fullfile(saveDir, sprintf('sub-%s_ses-%s_preproc', sub_label, ses_label));
-save(saveName, 'data'); 
+% disp('saving preprocessed data...');
+% saveName = fullfile(saveDir, sprintf('sub-%s_ses-%s_preproc', sub_label, ses_label));
+% save(saveName, 'data'); 
 
 disp('saving epoched data...');
-saveName = fullfile(saveDir, sprintf('sub-%s_ses-%s_epoched', sub_label, ses_label));
+saveName = fullfile(saveDir, sprintf('sub-%s_ses-%s_epoched_onflips', sub_label, ses_label));
 %save(saveName, 'trials', 'baseline_trials'); 
 save(saveName, 'trials'); 
 disp('done');

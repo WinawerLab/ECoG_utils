@@ -41,7 +41,7 @@ colors = copper(length(trial_index));
 out = struct;
 
 % Plot
-for dataType = {'broadband'}%, 'evoked'}
+for dataType = {'broadband', 'evoked'}
     
     thisDataType = dataType{:};
     figure('Name', thisDataType); 
@@ -141,7 +141,8 @@ for dataType = {'broadband'}%, 'evoked'}
         
         out.(thisDataType).(whichElectrodes{ii}).mn = mnToPlot';
         out.(thisDataType).(whichElectrodes{ii}).se = (ulim-mnToPlot)';
-   
+        set(gca, 'XLim', [-0.5 1]);
+
     end
     %set(gcf, 'Position', [150 100 1500 1250]);
     set(gcf, 'Position', [150 100 750 625]);

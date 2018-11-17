@@ -83,8 +83,11 @@ hdr = ft_read_header(fileName);
 
 %% MANUAL STEP:  Identify the trigger channel
 
+% Define time axis (in seconds). First time point = 0 (this is assumed by
+% the function we used to detect triggers below, and also in fieldtrip).
+t = ((0:hdr.nSamples-1)/hdr.Fs); 
+
 % Plot the raw voltage time course of each channel
-t = ((1:hdr.nSamples)/hdr.Fs); % time in seconds
 switch makePlots 
     case 'yes'
         for cChan = size(data,1):-1:1; figure;plot(t,data(cChan,:)); title([num2str(cChan) ': ' hdr.label{cChan}]); waitforbuttonpress; close; end
@@ -92,6 +95,7 @@ end
 
 % Write down the trigger channel (probably one labeled 'DC', see hdr.label)
 triggerChannel = 138; % DC10 
+
 % Also write down any obviously bad channels (e.g. those with big spikes)
 badChannels = [81 82 100 102 125 126]; %DAIL08, DPIL02, SF06
 
@@ -146,7 +150,7 @@ switch makePlots
     case 'yes'
         figure;hold on
         plot(t,triggers)
-        stem(trigger_onsets,ones(length(trigger_onsets),1)*0.9,'r');
+        stem(trigger_onsets,ones(length(trigger_onsets),1)*0.99,'r');
         legend({'trigger channel', 'detected trigger onsets'}); xlabel('time (s)'); ylabel('amplitude');
         set(gca, 'ylim', [0 1]);
 end

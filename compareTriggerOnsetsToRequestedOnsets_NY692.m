@@ -17,7 +17,7 @@ disp('Reading triggers from data');
 %[pks, locs] = findpeaks(triggers,'MinPeakHeight', 0.8, 'MinPeakDistance', 0.5);
 
 %% which task?
-task = 'temporalpattern'; % prf, spatialpattern, spatialobject, temporalpattern
+task = 'prf'; % prf, spatialpattern, spatialobject, temporalpattern
 which_run = 1; % 1 or 2 (ignoring runs 3 and 4 for non-prf runs)
 
 switch task
@@ -95,11 +95,12 @@ requestedTimes = requestedTimes * 1000;
 
 % plot differences in onsets
 subplot(2,2,3);hold on
-stem((flipTimes-flipTimes(1))-(requestedTimes-requestedTimes(1)),'m');
+%stem((flipTimes-flipTimes(1))-(requestedTimes-requestedTimes(1)),'m');
 stem((triggerTimes-triggerTimes(1))-(flipTimes-flipTimes(1)),'c');
 %stem((triggerTimes-triggerTimes(1))-(requestedTimes-requestedTimes(1)),'k');
 
-legend({'flip minus requested', 'trigger minus flip'});
+%legend({'flip minus requested', 'trigger minus flip'});
+legend({'trigger minus flip'});
 xlabel('Trial Number')
 ylabel('Time (ms)')
 title('Difference in onsets')
@@ -108,11 +109,13 @@ set(gca, 'FontSize', 12)
 
 % plot differences in intervals
 subplot(2,2,4);hold on
-stem(diff(flipTimes)-diff(requestedTimes),'m');
+%stem(diff(flipTimes)-diff(requestedTimes),'m');
 stem(diff(triggerTimes)-diff(flipTimes),'c');
 %stem(diff(triggerTimes)-diff(requestedTimes),'k');
 
-legend({'flip minus requested', 'trigger minus flip'});
+%legend({'flip minus requested', 'trigger minus flip'});
+legend({'trigger minus flip'});
+
 xlabel('Trial Number')
 ylabel('Time (ms)')
 title('Difference in intervals')

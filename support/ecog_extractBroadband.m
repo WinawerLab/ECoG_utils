@@ -26,6 +26,7 @@ if ~exist('bands', 'var')  || isempty(bands),  bands = {[60 200], 20}; end
 
 
 if isa(bands, 'cell')
+    
     % Entire range for broadband
     band_rg  = bands{1}; 
     
@@ -42,6 +43,7 @@ end
 % band pass filter each sub-band
 bp  = zeros([size(x) size(bands,1)], 'single');
 for ii = 1:size(bands,1)
+    fprintf('[%s] Filtering data in band %d\n',mfilename,ii);
     bp(:,:, ii) = butterpass_eeglabdata_nyu(x,bands(ii,:),srate);
 end
 
@@ -53,6 +55,8 @@ banddim = length(size(bp));
 
 whiten = @(x) (x - mean(x(:)))./ diff(prctile(x, [.25 .75]));
 %whiten = @(x) x;
+
+fprintf('[%s] Computing broadband... \n', mfilename);
 
 switch method
     case {1}
@@ -104,6 +108,7 @@ end
 
 broadband = broadband';
 
+fprintf('done\n');
 return
 
 % 

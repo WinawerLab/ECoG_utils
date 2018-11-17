@@ -74,8 +74,11 @@ data = ft_read_data(fileName);
 
 %% MANUAL STEP:  Identify the trigger channel
 
+% Define time axis (in seconds). First time point = 0 (this is assumed by
+% the function we used to detect triggers below, and also in fieldtrip).
+t = ((0:hdr.nSamples-1)/hdr.Fs); 
+
 % Plot the raw voltage time course of each channel
-t = ((1:hdr.nSamples)/hdr.Fs); % time in seconds
 switch makePlots 
     case 'yes'
         for cChan = size(data,1):-1:1; figure;plot(t,data(cChan,:)); title([num2str(cChan) ': ' hdr.label{cChan}]); waitforbuttonpress; close; end
@@ -83,6 +86,7 @@ end
 
 % Write down the trigger channel (probably one labeled 'DC', see hdr.label)
 triggerChannel = 153; % DC1
+
 % Also write down any obviously bad channels (e.g. those with big spikes)
 badChannels = [33 48 89 93 94 96 112 124 127:150];
 
@@ -390,7 +394,6 @@ for ii = 1:nRuns
     % Last trigger is task offset trigger:
     run_stop_inx = onset_indices(end);
     % Stimulus onsets are those in between
-    onsets = onsets(2:end-1); 
     onset_indices = onset_indices(2:end-1);
 
     % Clip data from run using task onset and offset triggers
@@ -414,6 +417,20 @@ for ii = 1:nRuns
     % Overwrite onset with onsets of triggers
     events_table.event_sample = (onset_indices - run_start_inx);
     events_table.onset        = strtrim(cellstr(num2str(events_table.event_sample/hdr.Fs,['%.' num2str(nDecimals) 'f']))); %round(events_table.event_sample/hdr.Fs,nDecimals);
+    
+    %%% TEMPORARY %%%%
+    % To compare segmentation on triggers vs flips %%%
+    % Get the fliptimes for the requested triggers
+    flips = stimData(ii).response.flip(stimData(ii).stimulus.trigSeq>0)'; % in seconds
+    % Align to first time-point. This is assumed to be same as the task
+    % onset trigger on the basis of which the run is segmented.
+    flips = flips-flips(1);
+    % Drop the task onset and offsets
+    flips = flips(2:end-1);
+    % Convert to samples
+    flip_indices = round(flips*hdr.Fs); % need to round because flip times do not always align with sample rate
+    events_table.flip_sample  = flip_indices;
+    %%%%%%%%%%%%%%%%%%
     
     % Update a number of other fields in events 
     events_table.stim_file    = repmat(fname, height(events_table), 1);
