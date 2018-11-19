@@ -23,7 +23,8 @@ for ii = 1:length(eltomatch)
         disp('could not locate channel info in data!')
     end
         
-    x = find(strncmp(stringtomatch, chanList,length(stringtomatch)));
+    %x = find(strncmp(stringtomatch, chanList,length(stringtomatch)));
+    x = find(strcmp(stringtomatch,chanList));
     if ~isempty(x)
         elInx(ii) = x;
     end
