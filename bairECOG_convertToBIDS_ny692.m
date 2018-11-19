@@ -51,6 +51,12 @@ makePlots = 'no';
 
 %% Create write directories
 
+% Check whether we have the ECoG_utils repository on the path
+if ~exist('createBIDS_ieeg_json_nyuSOM.m')
+    tbUse ECoG_utils;
+end
+
+% Check whether we have write directories
 if ~exist(dataWriteDir, 'dir'); mkdir(dataWriteDir);end
 if ~exist(T1WriteDir, 'dir'); mkdir(T1WriteDir);end
 
@@ -383,7 +389,7 @@ for ii = 1:nRuns
     end   
     ieeg_json.Instructions = 'Detect color change (red/green) at fixation';
     
-    % Get the onsets for this run
+    % Get the onsets in the data recordings for this run
     num_triggers = length(find(stimData_sorted(ii).stimulus.trigSeq));
     num_triggers_total = num_triggers_total + num_triggers;
     onsets = trigger_onsets(stim0:num_triggers_total); 
@@ -400,81 +406,64 @@ for ii = 1:nRuns
     data_thisrun = data(:,run_start_inx:run_stop_inx-1); % subtract one sample to make length of 'between run' data exactly 6 seconds
     hdr_thisrun = hdr;
     hdr_thisrun.nSamples = size(data_thisrun,2);
-
-    % Write out new data file
-     
-    % Use BVA format
-    data_fname = fullfile(dataWriteDir, sprintf('%s_ieeg', fname));
-    ft_write_data(data_fname, data_thisrun, 'header', hdr_thisrun, 'dataformat', 'brainvision_eeg');
     
-    % % May need to zip files for Flywheel upload?
-    %zip(data_fname, {sprintf('%s.eeg', data_fname), sprintf('%s.vhdr', data_fname), sprintf('%s.vmrk', data_fname)});
-    %delete(sprintf('%s.eeg', data_fname), sprintf('%s.vhdr', data_fname), sprintf('%s.vmrk', data_fname));
+    % % Determine trial onset based on the triggers:
+    % event_sample = (onset_indices - run_start_inx);
+    
+    % Determine trial onset based on the flips:   
+    % Get the fliptimes for the requested triggers
+	flips        = stimData(ii).response.flip(stimData(ii).stimulus.trigSeq>0); % in seconds
+    % Align to first time-point. This is assumed to be same as the task
+    % onset trigger on the basis of which the run is segmented.
+    flips        = flips-flips(1);
+    % Drop the task onset and offsets
+    flips        = flips(2:end-1);
+    % Convert to samples
+    flip_indices = round(flips*hdr.Fs); % need to round because flip times do not always align with sample rate
+    event_sample = flip_indices';
     
     % Collect info for tsv file
     events_table = stimData(ii).stimulus.tsv;
     
     % Overwrite onset with onsets of triggers
-    events_table.event_sample = (onset_indices - run_start_inx);
-    events_table.onset        = strtrim(cellstr(num2str(events_table.event_sample/hdr.Fs,['%.' num2str(nDecimals) 'f']))); %round(events_table.event_sample/hdr.Fs,nDecimals);
-    
-    %%% TEMPORARY %%%%
-    % To compare segmentation on triggers vs flips %%%
-    % Get the fliptimes for the requested triggers
-    flips = stimData(ii).response.flip(stimData(ii).stimulus.trigSeq>0)'; % in seconds
-    % Align to first time-point. This is assumed to be same as the task
-    % onset trigger on the basis of which the run is segmented.
-    flips = flips-flips(1);
-    % Drop the task onset and offsets
-    flips = flips(2:end-1);
-    % Convert to samples
-    flip_indices = round(flips*hdr.Fs); % need to round because flip times do not always align with sample rate
-    events_table.flip_sample  = flip_indices;
-    %%%%%%%%%%%%%%%%%%
-    
-    % Update a number of other fields in events 
+    events_table.event_sample = event_sample;
+    events_table.onset        = strtrim(cellstr(num2str(events_table.event_sample/hdr.Fs,['%.' num2str(nDecimals) 'f'])));
+        
+    % Update a number of other fields in events table
     events_table.stim_file    = repmat(fname, height(events_table), 1);
     events_table.duration     = strtrim(cellstr(num2str(events_table.duration,['%.' num2str(nDecimals) 'f']))); 
-    events_table.ISI          = strtrim(cellstr(num2str(events_table.ISI,['%.' num2str(nDecimals) 'f']))); 
-    
+    events_table.ISI          = strtrim(cellstr(num2str(events_table.ISI,['%.' num2str(nDecimals) 'f'])));    
     if contains(task_label{ii}, 'prf')
         for jj = 1:length(events_table.trial_name)
             events_table.trial_name{jj} = ['PRF-' events_table.trial_name{jj}];
         end
     end
     
-    % Write out tsv file 
-    tsv_thisrun = events_table;
-    tsv_fname = fullfile(dataWriteDir, sprintf('%s_events.tsv', fname));
-    writetable(tsv_thisrun, tsv_fname, 'FileType','text', 'Delimiter', '\t')
-    
-    % Write out stimulus file
-    stimfile_thisrun = stimData(ii);
-    stimfile_fname = fullfile(stimWriteDir, sprintf('%s.mat', fname));
-    save(stimfile_fname, '-struct', 'stimfile_thisrun', '-v7.3')
-    
     % Collect info for json_ieeg file
     ieeg_json.SamplingFrequency = hdr_thisrun.Fs;
     ieeg_json.RecordingDuration = round(hdr_thisrun.nSamples/hdr_thisrun.Fs,nDecimals);
+  
+    % Write out new data file:    
+    data_fname = fullfile(dataWriteDir, sprintf('%s_ieeg', fname));
+    ft_write_data(data_fname, data_thisrun, 'header', hdr_thisrun, 'dataformat', 'brainvision_eeg');
+   
+    % Write out events.tsv file: 
+    events_fname = fullfile(dataWriteDir, sprintf('%s_events.tsv', fname));
+    writetable(events_table, events_fname, 'FileType','text', 'Delimiter', '\t')
     
-    % Write out json_ieeg file
+    % Write out stimulus file:
+    stimfile_thisrun = stimData(ii);
+    stimfile_fname = fullfile(stimWriteDir, sprintf('%s.mat', fname));
+    save(stimfile_fname, '-struct', 'stimfile_thisrun', '-v7.3')
+      
+    % Write out json_ieeg file:
     jsonfile_fname = fullfile(dataWriteDir, sprintf('%s_ieeg.json', fname));    
     jsonwrite(jsonfile_fname,ieeg_json,json_options)
     
-    % Write out channels.tsv file
-    channels_tsv_fname = fullfile(dataWriteDir, sprintf('%s_channels.tsv', fname));    
-    writetable(channel_table,channels_tsv_fname,'FileType','text','Delimiter','\t');
+    % Write out channels.tsv file:
+    channels_fname = fullfile(dataWriteDir, sprintf('%s_channels.tsv', fname));    
+    writetable(channel_table,channels_fname,'FileType','text','Delimiter','\t');
     
-    % CHECK: Are the onsets from the stimulus file and triggers aligned?
-    switch makePlots 
-        case 'yes'
-            figure; hold on;
-            stem(onsets-onsets(1)); 
-            stem(stimData(ii).stimulus.onsets - stimData(ii).stimulus.onsets(1), ':diamondr')
-            xlabel('Event number'); ylabel('Time (s)');
-            legend('Triggers', 'Stimulus Onsets')
-    end
-
 end
 
 % CHECK: Do number of triggers derived from EDF data file match the number

@@ -31,7 +31,6 @@ for iRun = 1:length(dataFiles)
     else
         % Add length of PREVIOUS run in seconds to onsets
         eventsTable.event_sample = eventsTable.event_sample + samplesToAdd;
-        eventsTable.flip_sample = eventsTable.flip_sample + samplesToAdd;
         eventsTable.onset = eventsTable.event_sample/hdr.Fs;
         events = [events; eventsTable];
     end

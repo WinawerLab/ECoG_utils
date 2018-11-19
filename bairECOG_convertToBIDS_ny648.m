@@ -1,5 +1,3 @@
-tbUse('ECoG_utils');
-
 % SCRIPT DESCRIPTION %
 % This script Takes BAIR data from NYU School of Medicine, gets onsets,
 % writes out separate runs for each tasks, including tsv event files, and
@@ -8,12 +6,16 @@ tbUse('ECoG_utils');
 % required for trigger channel selection and identifying noisy channels.
 
 % Remarks:
-% - Data is written in BVA format (.eeg, .vhdr, .vmrk), because of
-% difficulties with EDF writing using fieldtrips ft_read_data and
-% ft_write_data functions at the time of writing this code, but this can be
-% changed (see line 295). Can also decide to zip the BVA files for Flywheel
-% (currently turned off). 
-% - Should we put the original data in /sourcedata/ folder?
+% - Data is written in BVA format (.eeg, .vhdr, .vmrk), because of errors
+% with EDF writing using fieldtrips ft_read_data and ft_write_data
+% functions. Can also zip the BVA files for Flywheel (now turned off).
+% - Trial onsets are based on the flips recorded by PsychToolbox, rather
+% than the triggers recorded in the data (although the first trigger is
+% used to detect onset of the task run). This is because we determined that
+% the triggers sent over the audio cable at NYU SOM seem less accurate. 
+
+% Questions:
+% - More the original data into a BAIR/Data/BIDS/sourcedata/ folder?
 % - Should there be a json sidecar with the T1 file?
 
 %% Define paths and BIDS specs %%
@@ -59,6 +61,12 @@ makePlots = 'no';
 
 %% Create write directories
 
+% Check whether we have the ECoG_utils repository on the path
+if ~exist('createBIDS_ieeg_json_nyuSOM.m')
+    tbUse ECoG_utils;
+end
+ 
+% Check whether we have write directories
 if ~exist(dataWriteDir, 'dir'); mkdir(dataWriteDir);end
 if ~exist(stimWriteDir, 'dir'); mkdir(stimWriteDir);end
 if ~exist(T1WriteDir, 'dir'); mkdir(T1WriteDir);end
@@ -388,7 +396,7 @@ for ii = 1:nRuns
         
     end
     
-    % Get the onsets
+    % Get the onsets in the data recordings
     num_triggers_total = num_triggers_total + num_trials;
     onsets = trigger_onsets(stim0:num_triggers_total);
     [~,onset_indices] = intersect(t, onsets);
@@ -399,32 +407,43 @@ for ii = 1:nRuns
     data_thisrun = data(:,run_start_inx:run_stop_inx-1); % subtract one sample to make length of 'between run' data exactly 6 seconds
     hdr_thisrun = hdr;
     hdr_thisrun.nSamples = size(data_thisrun,2);
-
-    % Write out new data file
+  
+    % Collect info for events.tsv file 
     
-    % % EDF format --> has bug?? 
-    %data_fname = fullfile(dataWriteDir, sprintf('%s_ieeg.edf', fname));
-    %ft_write_data(data_fname, data_thisrun, 'header', hdr_thisrun, 'dataformat', 'edf');
+    % % Determine trial onset based on the triggers:
+    % event_sample = (onset_indices - run_start_inx);
     
-    % BVA format
-    data_fname = fullfile(dataWriteDir, sprintf('%s_ieeg', fname));
-    ft_write_data(data_fname, data_thisrun, 'header', hdr_thisrun, 'dataformat', 'brainvision_eeg');
+    % Determine trial onset based on the flips:   
+    % Get the fliptimes for the requested triggers
+	flips        = stimData(ii).response.flip(stimData(ii).stimulus.trigSeq>0); % in seconds
+    % Align to the flip for the first stimulus. This is assumed to be same
+    % as the first stimulus trigger on the basis of which the run is
+    % segmented (minus prescan period).
+    flips        = flips-(flips(1)-prescan); % in seconds
+    flip_indices = round(flips*hdr.Fs); % need to round because flip times do not always exactly align with sample rate
+    event_sample = flip_indices';
     
-    % % May need to zip files for Flywheel upload (check with Gio)
-    %zip(data_fname, {sprintf('%s.eeg', data_fname), sprintf('%s.vhdr', data_fname), sprintf('%s.vmrk', data_fname)});
-    %delete(sprintf('%s.eeg', data_fname), sprintf('%s.vhdr', data_fname), sprintf('%s.vmrk', data_fname));
-    
-    % Collect info for tsv file 
-    onset        = strtrim(cellstr(num2str(onsets'-onsets(1)+prescan,['%.' num2str(nDecimals) 'f']))); %round(onsets'-onsets(1)+prescan,nDecimals);
-    event_sample = (onset_indices - run_start_inx);
+    % Get remaining columns: 
+    onset        = strtrim(cellstr(num2str(event_sample/hdr.Fs,['%.' num2str(nDecimals) 'f']))); 
     stim_file    = repmat(fname, num_trials, 1);
     duration     = strtrim(cellstr(num2str(duration,['%.' num2str(nDecimals) 'f'])));
     ISI          = strtrim(cellstr(num2str(ISI,['%.' num2str(nDecimals) 'f'])));
     
+    % Write out new data file  
+    % % EDF format --> has problems with the SoM data (errors)
+    %data_fname = fullfile(dataWriteDir, sprintf('%s_ieeg.edf', fname));
+    %ft_write_data(data_fname, data_thisrun, 'header', hdr_thisrun, 'dataformat', 'edf');
+    % BVA format
+    data_fname = fullfile(dataWriteDir, sprintf('%s_ieeg', fname));
+    ft_write_data(data_fname, data_thisrun, 'header', hdr_thisrun, 'dataformat', 'brainvision_eeg');
+    % % May need to zip files for Flywheel upload (check with Gio)
+    %zip(data_fname, {sprintf('%s.eeg', data_fname), sprintf('%s.vhdr', data_fname), sprintf('%s.vmrk', data_fname)});
+    %delete(sprintf('%s.eeg', data_fname), sprintf('%s.vhdr', data_fname), sprintf('%s.vmrk', data_fname));
+  
     % Write out tsv file 
-    tsv_thisrun = table(onset, event_sample, duration, ISI, trial_type, trial_name, stim_file, stim_file_index);
-    tsv_fname = fullfile(dataWriteDir, sprintf('%s_events.tsv', fname));
-    writetable(tsv_thisrun, tsv_fname, 'FileType','text', 'Delimiter', '\t')
+    events_table = table(onset, duration, ISI, trial_type, trial_name, stim_file, stim_file_index, event_sample);
+    events_fname = fullfile(dataWriteDir, sprintf('%s_events.tsv', fname));
+    writetable(events_table, events_fname, 'FileType','text', 'Delimiter', '\t')
     
     % Write out stimulus file
     stimfile_thisrun = stimData(ii);

@@ -1,5 +1,3 @@
-tbUse('ECoG_utils');
-
 % SCRIPT DESCRIPTION %
 % This script preprocesses the BIDS-formatted BAIR ECoG data. 
 
@@ -10,7 +8,7 @@ tbUse('ECoG_utils');
 % [2] Computing matches with visual atlases (wang and benson)
 % [3] Common average reference (regression based)
 % [4] Broadband computation
-% [5] Segmentation
+% [5] Segmentation (epoching)
 % 
 % OUTPUT:
 % - data: struct with entire raw and broadband time courses. 
@@ -30,6 +28,14 @@ dataPth     = '/Volumes/server/Projects/BAIR/Data/BIDS/';
 dataDir = fullfile(dataPth, projectName, sprintf('sub-%s', sub_label), sprintf('ses-%s', ses_label), 'ieeg');
 saveDir = fullfile(dataPth, projectName, 'derivatives', 'preprocessed', sprintf('sub-%s', sub_label));
 
+% Check whether we have write directories
+if ~exist(saveDir, 'dir'); mkdir(saveDir);end
+
+% Check whether we have the ECoG_utils repository on the path
+if ~exist('createBIDS_ieeg_json_nyuSOM.m')
+    tbUse ECoG_utils;
+end
+
 %% [1] Read in ECoG data
 
 [ftdata, events, channels]  = ecog_readBIDSData(dataDir, sub_label, ses_label);
@@ -46,7 +52,7 @@ visualelectrodes    = electrode_to_nearest_node(specs, dataDir);
 
 signal = ecog_CarRegress(ftdata.trial{1}, find(contains(channels.status, 'good')));
 
-% %% [3] DATA INSPECTION: Look at the effect of CAR
+% %% [3] DIAGNOSTICS: Look at the effect of CAR
 % 
 % figure;
 % subplot(1,2,1); hold on
@@ -68,12 +74,16 @@ signal = ecog_CarRegress(ftdata.trial{1}, find(contains(channels.status, 'good')
 %% [4] Compute time-varying broadband 
 
 % Define frequency bands to filter
+
 % 10 Hz bands
 %bands = [[70 80]; [80 90]; [90 100]; [100 110]; [130 140]; [140 150]; [150 160]; [160 170]];
+
 % 20 Hz bands
-%bands = [[70 90]; [90 110]; [130 150]; [150 170]];
+bands = [[70 90]; [90 110]; [130 150]; [150 170]];
+
 % 40 Hz bands
 %bands = [[70 110]; [130 170]];
+
 % 5 Hz bands
 % bands = [70 75];
 % for ii = 2:20
@@ -87,21 +97,22 @@ signal = ecog_CarRegress(ftdata.trial{1}, find(contains(channels.status, 'good')
 %     end
 % end
 % bands = bands2;
+
 % % 1 Hz bands
-bands = 71:2:170;
-bands = reshape(bands,[2 size(bands,2)/2]);
-bands = bands';
-bands(bands<130 & bands>110) = nan; % avoid 120
-bands2=[];
-for ii = 1:size(bands,1)
-    if ~any(isnan(bands(ii,:)))
-        bands2 = [bands2;bands(ii,:)];
-    end
-end
-bands = bands2;
+% bands = 71:2:170;
+% bands = reshape(bands,[2 size(bands,2)/2]);
+% bands = bands';
+% bands(bands<130 & bands>110) = nan; % avoid 120
+% bands2=[];
+% for ii = 1:size(bands,1)
+%     if ~any(isnan(bands(ii,:)))
+%         bands2 = [bands2;bands(ii,:)];
+%     end
+% end
+% bands = bands2;
 
 % Define broadband extraction method
-bbmethod = 9;
+bbmethod = 7;
 
 % Extract broadband
 [broadband, methodstr] = ecog_extractBroadband(signal', ftdata.fsample, bbmethod, bands);
@@ -128,17 +139,26 @@ data.cfg        = ftdata.cfg;
 % disp(data.viselec.benson14_varea);
 % 
 % % e.g.
-% eltomatch = visualelectrodes.benson14_varea.elec_labels(9); %MO01-04
+eltomatch = visualelectrodes.benson14_varea.elec_labels(9); %MO01-04
 % 
 % % Find matching channel number
-% el = ecog_matchChannels(eltomatch, data);
+el = ecog_matchChannels(eltomatch, data);
 % 
 % % Plot voltage and broadband
 % ecog_plotFullTimeCourse(data,'car_reref', el);
-% ecog_plotFullTimeCourse(data,'broadband', el); % no smoothing
+ecog_plotFullTimeCourse(data,'broadband', el); % no smoothing
 % ecog_plotFullTimeCourse(data,'broadband', el, data.hdr.Fs/2); % with smoothing
 
-% [5] Segment the data (all channels, all tasks)
+% Check whether the event onsets align with the triggers by plotting trigger channel itself
+% Note that there may be slight offsets because we segment on the flips,
+% not the triggers!
+
+eltomatch = data.channels.name{find(contains(data.channels.type,'trig'))};
+el = ecog_matchChannels(eltomatch, data);
+
+ecog_plotFullTimeCourse(data,'raw', el); title('triggers');
+
+%% [5] Segment the data (all channels, all tasks)
 
 % Set epoch length (in seconds)
 epoch = [-0.5 1.5];
@@ -157,13 +177,14 @@ baseline_epoch = [-1.5 -0.5];
 baseline_trials = ecog_epochData(mockdata, baseline_epoch);
 baseline_trials.events = [];
 
-% Save preprocessed and epoched data for further analysis
+%% Save preprocessed and epoched data for further analysis
 % 
-% disp('saving preprocessed data...');
-% saveName = fullfile(saveDir, sprintf('sub-%s_ses-%s_preproc_bbmethod%d_bandwidth%d', sub_label, ses_label, bbmethod, bands(1,2)-bands(1,1)));
-% save(saveName, 'data'); 
+disp('saving preprocessed data...');
+saveName = fullfile(saveDir, sprintf('sub-%s_ses-%s_preproc_bbmethod%d_bandwidth%d', sub_label, ses_label, bbmethod, bands(1,2)-bands(1,1)));
+save(saveName, 'data'); 
 
 disp('saving epoched data...');
-saveName = fullfile(saveDir, sprintf('sub-%s_ses-%s_epoched_bbmethod%d_bandwidth%d', sub_label, ses_label, bbmethod, bands(1,2)-bands(1,1)));
+%saveName = fullfile(saveDir, sprintf('sub-%s_ses-%s_epoched_bbmethod%d_bandwidth%d', sub_label, ses_label, bbmethod, bands(1,2)-bands(1,1)));
+saveName = fullfile(saveDir, sprintf('sub-%s_ses-%s_epoched', sub_label, ses_label));
 save(saveName, 'trials', 'baseline_trials'); 
 disp('done');

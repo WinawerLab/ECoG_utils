@@ -8,7 +8,7 @@ hdr = ft_read_header(fileName);
 
 %% which task?
 task = 'hrf'; % soc or hrf
-which_run = 2;
+which_run = 1;
 
 switch task
     case 'hrf'
@@ -62,6 +62,7 @@ if strcmp(task, 'soc')
    duplicates = find(diff([false stimulus.seq(tmp)]) == 0);
    onsetIndices(tmp(duplicates))=0;
 end
+
 %% compare detected triggers, requested triggers, and flips
 
 % get requested onsets and flip onsets

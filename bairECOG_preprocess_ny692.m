@@ -1,5 +1,3 @@
-tbUse('ECoG_utils');
-
 % SCRIPT DESCRIPTION %
 % This script preprocesses the BIDS-formatted BAIR ECoG data. It is meant
 % be run cell-by-cell because some manual inputs are required (for channel
@@ -37,7 +35,13 @@ dataPth     = '/Volumes/server/Projects/BAIR/Data/BIDS/';
 dataDir = fullfile(dataPth, projectName, sprintf('sub-%s', sub_label), sprintf('ses-%s', ses_label), 'ieeg');
 saveDir = fullfile(dataPth, projectName, 'derivatives', 'preprocessed', sprintf('sub-%s', sub_label));
 
+% Check whether we have write directories
 if ~exist(saveDir, 'dir'); mkdir(saveDir);end
+
+% Check whether we have the ECoG_utils repository on the path
+if ~exist('createBIDS_ieeg_json_nyuSOM.m')
+    tbUse ECoG_utils;
+end
 
 %% [1] Read in ECoG data
 
@@ -110,17 +114,19 @@ data.cfg        = ftdata.cfg;
 disp(data.viselec.benson14_varea);
 
 % e.g.
-eltomatch = visualelectrodes.benson14_varea.elec_labels(12:15); %MO01-04
+eltomatch = visualelectrodes.benson14_varea.elec_labels(12); %MO01-04
 
 % Find matching channel number
 el = ecog_matchChannels(eltomatch, data);
 
 % Plot voltage and broadband
 %ecog_plotFullTimeCourse(data,'car_reref', el);
-%ecog_plotFullTimeCourse(data,'broadband', el); % no smoothing
+ecog_plotFullTimeCourse(data,'broadband', el); % no smoothing
 %ecog_plotFullTimeCourse(data,'broadband', el, data.hdr.Fs/2); % with smoothing
 
-%% Check whether the onsets align with the triggers by plotting trigger channel itself
+% Check whether the event onsets roughly align with the triggers by
+% plotting trigger channel itself Note that there may be slight offsets
+% because we segment on the flips, not the triggers!
 
 eltomatch = data.channels.name{find(contains(data.channels.type,'trig'))};
 el = ecog_matchChannels(eltomatch, data);
@@ -150,12 +156,11 @@ trials = ecog_epochData(data, epoch);
 
 %% Save preprocessed and epoched data for further analysis
 
-% disp('saving preprocessed data...');
-% saveName = fullfile(saveDir, sprintf('sub-%s_ses-%s_preproc', sub_label, ses_label));
-% save(saveName, 'data'); 
+disp('saving preprocessed data...');
+saveName = fullfile(saveDir, sprintf('sub-%s_ses-%s_preproc', sub_label, ses_label));
+save(saveName, 'data'); 
 
 disp('saving epoched data...');
-saveName = fullfile(saveDir, sprintf('sub-%s_ses-%s_epoched_onflips', sub_label, ses_label));
-%save(saveName, 'trials', 'baseline_trials'); 
+saveName = fullfile(saveDir, sprintf('sub-%s_ses-%s_epoched', sub_label, ses_label));
 save(saveName, 'trials'); 
 disp('done');
