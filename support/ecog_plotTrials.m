@@ -95,14 +95,16 @@ for dataType = {'broadband', 'evoked'}
         for jj = 1:length(trial_index)
             plot(trials.time, mnToPlot(:,jj),'Color', colors(jj,:), 'LineWidth',2);
         end
-        xlabel('time (s)');
-        switch thisDataType
-            case 'broadband'
-                ylabel(['relative change in broadband power ( ' num2str(min(trials.bb_bands(:))) '-' num2str(max(trials.bb_bands(:))) ' Hz)']);
-            case 'evoked'
-                ylabel('evoked response amplitude');
+        if ii == 1
+            xlabel('time (s)');
+            switch thisDataType
+                case 'broadband'
+                    ylabel(['relative change in broadband power ( ' num2str(min(trials.bb_bands(:))) '-' num2str(max(trials.bb_bands(:))) ' Hz)']);
+                case 'evoked'
+                    ylabel('evoked response amplitude');
+            end
         end
-        
+
         % Check if these electrodes have matches with visual atlases, if so, add
         % that to the plot title
          if iscell(whichElectrodes)
@@ -112,9 +114,11 @@ for dataType = {'broadband', 'evoked'}
         end
         viselec_name = [];
         for atlas = {'wang2015_atlas','benson14_varea'}
-            viselec = contains(trials.viselec.(atlas{:}).elec_labels, electrodeName);
-            if any(viselec)
-                viselec_name = [viselec_name atlas{:}(1:8) ':' trials.viselec.(atlas{:}).area_labels{viselec} ' '];
+            if ~isempty(trials.viselec.(atlas{:}))
+                viselec = contains(trials.viselec.(atlas{:}).elec_labels, electrodeName);
+                if any(viselec)
+                    viselec_name = [viselec_name atlas{:}(1:8) ':' trials.viselec.(atlas{:}).area_labels{viselec} ' '];
+                end
             end
         end
        

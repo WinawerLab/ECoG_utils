@@ -34,14 +34,15 @@ load(dataName);
 
 % Which electrodes to plot? (Each electrode gets a subplot)
 % e.g. 'MO01'; e.g. trials.viselec.benson14_varea.elec_labels
-whichElectrodes = {'P01'};
-
+whichElectrodes = {'P01', 'P02', 'P03', 'P04'};
+%whichElectrodes = {'P01'};
+%whichElectrodes = trials.channels.name(contains(trials.channels.status, 'good'));
 % Which stimulus conditions to plot? 
-whichTrials = {}; % if empty, plot average of all trials
+%whichTrials = {}; % if empty, plot average of all trials
 %whichTrials = {'CRF','SPARSITY','ONEPULSE', 'TWOPULSE', 'GRATING', 'PLAID', 'CIRCULAR', 'HOUSES', 'FACES', 'LETTERS'}; % everything except prf
 %collapseTrialTypes = 'yes'; % if yes, plots average across all trial types listed under 'whichTrials'
 
-%whichTrials = {'HOUSES','FACES', 'LETTERS'};
+whichTrials = {'HOUSES','FACES', 'LETTERS'};
 %whichTrials = {'GRATING', 'PLAID','CIRCULAR'};
 %whichTrials = {'CRF', 'SPARSITY','ONEPULSE','GRATING', 'PLAID','CIRCULAR'};
 %whichTrials = {'CRF-1','CRF-2', 'CRF-3','CRF-4', 'CRF-5'};
