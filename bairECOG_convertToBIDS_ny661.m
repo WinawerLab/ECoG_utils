@@ -57,7 +57,7 @@ postscan  = 3; % Segment each run with this amount after the last stimulus onset
 nDecimals = 4; % Specify temporal precision of time stamps in events files
 
 % Make plots?
-makePlots = 'yes';
+makePlots = 'no';
 
 %% Create write directories
 
@@ -160,7 +160,8 @@ switch makePlots
 end
 
 % Indicate the reason why channels were marked as bad
-badChannelsDescriptions = {'spikes', 'spikes', 'line noise', 'subgaleal', 'subgaleal' , 'subgaleal' , 'subgaleal', 'subgaleal', 'subgaleal'};
+% NOTE: do NOT use space in descriptions, readtable can't handle it!!
+badChannelsDescriptions = {'spikes', 'spikes', 'linenoise', 'subgaleal', 'subgaleal' , 'subgaleal' , 'subgaleal', 'subgaleal', 'subgaleal'};
 %repmat({'spikes'}, 1,length(badChannels)); 
 assert(length(badChannelsDescriptions) == length(badChannels));
 
@@ -381,10 +382,12 @@ for ii = 1:nRuns
         duration   = stimData(ii).stimulus.tsv.duration;
         ISI        = zeros(height(stimData(ii).stimulus.tsv),1);
         trial_type = stimData(ii).stimulus.tsv.trial_type;
-        trial_name = cell(height(stimData(ii).stimulus.tsv),1);
-        for jj = 1:height(stimData(ii).stimulus.tsv)
-            trial_name{jj} = ['PRF' num2str(stimData(ii).stimulus.tsv.trial_name(jj,:))];
-        end
+        trial_name = repmat('PRF',height(stimData(ii).stimulus.tsv), 1);
+
+%        trial_name = cell(height(stimData(ii).stimulus.tsv),1);
+%         for jj = 1:height(stimData(ii).stimulus.tsv)
+%             trial_name{jj} = ['PRF' num2str(stimData(ii).stimulus.tsv.trial_name(jj,:))];
+%         end
         stim_file_index = stimData(ii).stimulus.tsv.stim_file_index;
         
         % task-specific input for json file

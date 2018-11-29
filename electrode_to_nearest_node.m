@@ -116,10 +116,10 @@ plotcbar  = specs.plotcbar;
 
  % Do we have a patient ID?
 if ~isfield(specs, 'pID') || isempty(specs.pID)
-    disp('please specify a patient ID');
+    fprintf('[%s] Please specify a patient ID\n',mfilename);
     return
 else
-    disp(['running patient ' num2str(specs.pID)]);
+    fprintf('[%s] Running patient %s...\n',mfilename,num2str(specs.pID));
 end
         
 % Read electrode coordinate file from BAIR or RAW directory
@@ -133,7 +133,7 @@ switch specs.patientPool
         if ~isempty(D)
            
             elec_file = D(1).name;
-            disp(['reading ' elec_file]); 
+            fprintf('[%s] Reading %s...\n',mfilename,elec_file);
 
             % Prefer to use readtable for tsv files because it doesn't require
             % knowing the order of the columns beforehand (as textscan does). 
@@ -150,7 +150,7 @@ switch specs.patientPool
                 elec_xyz = [E.x E.y E.z];
             end
         else
-            disp('electrode coordinate file not found - exiting. (NYU: is the server mapped?)');
+            fprintf('[%s] Electrode coordinate file not found - exiting. (NYU: is the server mapped?)\n',mfilename);
             out = [];
             return
         end
@@ -161,7 +161,7 @@ switch specs.patientPool
         if ~isdir([patientDir num2str(specs.pID)])
             patientDir = '/Volumes/server/Projects/BAIR/Data/Raw/ECoG/SoM/';
             if ~isdir([patientDir num2str(specs.pID)])
-                disp('patient directory not found - exiting');
+                fprintf('[%s] Patient data directory not found - exiting. (NYU: is the server mapped?)\n',mfilename);
                 out = [];
                 return
             end
@@ -170,15 +170,15 @@ switch specs.patientPool
         % Read electrode coordinate file from Raw/SoM directory
         D = dir([patientDir num2str(specs.pID) '/*coor_T1*.txt']);
         if ~isempty(D)
-            elec_file = D(1).name;
-            disp(['reading ' elec_file]); % if there are multiple coor_T1 files for separate hemisphere, D(1) will always be the full list
+            elec_file = D(1).name;% if there are multiple coor_T1 files for separate hemisphere, D(1) will always be the full list
+            fprintf('[%s] Reading %s...\n',mfilename,elec_file);
             fid = fopen([patientDir num2str(specs.pID) '/' elec_file]); E = textscan(fid, '%s%f%f%f%s'); fclose(fid);
             elec_xyz = [E{2} E{3} E{4}]; 
             elec_labels = E{1};
             elec_types = unique(E{5});
-            disp(['types of electrodes found: ' elec_types{:}]);
+            fprintf('[%s] types of electrodes found: %s...\n',mfilename,elec_types{:});
         else
-            disp('no coordinate file found - exiting');
+            fprintf('[%s] Electrode coordinate file not found - exiting (NYU: is the server mapped?)\n',mfilename);
             out = [];
             return
         end
@@ -197,7 +197,7 @@ if exist(surf_file_rh, 'file') && exist(surf_file_lh, 'file')
     [vertices_l, faces_l] = read_surf(surf_file_lh);
     vertices = [vertices_r;vertices_l];
 else
-    disp('no freesurfer surfaces found - exiting');
+    fprintf('[%s] Freesurfer surfaces not found - exiting\n',mfilename);
     out = [];
     return
 end
@@ -225,7 +225,7 @@ for a = 1:length(specs.atlasNames)
         [atlas_rh] = load_mgh(atlas_file_rh);
         [atlas_lh] = load_mgh(atlas_file_lh);
     else
-        disp(['no annotations found for ' currentAtlas]);
+        fprintf('[%s] No annotations found for %s \n',mfilename, currentAtlas);
         out.(currentAtlas) = [];
         continue
     end
@@ -301,8 +301,8 @@ for a = 1:length(specs.atlasNames)
                 switch specs.plotmesh
                     case {'both', 'left', 'right'}
                     
+                        fprintf('[%s] Loading colormap_%s \n',mfilename, currentAtlas);
                         A = load(['colormap_' currentAtlas]);
-                        disp(['loading colormap_' currentAtlas]);
                         
                         switch currentAtlas
                             case 'benson14_eccen'
@@ -355,7 +355,7 @@ for a = 1:length(specs.atlasNames)
                 atlasUnits = 'degrees';
         end
     else
-        disp(['no electrodes in ' currentAtlas]);
+        fprintf('[%s] No electrodes in %s \n',mfilename, currentAtlas);
         out.(currentAtlas) = [];
     end
         
@@ -473,7 +473,7 @@ for a = 1:length(specs.atlasNames)
         h=light; lightangle(h, -45, 45); lighting gouraud;
         h=light; lightangle(h, -45, -90); lighting gouraud;
 
-        set(gcf, 'Position', [150 100 1500 1250]);
+        %set(gcf, 'Position', [150 100 1500 1250]);
         axis tight
     end
 end
@@ -496,15 +496,19 @@ for a = 1:length(atlasNames)
     
     if ~isempty(out.(currentAtlas)) && ~isempty(out.(currentAtlas).elec_labels)
         
-        disp(['found ' num2str(length(out.(currentAtlas).elec_labels)) ' electrodes in ' currentAtlas ': '])
+        fprintf('[%s] Found %d electrodes in %s :\n' ,mfilename, length(out.(currentAtlas).elec_labels), currentAtlas);
             
         for i = 1:length(out.(currentAtlas).elec_labels)            
             switch currentAtlas
                 case {'wang2015_atlas', 'template_areas', 'wang15_mplbl'}
-                    disp([out.(currentAtlas).elec_labels{i} ' in area ' out.(currentAtlas).area_labels{i}]);
+                    fprintf('[%s] %s in area %s\n', mfilename, out.(currentAtlas).elec_labels{i}, out.(currentAtlas).area_labels{i})
+                    %disp([out.(currentAtlas).elec_labels{i} ' in area ' out.(currentAtlas).area_labels{i}]);
                 case 'benson14_varea'
-                    disp([out.(currentAtlas).elec_labels{i} ' in area ' out.(currentAtlas).area_labels{i} ...
-                        ' with eccen = ' num2str(out.benson14_varea.node_eccen(i)) ', angle = ' num2str(out.benson14_varea.node_angle(i)) ', sigma = ' num2str(out.benson14_varea.node_sigma(i))]);
+                    fprintf('[%s] %s in area %s with eccen = %d, angle = %d, sigma = %d\n', ...
+                        mfilename, out.(currentAtlas).elec_labels{i}, out.(currentAtlas).area_labels{i}, ...
+                        out.benson14_varea.node_eccen(i), out.benson14_varea.node_angle(i), out.benson14_varea.node_sigma(i));
+                    %disp([out.(currentAtlas).elec_labels{i} ' in area ' out.(currentAtlas).area_labels{i} ...
+                        %' with eccen = ' num2str(out.benson14_varea.node_eccen(i)) ', angle = ' num2str(out.benson14_varea.node_angle(i)) ', sigma = ' num2str(out.benson14_varea.node_sigma(i))]);
             end
         end
     end

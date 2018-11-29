@@ -14,7 +14,7 @@ chanFiles   = dir(fullfile(dataDir,sprintf('sub-%s_ses-%s_task-*channels.tsv',su
 cfg.dataset = [];
 samplesToAdd = 0;
 
-fprintf('concatenating runs \n');
+fprintf('[%s] Concatenating runs...\n',mfilename);
 
 % Loop across all the runs
 for iRun = 1:length(dataFiles)
@@ -40,7 +40,7 @@ for iRun = 1:length(dataFiles)
     runLengthInSamples = hdr.nSamples;
     runLengthInSeconds = hdr.nSamples/hdr.Fs;
     samplesToAdd = samplesToAdd + runLengthInSamples;
-    fprintf('Length of run %d is %s seconds, cumulative length of data is %s seconds \n', iRun, num2str(runLengthInSeconds), num2str(samplesToAdd/hdr.Fs));
+    fprintf('[%s] Length of run %d is %s seconds, cumulative length of data is %s seconds \n', mfilename,iRun, num2str(runLengthInSeconds), num2str(samplesToAdd/hdr.Fs));
 end
 
 % Read in the data files (all runs)
@@ -55,6 +55,6 @@ assert(size(chans,1) == length(data.label));
 % Replace data.label with names from channels.tsv for better readability
 data.label = chans.name;
 data.hdr.label = chans.name;
-fprintf('done \n');
+%fprintf('done \n');
 
 end
