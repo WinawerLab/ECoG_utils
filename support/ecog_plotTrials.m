@@ -22,6 +22,7 @@ trial_index = [];
 if isempty(trialType)
     trialType = {'all trials'};
 	trial_index{1} = 1:size(trials.events,1);
+    baseline_index = vertcat(trial_index{:});
 else
     switch collapseTrialTypes
         case 'yes'

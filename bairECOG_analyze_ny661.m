@@ -1,10 +1,10 @@
-rootpath = '/Volumes/server/Projects/BAIR/ECoG/';
+rootpath = '/Volumes/server/Projects/BAIR/Data/Raw/ECoG/';
 sub_label = '661'; % channel with triggers = 138 (DC10_REF)
 
 dataName = fullfile(rootpath, sub_label, ['NY' sub_label '_BairPilot.edf']);
 stimFile = fullfile(rootpath, sub_label, ['NY' sub_label '_StimInfo.mat']);
-tbUse('fieldtrip');
-addpath(genpath([rootpath '/code']));
+%tbUse('fieldtrip');
+%addpath(genpath([rootpath '/code']));
 
 %% Import data
 
@@ -152,7 +152,7 @@ bands = [[70 90]; [90 110]; [130 150]; [150 170]];
 %                 4 'geomean(abs(hilbert(whiten(bp(x))).^2)';
 %                 5 'geomean(abs(hilbert(bp(x)).^2)';
 
-broadband = extractBroadband(signal', data.fsample, 4, bands);
+broadband = ecog_extractBroadband(signal', data.fsample, 7, bands);
 % BANDPASS FILTER THE SIGNAL
 % bp = bandpassFilter(signal', data.fsample, bands);
 % 
@@ -162,18 +162,18 @@ broadband = extractBroadband(signal', data.fsample, 4, bands);
 % 
 % broadband = sum(whiten_hilbert(bp).^2, 3);
 % 
-hband_sig = broadband';
+hband_sig = broadband;
 
 %% plot filtered time course for channel(s) of interest
 
 % electrodes with coverage in visual areas: 
-%eltomatch = {'OC_01'}; % V3d (V3)
+eltomatch = {'EEG OC_01-REF'}; % V3d (V3)
 %eltomatch = {'OC_02'}; % V3b (V3)
-eltomatch = {'OC_05'}; % MT
+%eltomatch = {'OC_05'}; % MT
 %eltomatch = {'DPMT_01'}; % depth electrode matching w V2
 
 % find matching electrode numbers
-el = ecog_matchchannels(eltomatch, data);
+el = ecog_matchChannels(eltomatch, data);
 
 load(stimFile);
 tasklabels = fields(onsets);
@@ -237,7 +237,7 @@ trials.fsample = data.fsample;
 
 %% Now you have epoched data, save it somewhere and analyse.
 savePth = [rootpath sub_label];
-save(fullfile(rootpath, sub_label, sprintf('NY%s_data_epoched_bbmethod4', sub_label)), 'trials', 'category_names', '-v7.3');
+save(fullfile(rootpath, sub_label, sprintf('NY%s_data_epoched_bbmethod7', sub_label)), 'trials', 'category_names', '-v7.3');
 
 %% plot trial averages for channel(s) of interest
 
@@ -245,10 +245,10 @@ usebootstrap = 'no'; % yes/no
 signaltoplot = 'broadband'; % evoked/broadband
 
 % electrodes with coverage in visual areas: 
-eltomatch = {'OC_01','OC_02', 'OC_03', 'OC_04', 'OC_05', 'DPMT_01'};
+eltomatch = {'EEG OC_01-REF','EEG OC_02-REF', 'EEG OC_03-REF', 'EEG OC_04-REF', 'EEG OC_05-REF', 'EEG OC_05-REF'};
 
 % find matching electrode numbers
-el = ecog_matchchannels(eltomatch, trials);
+el = ecog_matchChannels(eltomatch, trials);
 
 for tl = 1:length(tasklabels)
     
@@ -306,9 +306,10 @@ end
 
 tasklabel = 'prf'; 
 signaltoplot = 'broadband'; 
-eltoplot = 'OC_05';
+eltoplot = 'EEG OC_01-REF';
+%eltoplot = {'EEG OC_01-REF','EEG OC_02-REF', 'EEG OC_03-REF', 'EEG OC_04-REF', 'EEG OC_05-REF', 'EEG OC_05-REF'};
 
-el = ecog_matchchannels(eltoplot,trials);
+el = ecog_matchChannels(eltoplot,trials);
 temp = squeeze(trials.(signaltoplot).(tasklabel)(el,:,:)); 
 
 % plot trials in separate panels
@@ -317,22 +318,22 @@ lim = max(max(abs(temp)));
 ylim = [-lim-0.1*lim lim+0.1*lim];
 ntrial = size(temp,2)/4;
 
-for trial = 1:ntrial
-    subplot(ceil(sqrt(ntrial)),ceil(sqrt(ntrial)),trial); hold on;
-    
-    plot(trials.time, temp(:,trial), 'k', 'LineWidth',2);
-    set(gca, 'YLim', ylim);
-    line([0 0], ylim,'LineStyle', ':', 'Color', 'k');
-    line([-0.1 0.5], [0 0],'LineStyle', ':', 'Color', 'k');
-    xlabel('time (s)');
-    %ylabel(ylabels{signaltoplot})
-    axis tight
-    if trial == 1
-        title([{'trial number:'} {num2str(trial)}])
-    else
-        title(num2str(trial));
-    end
-end
+% for trial = 1:ntrial
+%     subplot(ceil(sqrt(ntrial)),ceil(sqrt(ntrial)),trial); hold on;
+%     
+%     plot(trials.time, temp(:,trial), 'k', 'LineWidth',2);
+%     set(gca, 'YLim', ylim);
+%     line([0 0], ylim,'LineStyle', ':', 'Color', 'k');
+%     line([-0.1 0.5], [0 0],'LineStyle', ':', 'Color', 'k');
+%     xlabel('time (s)');
+%     %ylabel(ylabels{signaltoplot})
+%     axis tight
+%     if trial == 1
+%         title([{'trial number:'} {num2str(trial)}])
+%     else
+%         title(num2str(trial));
+%     end
+% end
 
 % plot trials on top of one another
 figure('Name', [tasklabel ' ' signaltoplot ' ' trials.label{el}]); hold on
@@ -354,11 +355,11 @@ ylabel(signaltoplot);
 
 tasklabel = 'soc'; 
 signaltoplot = 'broadband';
-eltoplot = 'OC_05';
+eltoplot = 'EEG OC_01-REF';
 
-usebootstrap = 'no'; % yes or no
+usebootstrap = 'yes'; % yes or no
 
-el = ecog_matchchannels(eltoplot,trials);
+el = ecog_matchChannels(eltoplot,trials);
 temp = squeeze(trials.(signaltoplot).(tasklabel)(el,:,:)); 
 
 % compute STIMULUS averages
@@ -413,7 +414,7 @@ catIndex = 25:nStim;
 %colors1 = cool(length(catIndex)/2);
 %colors2 = hot(length(catIndex)/2);
 %colors = [colors1;colors2];
-colors = hsv(length(catIndex)/2);
+colors = copper(length(catIndex)/2);
 
 % % in one plot
 % figure;hold on

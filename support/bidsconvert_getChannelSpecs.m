@@ -31,7 +31,8 @@ if max(contains(hdr.label, 'REF')) == 1
         switch C{1}
             case 'EEG'
                 chanName = strcat(C{2:end});
-                inx = find(contains(elecList, chanName));
+                %inx = find(contains(elecList, chanName));
+                inx = find(strncmp(elecList, chanName, length(chanName)));
                 if length(inx) == 1
                     elecInx(ii) = inx;
                 elseif length(inx) < 1
@@ -106,7 +107,7 @@ for ii = 1:length(elecInx)
 end
 
 elecInx = elecInx(~isnan(elecInx));
-fprintf('Matched %d out of %d channels and %d electrodes \n', length(elecInx), length(hdr.label), length(elecList));
+fprintf('Matched %d out of %d electrodes and %d channels \n', length(elecInx), length(elecList), length(hdr.label));
 
 
 

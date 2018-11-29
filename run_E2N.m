@@ -7,7 +7,7 @@ end
 
 specs = [];
 
-specs.pID           = '692'; % patient ID number
+specs.pID           = '661'; % patient ID number
 specs.atlasNames    = [];%{'wang2015_atlas','wang15_mplbl','benson14_varea', 'benson14_eccen'}; 
                         % default is all of these maps: 
                         % {'wang2015_atlas', ...

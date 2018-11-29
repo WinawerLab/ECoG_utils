@@ -1,16 +1,21 @@
-tbUse('ECoG_utils');
-
 % SCRIPT DESCRIPTION %
-% Takes BAIR data from NYU School of Medicine, gets onsets, writes out
-% separate runs for each tasks, including tsv event files, and required
-% BIDS metadata (coordsystem json and electrodes and channels tsv files). 
-%
+% This script Takes BAIR data from NYU School of Medicine, gets onsets,
+% writes out separate runs for each tasks, including tsv event files, and
+% required BIDS metadata (coordsystem json and electrodes and channels tsv
+% files). It is meant to be run cell-by-cell because some manual inputs are
+% required for trigger channel selection and identifying noisy channels.
+
 % Remarks:
-% - Data is written in BVA format (.eeg, .vhdr, .vmrk), because of a bug
-% with EDF writing, but this can be changed (see line 295). Can also decide
-% to zip the BVA files for Flywheel (currently turned off).
-% - Should we put the original data in /sourcedata/ folder? (may depend on
-% whether data is sufficiently anonymized)
+% - Data is written in BVA format (.eeg, .vhdr, .vmrk), because of errors
+% with EDF writing using fieldtrips ft_read_data and ft_write_data
+% functions. Can also zip the BVA files for Flywheel (now turned off).
+% - Trial onsets are based on the flips recorded by PsychToolbox, rather
+% than the triggers recorded in the data (although the first trigger is
+% used to detect onset of the task run). This is because we determined that
+% the triggers sent over the audio cable at NYU SOM seem less accurate. 
+
+% Questions:
+% - More the original data into a BAIR/Data/BIDS/sourcedata/ folder?
 % - Should there be a json sidecar with the T1 file?
 
 %% Define paths and BIDS specs %%
@@ -25,21 +30,21 @@ projectName = 'visual';
 sub_label   = ['som' num2str(patientID)]; 
 ses_label   = 'nyuecog01';
 ses_labelt1 = 'som3t01';
-task_label  = {'hrfpattern',...
-              'soc', ...
-              'soc', ...
-              'soc', ...
-              'soc', ...
-              'soc', ...
-              'soc', ...            
-              'soc', ...
-              'soc', ... 
+task_label  = {'prf',...
+               'prf', ...
+               'soc', ...
+               'soc', ...
+               'soc', ...
+               'soc', ...
+               'soc', ...            
+               'soc', ...
+               'soc', ... 
+              'prf', ...
+              'prf', ...
               'soc', ...              
-              'soc', ...              
-              'soc', ...              
               'soc', ...
-              'hrfpattern'};              
-run_label = {'01','01','02', '03','04', '05','06', '07','08', '09', '10','11','12', '02'};
+              'soc'};              
+run_label = {'01','02','01','02','03','04','05','06','07','03','04','08','09','10'};
 
 % Output paths specs
 dataWriteDir = fullfile(BIDSDataDir, projectName, sprintf('sub-%s', sub_label), sprintf('ses-%s', ses_label), 'ieeg');
@@ -49,10 +54,22 @@ T1WriteDir   = fullfile(BIDSDataDir, projectName, sprintf('sub-%s', sub_label), 
 % Define temporal parameters
 prescan   = 3; % Segment each run with this amount before the first stimulus onset (seconds)
 postscan  = 3; % Segment each run with this amount after the last stimulus onset (seconds)
-nDecimals = 6; % Specify temporal precision of time stamps in events files
+nDecimals = 4; % Specify temporal precision of time stamps in events files
 
 % Make plots?
-makePlots = 'no';
+makePlots = 'yes';
+
+%% Create write directories
+
+% Check whether we have the ECoG_utils repository on the path
+if ~exist('createBIDS_ieeg_json_nyuSOM.m')
+    tbUse ECoG_utils;
+end
+ 
+% Check whether we have write directories
+if ~exist(dataWriteDir, 'dir'); mkdir(dataWriteDir);end
+if ~exist(stimWriteDir, 'dir'); mkdir(stimWriteDir);end
+if ~exist(T1WriteDir, 'dir'); mkdir(T1WriteDir);end
 
 %% READ IN relevant data files %%%%%%%%%%%%%%%%%%
 
@@ -64,70 +81,122 @@ makePlots = 'no';
 
 % Read ECoG data
 dataFiles = dir(fullfile(RawDataDir,num2str(patientID), '*.edf'));
-if length(dataFiles) > 1, disp('warning: multiple datafiles found: using first one'); end
+if length(dataFiles) > 1, disp('Warning: multiple datafiles found: using first one'); end
 
 fileName = [dataFiles(1).folder filesep dataFiles(1).name];    
-disp(['reading ' fileName '...']);
+disp(['Reading ' fileName '...']);
 data = ft_read_data(fileName);
 hdr = ft_read_header(fileName);
 % To read in EDF data with channels with different sampling rates: data = edf2fieldtrip(fileName);
 
-% Identify trigger channel and task indices
-% for cChan = size(data,1):-1:1; figure;plot(data(cChan,:)); title([num2str(cChan) ': ' hdr.label{cChan}]);waitforbuttonpress;close; end
+%% MANUAL STEP:  Identify the trigger channel
 
-% Get trigger time points from data file
-triggerChannel = 138; % DC10 
+% Define time axis (in seconds). First time point = 0 (this is assumed by
+% the function we used to detect triggers below, and also in fieldtrip).
+t = ((0:hdr.nSamples-1)/hdr.Fs); 
 
-triggers = data(triggerChannel,:);
-triggers = triggers / max(triggers);
-[~,trigger_onsets] = findpeaks(triggers, hdr.Fs, 'MinPeakHeight', 0.8, 'MinPeakDistance', .5);
-t = ((1:hdr.nSamples)/hdr.Fs); % time in seconds
+% In this data set, there is a large section of recording prior to the
+% start of the actual experiment, and we don't care if those parts are
+% noisy, just parts with data. So let's not plot the first part:
 
-%% Read in electrode information
+startTime = 1700;
+endTime = 3800;
+[~, startSample] = min(abs(t-startTime));
+[~, endSample]  = min(abs(t-endTime));
 
-% Locate and read the electrode file provided by SOM
-% We want the one that matches the T1
-ElecFile = dir(fullfile(RawDataDir,num2str(patientID),'*coor_T1*.txt'));
-if length(ElecFile) > 1, disp('warning: multiple elec files found: using first one'); end
-if length(ElecFile) < 1
-    disp('warning: no coordinate file found!') 
-else
-    disp(['reading ' ElecFile.name]); % if there are multiple coor_T1 files for separate hemispheres, D(1) will always be the full list
-    elec_fname = fullfile(ElecFile.folder,ElecFile.name);
-    fid = fopen(elec_fname); E = textscan(fid, '%s%f%f%f%s'); fclose(fid);
-    elec_xyz = [E{2} E{3} E{4}]; 
-    elec_labels = E{1};
-    elec_types = E{5};
-    disp(['types of electrodes found: ' unique(strcat(elec_types{:}))]);
-    % Replace elec_types with BIDS terminology
-    elec_types = replace(elec_types, 'G', 'surface');
-    elec_types = replace(elec_types, 'D', 'depth');
-    elec_types = replace(elec_types, 'S', 'surface');
+% Plot the raw voltage time course of each channel
+switch makePlots 
+    case 'yes'
+        for cChan = size(data,1):-1:1; figure;plot(t(startSample:endSample),data(cChan,startSample:endSample)); ...
+                title([num2str(cChan) ': ' hdr.label{cChan}]); waitforbuttonpress; close; end
+end
+ 
+%% Write down the trigger channel (probably one labeled 'DC', see hdr.label)
+triggerChannel = 123; % DC10 
+
+% Also write down any obviously bad channels (e.g. those with big spikes)
+badChannels = [89 100 102 105:110]; 
+% 100 and 102 have partly flat spectra; 89 has line noise peak on 200 Hz
+% 105-110 show strong bursts of activity IN BETWEEN tasks!? Could be
+% movement artifacts? Are these ECOG channels? --> checked with Hugh: these
+% are 'subgaleal' electrodes that are not included in recon; exclude.
+
+% Other observations:
+% 15 has a LF drift before ~stimulus onset first task, movement?
+% 47, 57, 60 have a multiple of these LF drifts throughout recording
+% 69-71 have one (1) big spike during one of the PRF runs. Reason to remove?
+
+%% Check channel selection
+
+% Generate spectral plot; check command window output for outliers; 
+switch makePlots 
+    case 'yes'
+        [outliers] = ecog_plotChannelSpectra(data(:,startSample:endSample), find(contains(hdr.chantype, 'eeg')), hdr);
 end
 
-% Match elec names; sort coordinates and electrode types based on matching
-[elecInx, chanNames, chanTypes, chanUnits] = getChannelSpecs(hdr, elec_labels);
+% Are the outliers in the list of badChannels?
+% NOTE: outliers (identified as channels with mean power that is more that
+% two standard deviations above or below the average across channels) should
+% not be used to automatically identify bad channels, because channels with
+% strong activation can have higher power on average! Instead, look at
+% the time courses of those channels again to see what makes them stand out:
 
-% Generate a channel table default (written out for each run in big loop below)
-[channel_table] = createBIDS_ieeg_channels_tsv_nyuSOM(length(chanNames));
-channel_table.name  = chanNames;
-channel_table.type  = chanTypes;
-channel_table.units = chanUnits;
-channel_table.sampling_frequency = repmat(hdr.Fs,size(channel_table,1),1);
-channel_table.type{triggerChannel} = 'trig';
+switch makePlots 
+    case 'yes'
+        for cChan = 1:length(outliers);figure; plot(t(startSample:endSample), data(outliers(cChan),startSample:endSample)); title([num2str(outliers(cChan)) ': ' hdr.label{outliers(cChan)}]); end
+end
+
+%% All sEEG channels not labeled as bad will be labeled good
+goodChannels = setdiff(find(contains(hdr.chantype, 'eeg')),badChannels)';
+
+% Check selection of good channels:
+switch makePlots 
+    case 'yes'
+        % Check the powerplot of all the good channels, no leftover outliers?
+        %ecog_plotChannelSpectra(data(:,startSample:endSample), goodChannels, hdr)
+
+        % Check the timeseries of all the good channels, no noisy moments?
+        figure;plot(t(startSample:endSample),data(goodChannels,startSample:endSample)); xlabel('Time (s)'); ylabel('Amplitude'); set(gca,'fontsize',16);
+end
+
+% Indicate the reason why channels were marked as bad
+badChannelsDescriptions = {'spikes', 'spikes', 'line noise', 'subgaleal', 'subgaleal' , 'subgaleal' , 'subgaleal', 'subgaleal', 'subgaleal'};
+%repmat({'spikes'}, 1,length(badChannels)); 
+assert(length(badChannelsDescriptions) == length(badChannels));
+
+%% Get trigger time points from data file
+triggers = data(triggerChannel,:);
+triggers = triggers / max(triggers);
+
+disp('Reading triggers from data');
+%[~,trigger_onsets] = findpeaks(triggers, hdr.Fs, 'MinPeakHeight', 0.8, 'MinPeakDistance', .5);
+[~,trigger_onsets] = findpeaks(triggers, hdr.Fs, 'MinPeakHeight', 0.8, 'MinPeakDistance', 0.05);
+
+% we are looking for 4*542 PRF + 10*36 SOC = 2528 triggers
+% need to adapt the minimal distance relative to NY648 because of the PRF
+% triggers being closer together
+
+switch makePlots 
+    case 'yes'
+        figure;hold on
+        plot(t,triggers)
+        stem(trigger_onsets,ones(length(trigger_onsets),1)*0.99,'r');
+        legend({'trigger channel', 'detected trigger onsets'}); xlabel('time (s)'); ylabel('amplitude');
+        set(gca, 'ylim', [0 1]);
+end
 
 %% Read in stimulus files
 
 stimDir = fullfile(RawDataDir,num2str(patientID), 'stimdata');
-stimFiles = dir(fullfile(stimDir, sprintf('%s*2017*.mat', num2str(patientID))));
+stimFiles = dir(fullfile(stimDir, sprintf('*%s*.mat', num2str(patientID))));
 
 for ii = 1:length(stimFiles)
     fileName = [stimDir filesep stimFiles(ii).name];
     stimData(ii) = load(fileName) ;    
-    disp(['reading ' stimData(ii).params.loadMatrix])
+    disp(['Reading ' stimData(ii).params.loadMatrix])
     switch makePlots 
         case 'yes'
-            figure(ii); clf
+            figure; hold on
             plot(stimData(ii).stimulus.seqtiming, stimData(ii).stimulus.seq, 'o-')
     end
 end
@@ -136,6 +205,56 @@ end
 assert(isequal(length(stimData), length(run_label)))
 nRuns = length(run_label);
 
+%% Read in electrode information
+
+% Locate and read the electrode file provided by SOM
+% We want the one that matches the T1
+ElecFile = dir(fullfile(RawDataDir,num2str(patientID),'*coor_T1*.txt'));
+if length(ElecFile) > 1, disp('Warning: multiple elec files found: using first one'); end
+if length(ElecFile) < 1
+    disp('Warning: no coordinate file found!') 
+else
+    disp(['Reading ' ElecFile.name]); % if there are multiple coor_T1 files for separate hemispheres, D(1) will always be the full list
+    elec_fname = fullfile(ElecFile.folder,ElecFile.name);
+    fid = fopen(elec_fname); E = textscan(fid, '%s%f%f%f%s'); fclose(fid);
+    elec_xyz = [E{2} E{3} E{4}]; 
+    elec_labels = E{1};
+    elec_types = E{5};
+    disp(['Types of electrodes found: ' unique(strcat(elec_types{:}))]);
+    % Replace elec_types with BIDS terminology
+    elec_types = replace(elec_types, 'G', 'surface');
+    elec_types = replace(elec_types, 'D', 'depth');
+    elec_types = replace(elec_types, 'S', 'surface');
+end
+
+% Match elec names; sort coordinates and electrode types based on matching
+[elecInx, chanNames, chanTypes, chanUnits] = bidsconvert_getChannelSpecs(hdr, elec_labels, elec_types);
+
+% Generate a channel table default (written out for each run in big loop below)
+[channel_table] = createBIDS_ieeg_channels_tsv_nyuSOM(length(chanNames));
+channel_table.name  = chanNames;
+channel_table.type  = chanTypes;
+channel_table.units = chanUnits;
+channel_table.sampling_frequency = repmat(hdr.Fs,size(channel_table,1),1);
+
+% Indicate which channel is the trigger channel in channels.tsv
+channel_table.type{triggerChannel} = 'trig';
+
+% Indicate channel statuses
+channel_table.status = cell(height(channel_table),1);
+channel_table.status_description = cell(height(channel_table),1);
+ecogChannels = find(contains(channel_table.type,{'seeg', 'ecog'}));
+for ii = 1:length(ecogChannels)
+    channel_table.status{ecogChannels(ii)} = 'good';
+end
+for ii = 1:length(badChannels)
+    channel_table.status{badChannels(ii)} = 'bad';
+    if exist('badChannelsDescriptions', 'var')
+        channel_table.status_description{badChannels(ii)} = badChannelsDescriptions{ii};
+    end
+end
+disp('electrode information read in succesfully');
+disp(channel_table);
 %% Create DATASET-SPECIFIC files %%%%%%%%%%%%%%%%%%
 
 %   - T1w.nii.gz
@@ -146,11 +265,11 @@ nRuns = length(run_label);
 
 % Locate T1 provided by SoM
 T1File = dir(fullfile(RawDataDir,num2str(patientID), 'T1.nii.gz'));
-if length(T1File) > 1, disp('warning: multiple T1s found: using first one'); end
+if length(T1File) > 1, disp('Warning: multiple T1s found: using first one'); end
 
 % Copy file: rename and save in appropriate folder
 if length(T1File) < 1
-    disp('warning: no T1 found!') 
+    disp('Warning: no T1 found!') 
 else
     T1_name = fullfile(T1WriteDir, sprintf('sub-%s_ses-%s_T1w.nii.gz', sub_label, ses_labelt1));
     disp(['writing ' T1_name '...']);
@@ -226,41 +345,51 @@ writetable(electrode_table,electrodes_tsv_name,'FileType','text','Delimiter','\t
 %   - splits data up in separate runs
 %   - writes out all the run specific files required for BIDS
 
-num_trials_total = 0;
+% Generate an _ieeg.json file default
+[ieeg_json, json_options] = createBIDS_ieeg_json_nyuSOM();
+
+% Add a count of all the channels (based on channel_table)
+[ieeg_json] = bidsconvert_addChannelCounts(ieeg_json, channel_table);
+
+% If patient was collected at the OLD SOM location, overwrite the
+% Manufacturers Model Name:
+switch patientID
+    case {645, 648, 661, 668, 674}
+        ieeg_json.ManufacturersModelName = 'Natus NicoletOne C64';
+end       
+
+% Initialize trigger count
+num_triggers_total = 0;
 
 for ii = 1:nRuns
     
-    stim0 = num_trials_total+1;
+    stim0 = num_triggers_total+1;
     
     % Generate filename
     fname = sprintf('sub-%s_ses-%s_task-%s_run-%s', ...
             sub_label, ses_label, task_label{ii}, run_label{ii});
     fprintf('Writing eeg, events, stimuli, json and channel files for %s \n', fname);
     
-    % Generate a json file default
-    [ieeg_json, json_options] = createBIDS_ieeg_json_nyuSOM();
-    
-    if contains(task_label{ii}, 'hrf') %max(taskind_hrf == ii) > 0 % hrf task
-                
-        % get the timestamps
+    % Collect task-specific info for json file   
+    if contains(task_label{ii}, 'prf') % prf task
+        
         blankIdx = mode(stimData(ii).stimulus.seq);
         blanks = stimData(ii).stimulus.seq == blankIdx;
-        t0 = stimData(ii).stimulus.seqtiming(find(~blanks,1));
-        t_thisrun = stimData(ii).stimulus.seqtiming(~blanks);
-        
         num_trials = sum(~blanks);
-        
+
         % task-specific input for tsv file
-        duration   = ones(num_trials,1)*0.25;
-        ISI        = zeros(num_trials,1);
-        trial_type = ones(num_trials,1);
-        trial_name = repmat('HRFPATTERN', num_trials, 1);
-        stim_file_index = stimData(ii).stimulus.seq(~blanks)';
+        duration   = stimData(ii).stimulus.tsv.duration;
+        ISI        = zeros(height(stimData(ii).stimulus.tsv),1);
+        trial_type = stimData(ii).stimulus.tsv.trial_type;
+        trial_name = cell(height(stimData(ii).stimulus.tsv),1);
+        for jj = 1:height(stimData(ii).stimulus.tsv)
+            trial_name{jj} = ['PRF' num2str(stimData(ii).stimulus.tsv.trial_name(jj,:))];
+        end
+        stim_file_index = stimData(ii).stimulus.tsv.stim_file_index;
         
         % task-specific input for json file
-        ieeg_json.TaskName = 'bair_hrfpattern';
-        ieeg_json.TaskDescription = 'Visual textures presented at irregular intervals';
-        ieeg_json.Instructions = 'Detect color change (red/green) at fixation';
+        ieeg_json.TaskName = 'bair_prf';
+        ieeg_json.TaskDescription = 'Visual bar apertures of textures sweeping across screen';
         
     else % soc task
         
@@ -271,8 +400,8 @@ for ii = 1:nRuns
         num_trials = length(stimData(ii).stimulus.cat);
         
         % task-specific input for tsv file
-        duration   = round(stimData(ii).stimulus.duration(stimData(ii).stimulus.cat)',nDecimals);
-        ISI        = round(stimData(ii).stimulus.ISI(stimData(ii).stimulus.cat)',nDecimals);
+        duration   = stimData(ii).stimulus.duration(stimData(ii).stimulus.cat)';
+        ISI        = stimData(ii).stimulus.ISI(stimData(ii).stimulus.cat)';
         trial_type = stimData(ii).stimulus.cat';
         trial_name = stimData(ii).stimulus.categories(stimData(ii).stimulus.cat)';
         stim_file_index = nan(num_trials,1);
@@ -288,41 +417,70 @@ for ii = 1:nRuns
         
     end
     
-    % Get the onsets
-    num_trials_total = num_trials_total + num_trials;
-    onsets = trigger_onsets(stim0:num_trials_total);
+    % Get the onsets in the data recordings
+    num_triggers_total = num_triggers_total + num_trials;
+    onsets = trigger_onsets(stim0:num_triggers_total);
     [~,onset_indices] = intersect(t, onsets);
-
+    
+    % PRF ONLY
+    switch task_label{ii}
+        case 'prf'
+            % first two triggers (for stim blank code 1) were not written
+            % into data, so first onset_indices is actually stim 2 in
+            % stimulus.tsv. We need to add additional indices to match tsv
+            stimIdx = find(~blanks);
+            timefromMissingTrigger = stimData(ii).stimulus.seqtiming(stimIdx(1))-stimData(ii).stimulus.seqtiming(blanks([1 2]));
+            onset_indices = [onset_indices(1)-(timefromMissingTrigger*hdr.Fs)'; onset_indices];
+            trig_indices = find(stimData(ii).stimulus.trigSeq>0);
+            trig_indices = [1 trig_indices(1:2:end)];
+            num_trials = height(stimData(ii).stimulus.tsv);
+        case 'soc'
+            trig_indices = stimData(ii).stimulus.trigSeq>0;
+    end
+    
     % Clip data from run using prescan postscan intervals
     run_start_inx = onset_indices(1)-prescan*hdr.Fs;
     run_stop_inx = onset_indices(end)+postscan*hdr.Fs;    
     data_thisrun = data(:,run_start_inx:run_stop_inx-1); % subtract one sample to make length of 'between run' data exactly 6 seconds
     hdr_thisrun = hdr;
     hdr_thisrun.nSamples = size(data_thisrun,2);
-
-    % Write out new data file
+  
+    % Collect info for events.tsv file 
     
-    % % EDF format --> has bug?? 
+    % % Determine trial onset based on the triggers:
+    % event_sample = (onset_indices - run_start_inx);
+    
+    % Determine trial onset based on the flips:   
+    % Get the fliptimes for the requested triggers
+	flips        = stimData(ii).response.flip(trig_indices); % in seconds
+    % Align to the flip for the first stimulus. This is assumed to be same
+    % as the first stimulus trigger on the basis of which the run is
+    % segmented (minus prescan period).
+    flips        = flips-(flips(1)-prescan); % in seconds
+    flip_indices = round(flips*hdr.Fs); % need to round because flip times do not always exactly align with sample rate
+    event_sample = flip_indices';
+    
+    % Get remaining columns: 
+    onset        = strtrim(cellstr(num2str(event_sample/hdr.Fs,['%.' num2str(nDecimals) 'f']))); 
+    stim_file    = repmat(fname, num_trials, 1);
+    duration     = strtrim(cellstr(num2str(duration,['%.' num2str(nDecimals) 'f'])));
+    ISI          = strtrim(cellstr(num2str(ISI,['%.' num2str(nDecimals) 'f'])));
+    
+    % Write out new data file  
+    % % EDF format --> has problems with the SoM data (errors)
     %data_fname = fullfile(dataWriteDir, sprintf('%s_ieeg.edf', fname));
     %ft_write_data(data_fname, data_thisrun, 'header', hdr_thisrun, 'dataformat', 'edf');
-    
     % BVA format
     data_fname = fullfile(dataWriteDir, sprintf('%s_ieeg', fname));
     ft_write_data(data_fname, data_thisrun, 'header', hdr_thisrun, 'dataformat', 'brainvision_eeg');
-    
     % % May need to zip files for Flywheel upload (check with Gio)
     %zip(data_fname, {sprintf('%s.eeg', data_fname), sprintf('%s.vhdr', data_fname), sprintf('%s.vmrk', data_fname)});
     %delete(sprintf('%s.eeg', data_fname), sprintf('%s.vhdr', data_fname), sprintf('%s.vmrk', data_fname));
-    
-    % Collect info for tsv file 
-    onset       = round(onsets'-onsets(1)+prescan,nDecimals);
-    onset_index = (onset_indices - run_start_inx);
-    stim_file   = repmat(fname, num_trials, 1);
-
+  
     % Write out tsv file 
-    tsv_thisrun = table(onset, onset_index, duration, ISI, trial_type, trial_name, stim_file, stim_file_index);
-    tsv_fname = fullfile(dataWriteDir, sprintf('%s_events.tsv', fname));
-    writetable(tsv_thisrun, tsv_fname, 'FileType','text', 'Delimiter', '\t')
+    events_table = table(onset, duration, ISI, trial_type, trial_name, stim_file, stim_file_index, event_sample);
+    events_fname = fullfile(dataWriteDir, sprintf('%s_events.tsv', fname));
+    writetable(events_table, events_fname, 'FileType','text', 'Delimiter', '\t')
     
     % Write out stimulus file
     stimfile_thisrun = stimData(ii);
@@ -355,7 +513,7 @@ end
 
 % CHECK: Do number of triggers derived from EDF data file match the number
 % of trials from the stimulus files?
-assert(isequal(length(trigger_onsets), num_trials_total))
+assert(isequal(length(trigger_onsets), num_triggers_total))
 disp('done');
 
 
