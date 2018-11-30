@@ -28,7 +28,10 @@ procDir = fullfile(dataPth, projectName, 'derivatives', 'preprocessed', sprintf(
 % NOTE that prestimulus baseline correction has not yet been performed for
 % the time courses, this now happens in the plotting script below (should
 % probably be a separate step)
-dataName = fullfile(procDir, sprintf('sub-%s_ses-%s_epoched', sub_label, ses_label));
+bbmethod = 8;
+bbbandw  = 10;
+
+dataName = fullfile(procDir, sprintf('sub-%s_ses-%s_epoched_bbmethod%d_bandwidth%d', sub_label, ses_label,bbmethod,bbbandw));
 load(dataName);
 
 
@@ -54,9 +57,9 @@ visualelectrodes    = electrode_to_nearest_node(specs, dataDir);
 % e.g. 'MO01'; e.g. trials.viselec.benson14_varea.elec_labels
 %whichElectrodes = unique([trials.viselec.benson14_varea.elec_labels, trials.viselec.wang2015_atlas.elec_labels]); 
 %whichElectrodes = {'IO01', 'IO02','IO03','IO04'};
-whichElectrodes = {'MO01', 'MO02','MO03','MO04'};
+%whichElectrodes = {'MO01', 'MO02','MO03','MO04'};
 %whichElectrodes = {'IO02'};
-%whichElectrodes = {'MO01'};
+whichElectrodes = {'MO01'};
 
 % Which stimulus conditions to plot? 
 %whichTrials = {'HRFPATTERN','CRF','ONEPULSE', 'TWOPULSE'}; 

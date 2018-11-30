@@ -150,7 +150,7 @@ switch specs.patientPool
                 elec_xyz = [E.x E.y E.z];
             end
         else
-            fprintf('[%s] Electrode coordinate file not found - exiting. (NYU: is the server mapped?)\n',mfilename);
+            fprintf('[%s] Electrode coordinate file not found - exiting [%s]. (NYU: is the server mapped?)\n',mfilename,mfilename);
             out = [];
             return
         end
@@ -161,7 +161,7 @@ switch specs.patientPool
         if ~isdir([patientDir num2str(specs.pID)])
             patientDir = '/Volumes/server/Projects/BAIR/Data/Raw/ECoG/SoM/';
             if ~isdir([patientDir num2str(specs.pID)])
-                fprintf('[%s] Patient data directory not found - exiting. (NYU: is the server mapped?)\n',mfilename);
+                fprintf('[%s] Patient data directory not found - exiting [%s]. (NYU: is the server mapped?)\n',mfilename,mfilename);
                 out = [];
                 return
             end
@@ -178,7 +178,7 @@ switch specs.patientPool
             elec_types = unique(E{5});
             fprintf('[%s] types of electrodes found: %s...\n',mfilename,elec_types{:});
         else
-            fprintf('[%s] Electrode coordinate file not found - exiting (NYU: is the server mapped?)\n',mfilename);
+            fprintf('[%s] Electrode coordinate file not found - exiting [%s] (NYU: is the server mapped?)\n',mfilename,mfilename);
             out = [];
             return
         end
@@ -197,7 +197,7 @@ if exist(surf_file_rh, 'file') && exist(surf_file_lh, 'file')
     [vertices_l, faces_l] = read_surf(surf_file_lh);
     vertices = [vertices_r;vertices_l];
 else
-    fprintf('[%s] Freesurfer surfaces not found - exiting\n',mfilename);
+    fprintf('[%s] Freesurfer surfaces not found - exiting [%s] \n',mfilename,mfilename);
     out = [];
     return
 end

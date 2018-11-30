@@ -90,8 +90,8 @@ switch method
         methodstr = 'mean(abs(hilbert(whiten(bp))).^2)';
         
 	case {7}
-        % -- Method 7: mean after hilbert; geomean; power --> BEST IN
-        % SIMULATION
+        % -- Method 7: mean after hilbert; geomean; power 
+        %--> BEST IN SIMULATION
         broadband = geomean(abs(hilbert(bp)).^2, banddim);
         methodstr = 'geomean(abs(hilbert(bp)).^2)';
     

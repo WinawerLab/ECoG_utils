@@ -24,15 +24,26 @@ if isempty(trialType)
 	trial_index{1} = 1:size(trials.events,1);
     baseline_index = vertcat(trial_index{:});
 else
+    if iscell(trialType);%ischar(trialType{1})
+        %trial_index{1} = find((contains(trials.events.trial_name, trialType)));
+        for ii = 1:length(trialType)
+        	trial_index{ii} = find(contains(trials.events.trial_name, trialType{ii}));
+        end
+        fprintf('[%s] Matching whichTrials to events.trial_name\n', mfilename)
+    else
+        for ii = 1:length(trialType)
+        	trial_index{ii} = find(trials.events.trial_type == trialType(ii));
+        end
+        trial_index{1} = find(intersect(trials.events.trial_type,trialType));
+        fprintf('[%s] Matching whichTrials to events.trial_type\n', mfilename)
+    end
+    
+    baseline_index = vertcat(trial_index{:});
+        
     switch collapseTrialTypes
         case 'yes'
-            trial_index{1} = find((contains(trials.events.trial_name, trialType)));
-            baseline_index = trial_index{1};
-        case 'no'
-            for ii = 1:length(trialType)
-                trial_index{ii} = find(contains(trials.events.trial_name, trialType{ii}));
-            end
-            baseline_index = vertcat(trial_index{:});
+            trial_index = [];
+            trial_index{1} = baseline_index;
     end 
 end
 
@@ -115,7 +126,8 @@ for dataType = {'broadband', 'evoked'}
         end
         viselec_name = [];
         for atlas = {'wang2015_atlas','benson14_varea'}
-            if ~isempty(trials.viselec.(atlas{:}))
+            %if ~isempty(trials.viselec.(atlas{:}))
+            if ~isempty(trials.viselec)
                 viselec = contains(trials.viselec.(atlas{:}).elec_labels, electrodeName);
                 if any(viselec)
                     viselec_name = [viselec_name atlas{:}(1:8) ':' trials.viselec.(atlas{:}).area_labels{viselec} ' '];

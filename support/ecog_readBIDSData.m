@@ -13,6 +13,7 @@ chanFiles   = dir(fullfile(dataDir,sprintf('sub-%s_ses-%s_task-*channels.tsv',su
 % Pre-allocate list of runs to be concatenated 
 cfg.dataset = [];
 samplesToAdd = 0;
+secondsToAdd = 0;
 
 fprintf('[%s] Concatenating runs...\n',mfilename);
 
@@ -30,8 +31,12 @@ for iRun = 1:length(dataFiles)
         events = eventsTable;
     else
         % Add length of PREVIOUS run in seconds to onsets
-        eventsTable.event_sample = eventsTable.event_sample + samplesToAdd;
-        eventsTable.onset = eventsTable.event_sample/hdr.Fs;
+        if isfield(summary(eventsTable),'event_sample')
+            eventsTable.event_sample = eventsTable.event_sample + samplesToAdd;
+            eventsTable.onset = eventsTable.event_sample/hdr.Fs;
+        else
+            eventsTable.onset = eventsTable.onset + secondsToAdd;
+        end
         events = [events; eventsTable];
     end
     
@@ -40,6 +45,7 @@ for iRun = 1:length(dataFiles)
     runLengthInSamples = hdr.nSamples;
     runLengthInSeconds = hdr.nSamples/hdr.Fs;
     samplesToAdd = samplesToAdd + runLengthInSamples;
+    secondsToAdd = secondsToAdd + runLengthInSeconds;
     fprintf('[%s] Length of run %d is %s seconds, cumulative length of data is %s seconds \n', mfilename,iRun, num2str(runLengthInSeconds), num2str(samplesToAdd/hdr.Fs));
 end
 
