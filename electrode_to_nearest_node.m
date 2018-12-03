@@ -68,7 +68,7 @@ function [out] = electrode_to_nearest_node(specs, varargin)
 %       node_sigma: [0.75 0.61 0.33 1.87 7.52 8.16 21.11]
       
 if ~isfield(specs, 'atlasNames') || isempty(specs.atlasNames)
-    specs.atlasNames = {'wang2015_atlas', 'benson14_varea', 'benson14_eccen', 'benson14_angle', 'benson14_sigma', 'template_areas'};
+    specs.atlasNames = {'wang2015_atlas','wang15_mplbl', 'benson14_varea', 'benson14_eccen', 'benson14_angle', 'benson14_sigma', 'template_areas'};
 end
 
 if ~isfield(specs, 'patientPool') || isempty(specs.patientPool)
@@ -148,6 +148,12 @@ switch specs.patientPool
                 end
             else
                 elec_xyz = [E.x E.y E.z];
+            end
+            if contains(specs.pID,'chaam')
+                % subtract effect of cropping by freesurfer
+                %elec_xyz(:,1) = elec_xyz(:,1)-8;
+                elec_xyz(:,2) = elec_xyz(:,2)-32;
+                %elec_xyz(:,3) = elec_xyz(:,3)+8;
             end
         else
             fprintf('[%s] Electrode coordinate file not found - exiting [%s]. (NYU: is the server mapped?)\n',mfilename,mfilename);

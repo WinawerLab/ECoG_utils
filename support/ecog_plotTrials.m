@@ -24,20 +24,10 @@ if isempty(trialType)
 	trial_index{1} = 1:size(trials.events,1);
     baseline_index = vertcat(trial_index{:});
 else
-    if iscell(trialType);%ischar(trialType{1})
-        %trial_index{1} = find((contains(trials.events.trial_name, trialType)));
-        for ii = 1:length(trialType)
-        	trial_index{ii} = find(contains(trials.events.trial_name, trialType{ii}));
-        end
-        fprintf('[%s] Matching whichTrials to events.trial_name\n', mfilename)
-    else
-        for ii = 1:length(trialType)
-        	trial_index{ii} = find(trials.events.trial_type == trialType(ii));
-        end
-        trial_index{1} = find(intersect(trials.events.trial_type,trialType));
-        fprintf('[%s] Matching whichTrials to events.trial_type\n', mfilename)
+    for ii = 1:length(trialType)
+        trial_index{ii} = find(contains(trials.events.trial_name, trialType{ii}));
     end
-    
+    %fprintf('[%s] Matching whichTrials to events.trial_name\n', mfilename)    
     baseline_index = vertcat(trial_index{:});
         
     switch collapseTrialTypes
@@ -62,7 +52,8 @@ for dataType = {'broadband', 'evoked'}
 
         % Make a separate plot for each channel
         subplot(ceil(sqrt(length(el_index))),ceil(sqrt(length(el_index))), ii); hold on;
-
+        %subplot(ceil(sqrt(length(el_index))),floor(sqrt(length(el_index))), ii); hold on;
+        
         elData = squeeze(trials.(thisDataType)(el_index(ii),:,:));
         
         % Baseline correction: 
@@ -126,11 +117,12 @@ for dataType = {'broadband', 'evoked'}
         end
         viselec_name = [];
         for atlas = {'wang2015_atlas','benson14_varea'}
-            %if ~isempty(trials.viselec.(atlas{:}))
             if ~isempty(trials.viselec)
-                viselec = contains(trials.viselec.(atlas{:}).elec_labels, electrodeName);
-                if any(viselec)
-                    viselec_name = [viselec_name atlas{:}(1:8) ':' trials.viselec.(atlas{:}).area_labels{viselec} ' '];
+                if ~isempty(trials.viselec.(atlas{:}))
+                    viselec = contains(trials.viselec.(atlas{:}).elec_labels, electrodeName);
+                    if any(viselec)
+                        viselec_name = [viselec_name atlas{:}(1:8) ':' trials.viselec.(atlas{:}).area_labels{viselec} ' '];
+                    end
                 end
             end
         end
@@ -158,7 +150,8 @@ for dataType = {'broadband', 'evoked'}
         
         out.(thisDataType).(whichElectrodes{ii}).mn = mnToPlot';
         out.(thisDataType).(whichElectrodes{ii}).se = (ulim-mnToPlot)';
-        set(gca, 'XLim', [-0.5 1]);
+        set(gca, 'XLim', [-0.5 1.5]);
+        set(gca, 'FontSize', 12);
 
     end
     %set(gcf, 'Position', [150 100 1500 1250]);
