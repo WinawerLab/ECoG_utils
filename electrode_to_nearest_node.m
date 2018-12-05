@@ -66,7 +66,9 @@ function [out] = electrode_to_nearest_node(specs, varargin)
 %       node_eccen: [0.39 0.21 0.11 2.42 9.45 5.82 27.62]
 %       node_angle: [106.68 178.32 177.33 136.13 80.88 0 64.06]
 %       node_sigma: [0.75 0.61 0.33 1.87 7.52 8.16 21.11]
-      
+ 
+% TO DO sort outputs by visual area (have flag?)
+
 if ~isfield(specs, 'atlasNames') || isempty(specs.atlasNames)
     specs.atlasNames = {'wang2015_atlas','wang15_mplbl', 'benson14_varea', 'benson14_eccen', 'benson14_angle', 'benson14_sigma', 'template_areas'};
 end
@@ -151,9 +153,9 @@ switch specs.patientPool
             end
             if contains(specs.pID,'chaam')
                 % subtract effect of cropping by freesurfer
-                %elec_xyz(:,1) = elec_xyz(:,1)-8;
-                elec_xyz(:,2) = elec_xyz(:,2)-32;
-                %elec_xyz(:,3) = elec_xyz(:,3)+8;
+                elec_xyz(:,1) = elec_xyz(:,1)-3.4490;
+                elec_xyz(:,2) = elec_xyz(:,2)-34.6040;
+                elec_xyz(:,3) = elec_xyz(:,3)+6.2660;
             end
         else
             fprintf('[%s] Electrode coordinate file not found - exiting [%s]. (NYU: is the server mapped?)\n',mfilename,mfilename);
@@ -510,7 +512,7 @@ for a = 1:length(atlasNames)
                     fprintf('[%s] %s in area %s\n', mfilename, out.(currentAtlas).elec_labels{i}, out.(currentAtlas).area_labels{i})
                     %disp([out.(currentAtlas).elec_labels{i} ' in area ' out.(currentAtlas).area_labels{i}]);
                 case 'benson14_varea'
-                    fprintf('[%s] %s in area %s with eccen = %d, angle = %d, sigma = %d\n', ...
+                    fprintf('[%s] %s in area %s with eccen = %4.2f, angle = %4.2f, sigma = %4.2f\n', ...
                         mfilename, out.(currentAtlas).elec_labels{i}, out.(currentAtlas).area_labels{i}, ...
                         out.benson14_varea.node_eccen(i), out.benson14_varea.node_angle(i), out.benson14_varea.node_sigma(i));
                     %disp([out.(currentAtlas).elec_labels{i} ' in area ' out.(currentAtlas).area_labels{i} ...

@@ -11,10 +11,13 @@
 % Input paths specs
 patientID   = 682;
 RawDataDir  = '/Volumes/server/Projects/BAIR/Data/Raw/ECoG/';
-BIDSDataDir = '/Volumes/server/Projects/BAIR/Data/BIDS/';
-/Users/winawerlab/matlab/git/bids-examples/ieeg_visual_multimodal
+%BIDSDataDir = '/Volumes/server/Projects/BAIR/Data/BIDS/';
+BIDSDataDir = '/Users/winawerlab/matlab/git/bids-examples/';
+
 % BIDS specs
-projectName = 'visual';
+%projectName = 'visual';
+projectName = 'ieeg_visual_multimodal';
+
 sub_label   = ['som' num2str(patientID)]; 
 ses_label   = 'nyuecog01';
 ses_labelt1 = 'som3t01';
@@ -275,20 +278,20 @@ end
 %   - coordsystem.json
 %   - electrodes.tsv
 
-%% Create T1w file
-
-% Locate T1 provided by SoM
-T1File = dir(fullfile(RawDataDir,num2str(patientID), 'T1.nii.gz'));
-if length(T1File) > 1, disp('Warning: multiple T1s found: using first one'); end
-
-% Copy file: rename and save in appropriate folder
-if length(T1File) < 1
-    disp('Warning: no T1 found!') 
-else
-    T1_name = fullfile(T1WriteDir, sprintf('sub-%s_ses-%s_T1w.nii.gz', sub_label, ses_labelt1));
-    disp(['Writing ' T1_name '...']);
-    copyfile(fullfile(RawDataDir,num2str(patientID), 'T1.nii.gz'), T1_name);
-end
+% %% Create T1w file
+% 
+% % Locate T1 provided by SoM
+% T1File = dir(fullfile(RawDataDir,num2str(patientID), 'T1.nii.gz'));
+% if length(T1File) > 1, disp('Warning: multiple T1s found: using first one'); end
+% 
+% % Copy file: rename and save in appropriate folder
+% if length(T1File) < 1
+%     disp('Warning: no T1 found!') 
+% else
+%     T1_name = fullfile(T1WriteDir, sprintf('sub-%s_ses-%s_T1w.nii.gz', sub_label, ses_labelt1));
+%     disp(['Writing ' T1_name '...']);
+%     copyfile(fullfile(RawDataDir,num2str(patientID), 'T1.nii.gz'), T1_name);
+% end
 
 % Note on pial file: surface recons should go in derivatives folder (see
 % BIDS spec doc). If we want to include this in our data do we use our own
@@ -386,19 +389,19 @@ for ii = 1:nRuns
     
     % Collect task-specific info for json file   
     if contains(task_label{ii}, 'hrf')                 
-        ieeg_json.TaskName = 'bair_hrfpattern';
+        ieeg_json.TaskName = 'hrf';
         ieeg_json.TaskDescription = 'Visual textures presented at irregular intervals';        
     elseif contains(task_label{ii}, 'prf')         
-        ieeg_json.TaskName = 'bair_prf';
+        ieeg_json.TaskName = 'prf';
         ieeg_json.TaskDescription = 'Visual bar apertures of textures sweeping across screen';	
     elseif contains(task_label{ii}, 'spatialpattern')        
-        ieeg_json.TaskName = 'bair_spatialpattern';
+        ieeg_json.TaskName = 'spatialpattern';
         ieeg_json.TaskDescription = 'Visual textures and gratings presented for brief, fixed durations';    
     elseif contains(task_label{ii}, 'temporalpattern') 
-        ieeg_json.TaskName = 'bair_temporalpattern';
+        ieeg_json.TaskName = 'temporalpattern';
         ieeg_json.TaskDescription = 'Visual textures presented for variable durations and inter-stimulus intervals';      
 	elseif contains(task_label{ii}, 'spatialobject')       
-        ieeg_json.TaskName = 'bair_spatialobject';
+        ieeg_json.TaskName = 'spatialobject';
         ieeg_json.TaskDescription = 'Houses faces and letter images presented brief, fixed durations';         
     end   
     ieeg_json.Instructions = 'Detect color change (red/green) at fixation';
@@ -418,6 +421,7 @@ for ii = 1:nRuns
 
     % Clip data from run using task onset and offset triggers
     data_thisrun = data(:,run_start_inx:run_stop_inx-1); % subtract one sample to make length of 'between run' data exactly 6 seconds
+    data_thisrun =[];
     hdr_thisrun = hdr;
     hdr_thisrun.nSamples = size(data_thisrun,2);
     
@@ -468,11 +472,11 @@ for ii = 1:nRuns
     events_fname = fullfile(dataWriteDir, sprintf('%s_events.tsv', fname));
     writetable(events_table, events_fname, 'FileType','text', 'Delimiter', '\t')
     
-    % Write out stimulus file:
-    stimfile_thisrun = stimData(ii);
-    stimfile_fname = fullfile(stimWriteDir, sprintf('%s.mat', fname));
-    save(stimfile_fname, '-struct', 'stimfile_thisrun', '-v7.3')
-      
+%     % Write out stimulus file:
+%     stimfile_thisrun = stimData(ii);
+%     stimfile_fname = fullfile(stimWriteDir, sprintf('%s.mat', fname));
+%     save(stimfile_fname, '-struct', 'stimfile_thisrun', '-v7.3')
+%       
     % Write out json_ieeg file:
     jsonfile_fname = fullfile(dataWriteDir, sprintf('%s_ieeg.json', fname));    
     jsonwrite(jsonfile_fname,ieeg_json,json_options)

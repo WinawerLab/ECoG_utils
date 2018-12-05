@@ -24,6 +24,9 @@ units = repmat('microV', n, 1); % Physical unit of the value represented in this
 % e.g. V for Volt, specified according to the SI unit symbol and possibly 
 % prefix (e.g. milliV, microV), see BIDS spec for Units and Prefixes.
 
+sampling_frequency = repmat('unknown', n, 1); % OPTIONAL. Sampling rate of 
+% the channel in Hz
+
 low_cutoff = repmat('500', n, 1); %Frequencies used for the low pass filter applied to the 
 % channel in Hz. If no low pass filter was applied, use n/a. Note that 
 % anti-alias is a low pass filter, specify its frequencies here if applicable.
@@ -31,35 +34,32 @@ low_cutoff = repmat('500', n, 1); %Frequencies used for the low pass filter appl
 high_cutoff = repmat('0.15', n, 1); % Frequencies used for the high pass filter applied to 
 % the channel in Hz. If no high pass filter applied, use n/a.
 
+notch = repmat('n/a', n, 1); % OPTIONAL. Frequencies used for the notch 
+% filter applied to the channel, in Hz. If no notch filter applied, use n/a 
+
 reference = repmat('unknown', n, 1); % Specification of the reference (options: ?bipolar?, 
 % ?mastoid?, ?intracranial?, ?ElectrodeName01?) .
 
 %% recommended and optional columns:
-group = repmat('unknown', n, 1); % RECOMMENDED Which group of channels 
+group = repmat({'unknown'}, n, 1); % RECOMMENDED Which group of channels 
 % (grid/strip/seeg/depth) this channel belongs to. This is relevant because
 % one group has one cable-bundle and noise can be shared. This can be a
 % name or number. Note that any groups specified in `_electrodes.tsv` must
 % match those present here
 
-sampling_frequency = repmat('unknown', n, 1); % OPTIONAL. Sampling rate of 
-% the channel in Hz
-
-description = repmat('n/a', n, 1); % OPTIONAL. Brief free-text description 
+description = repmat({'n/a'}, n, 1); % OPTIONAL. Brief free-text description 
 % of the channel, or other information of interest (e.g. position (e.g.,
 % ?left lateral temporal surface?, etc.)
 
-notch = repmat('n/a', n, 1); % OPTIONAL. Frequencies used for the notch 
-% filter applied to the channel, in Hz. If no notch filter applied, use n/a 
-
-status = repmat('n/a', n, 1); % OPTIONAL. Data quality observed on the 
+status = repmat({'n/a'}, n, 1); % OPTIONAL. Data quality observed on the 
 % channel (good/bad). A channel is considered bad if its data quality is
 % compromised by excessive noise. Description of noise type SHOULD be
 % provided in [status_description].
 
-status_description = repmat('n/a', n, 1); % OPTIONAL. Freeform text description of noise 
+status_description = repmat({'n/a'}, n, 1); % OPTIONAL. Freeform text description of noise 
 % or artifact affecting data quality on the channel. It is meant to explain
 % why the channel was declared bad in [status].
 
 %% write
-channel_table = table(name,type,units,low_cutoff,high_cutoff, reference, ...
-    group,sampling_frequency,description,notch,status,status_description);
+channel_table = table(name,type,units,sampling_frequency,low_cutoff,high_cutoff, notch, reference, ...
+    group,description,status,status_description);

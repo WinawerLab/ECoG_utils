@@ -30,14 +30,21 @@ ieeg_json.SamplingFrequency = 'n/a'; % Sampling frequency (in Hz) of all the iEE
 ieeg_json.PowerLineFrequency = 60; % Frequency (in Hz) of the power grid where 
 % the iEEG recording was done (i.e. 50 or 60) 
 
-ieeg_json.HardWareFilters = 'High pass: 0.16, Low pass: 500'; % List of hardware (amplifier) filters applied with 
-% key:value pairs of filter parameters and their values.
-
-ieeg_json.SoftWareFilters = 'n/a'; % List of temporal software filters applied or ideally 
+ieeg_json.SoftwareFilters = 'n/a'; % List of temporal software filters applied or ideally 
 % key:value pairs of pre-applied filters and their parameter values. (n/a if none).
 
 %% Optional fields:
 
+ieeg_json.HardwareFilters = '{"Highpass":0.16,"LowPass":500}'; % List of hardware (amplifier) filters applied with 
+% key:value pairs of filter parameters and their values.
+
+% "HardwareFilters": {
+%         "Highpass RC filter": {
+%             "Half amplitude cutoff (Hz)": 0.0159,
+%             "Roll-off": "6dB/Octave"
+%         }
+%     },
+%     "SoftwareFilters": "n/a"
 ieeg_json.Manufacturer = 'Natus'; % Manufacturer of the amplifier system  (e.g. "TDT, blackrock")
 
 ieeg_json.ManufacturersModelName = 'Natus Quantum PK1171'; % Manufacturer's designation of the 
@@ -86,7 +93,7 @@ ieeg_json.RecordingDuration = '0'; % Length of the recording in seconds (e.g. 36
 
 ieeg_json.RecordingType = 'continuous'; % continuous, epoched 
 
-ieeg_json.EpochLength = 'Inf'; % Duration of individual epochs in seconds (e.g. 1).
+%ieeg_json.EpochLength = 'Inf'; % Duration of individual epochs in seconds (e.g. 1).
 % If recording was continuous, set value to Inf.
 
 ieeg_json.SubjectArtefactDescription = 'n/a'; % Freeform description of the observed 
@@ -131,7 +138,7 @@ ieeg_json.iEEGElectrodeGroups = 'n/a'; % Field to describe the way electrodes
 % are grouped into strips, grids or depth probes e.g. {'grid1': "10x8 grid 
 % on left temporal pole", 'strip2': "1x8 electrode strip on xxx"}.
 
-ieeg_json.Stimulation = '0'; % Optional field to specify if electrical stimulation 
+ieeg_json.Stimulation = "false"; % Optional field to specify if electrical stimulation 
 % was done during the recording (options are 1 for yes, 0 for no). Parameters 
 % for event-like stimulation should be specified in the _events.tsv file 
 % (see example underneath). Continuous parameters that change across ?scans? 

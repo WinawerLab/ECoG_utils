@@ -116,7 +116,7 @@ for dataType = {'broadband', 'evoked'}
             electrodeName = whichElectrodes;
         end
         viselec_name = [];
-        for atlas = {'wang2015_atlas','benson14_varea'}
+        for atlas = {'wang2015_atlas','benson14_varea', 'wang15_mplbl'}
             if ~isempty(trials.viselec)
                 if ~isempty(trials.viselec.(atlas{:}))
                     viselec = contains(trials.viselec.(atlas{:}).elec_labels, electrodeName);

@@ -25,18 +25,18 @@ coordsystem_json.iEEGCoordinateSystem  = 'other'; % REQUIRED. Defines the coordi
 coordsystem_json.iEEGCoordinateUnits  = 'mm'; %REQUIRED. Units of the _electrodes.tsv, 
 % MUST be ?m?, ?mm?, ?cm? or ?pixels?. 
 
-coordsystem_json.iEEGCoordinateProcessingDescription = 'none'; % REQUIRED. Has any 
-% projection been done on the electrode positions (e.g. ?surface_projection?,  ?none?).
+%% Optional fields
+
+coordsystem_json.iEEGCoordinateSystemDescription  = 'native T1w - acpc';% %OPTIONAL. Freeform text description or 
+% link to document describing the iEEG coordinate system system in detail (e.g. ?ACPC?). 
 
 coordsystem_json.IntendedFor = ''; % REQUIRED. This can be an MRI/CT or a file containing 
 % the operative photo, x-ray or drawing with path relative to the project folder. If only 
 % a surface reconstruction is available, this should point to the surface reconstruction file. 
 % Note that this file should have the same coordinate system specified in iEEGCoordinateSystem. 
 
-%% Optional fields
-
-coordsystem_json.iEEGCoordinateSystemDescription  = 'native T1w - acpc';% %OPTIONAL. Freeform text description or 
-% link to document describing the iEEG coordinate system system in detail (e.g. ?ACPC?). 
+coordsystem_json.iEEGCoordinateProcessingDescription = 'none'; % REQUIRED. Has any 
+% projection been done on the electrode positions (e.g. ?surface_projection?,  ?none?).
 
 coordsystem_json.iEEGCoordinateProcessingReference = 'unknown'; % RECOMMENDED. A reference to a paper that defines in more detail 
 % the method used to project or localize the electrodes
