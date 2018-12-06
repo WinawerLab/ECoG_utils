@@ -35,8 +35,9 @@ ieeg_json.SoftwareFilters = 'n/a'; % List of temporal software filters applied o
 
 %% Optional fields:
 
-ieeg_json.HardwareFilters = '{"Highpass":0.16,"LowPass":500}'; % List of hardware (amplifier) filters applied with 
+%ieeg_json.HardwareFilters = 'HighPass:0.16,LowPass:500';% List of hardware (amplifier) filters applied with 
 % key:value pairs of filter parameters and their values.
+ieeg_json.HardwareFilters =  sprintf('{"HighPass": {"cutoff":0.16},"LowPass": {"cutoff":500}}');
 
 % "HardwareFilters": {
 %         "Highpass RC filter": {

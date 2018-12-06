@@ -19,7 +19,7 @@ BIDSDataDir = '/Users/winawerlab/matlab/git/bids-examples/';
 projectName = 'ieeg_visual_multimodal';
 
 sub_label   = ['som' num2str(patientID)]; 
-ses_label   = 'nyuecog01';
+ses_label   = 'somecog01';
 ses_labelt1 = 'som3t01';
 task_label  = {'prf',...
                'prf', ...
@@ -279,6 +279,9 @@ end
 %   - electrodes.tsv
 
 % %% Create T1w file
+
+% CURRENTLY OFF BECAUSE MANUALLY EMPTIED FILES FOR bids_example
+
 % 
 % % Locate T1 provided by SoM
 % T1File = dir(fullfile(RawDataDir,num2str(patientID), 'T1.nii.gz'));
@@ -421,7 +424,6 @@ for ii = 1:nRuns
 
     % Clip data from run using task onset and offset triggers
     data_thisrun = data(:,run_start_inx:run_stop_inx-1); % subtract one sample to make length of 'between run' data exactly 6 seconds
-    data_thisrun =[];
     hdr_thisrun = hdr;
     hdr_thisrun.nSamples = size(data_thisrun,2);
     
@@ -464,7 +466,8 @@ for ii = 1:nRuns
     ieeg_json.SamplingFrequency = hdr_thisrun.Fs;
     ieeg_json.RecordingDuration = round(hdr_thisrun.nSamples/hdr_thisrun.Fs,nDecimals);
   
-    % Write out new data file:    
+    % Write out new data file: 
+    data_thisrun =[]; % WRITE EMPTY FILES
     data_fname = fullfile(dataWriteDir, sprintf('%s_ieeg', fname));
     ft_write_data(data_fname, data_thisrun, 'header', hdr_thisrun, 'dataformat', 'brainvision_eeg');
    
@@ -472,15 +475,18 @@ for ii = 1:nRuns
     events_fname = fullfile(dataWriteDir, sprintf('%s_events.tsv', fname));
     writetable(events_table, events_fname, 'FileType','text', 'Delimiter', '\t')
     
+    %CURRENTLY OFF BECAUSE MANUALLY EMPTIED FILES FOR bids_example
 %     % Write out stimulus file:
 %     stimfile_thisrun = stimData(ii);
 %     stimfile_fname = fullfile(stimWriteDir, sprintf('%s.mat', fname));
 %     save(stimfile_fname, '-struct', 'stimfile_thisrun', '-v7.3')
-%       
-    % Write out json_ieeg file:
-    jsonfile_fname = fullfile(dataWriteDir, sprintf('%s_ieeg.json', fname));    
-    jsonwrite(jsonfile_fname,ieeg_json,json_options)
-    
+
+    %CURRENTLY OFF BECAUSE MANUALLY EDITED HardwareFilters field (removed
+    %slashes and double quotes added by jsonwrite function)
+%     % Write out json_ieeg file:
+%     jsonfile_fname = fullfile(dataWriteDir, sprintf('%s_ieeg.json', fname));    
+%     jsonwrite(jsonfile_fname,ieeg_json,json_options)
+%     
     % Write out channels.tsv file:
     channels_fname = fullfile(dataWriteDir, sprintf('%s_channels.tsv', fname));    
     writetable(channel_table,channels_fname,'FileType','text','Delimiter','\t');
