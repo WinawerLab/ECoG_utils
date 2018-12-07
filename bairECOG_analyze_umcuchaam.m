@@ -30,7 +30,7 @@ procDir = fullfile(dataPth, projectName, 'derivatives', 'preprocessed', sprintf(
 dataName = fullfile(procDir, sprintf('sub-%s_ses-%s_epoched.mat', sub_label, ses_label));
 load(dataName);
 
-%% plot electrodes on mesh
+%% Do electrode matching
 dataDir = fullfile(dataPth, projectName, sprintf('sub-%s', sub_label), sprintf('ses-%s', ses_label), 'ieeg');
 
 specs = [];
@@ -41,16 +41,19 @@ specs.plotmesh      = 'right';
 specs.plotelecs     = 'yes';
 trials.viselec      = electrode_to_nearest_node(specs, dataDir);
 
-
 %% Plot responses for visual electrodes
 
+% FROM GIO/DORA: Electrodes on seizure are OC12, OC13, OC21, OC22.
+ElecsToExclude  = [trials.channels.name(contains(trials.channels.status, 'bad'))' {'Oc9', 'Oc12', 'Oc13', 'Oc21', 'Oc22'}]; % Oc9 labeled as bad
+
 % Which electrodes to plot? (Each electrode gets a subplot)
-% e.g. 'MO01'; e.g. trials.viselec.benson14_varea.elec_labels
-whichElectrodes = unique([trials.viselec.benson14_varea.elec_labels trials.viselec.wang15_mplbl.elec_labels]); 
-%whichElectrodes = trials.channels.name(contains(lower(trials.channels.type),{'ecog','seeg'}));
-%whichElectrodes = trials.channels.name(contains(trials.channels.name,'sT'));
-%whichElectrodes = {'Oc9', 'Oc12','Oc13','Oc17','Oc18','Oc19','Oc20','Oc25','Oc26','Oc27','Oc28'};
-%whichElectrodes = {'Oc25','Oc26','Oc27','Oc28'};
+%whichElectrodes = unique([trials.viselec.benson14_varea.elec_labels trials.viselec.wang15_mplbl.elec_labels]); 
+%whichElectrodes = setdiff(whichElectrodes,ElecsToExclude);
+
+% SELECTING ONLY V1, V2, V3, V3a, V3b:
+whichElectrodes = trials.viselec.benson14_varea.elec_labels(strncmp(trials.viselec.benson14_varea.area_labels, 'V',1));
+whichElectrodes = ecog_sortElectrodesonVisualArea(whichElectrodes,trials.viselec.benson14_varea);
+
 % Which stimulus conditions to plot? 
 %whichTrials = {}; % if empty, plot average of all trials
 %whichTrials = {'CRF','SPARSITY','ONEPULSE', 'TWOPULSE', 'GRATING', 'PLAID', 'CIRCULAR', 'HOUSES', 'FACES', 'LETTERS'}; % everything except prf
@@ -59,10 +62,10 @@ whichElectrodes = unique([trials.viselec.benson14_varea.elec_labels trials.visel
 %whichTrials = {'HOUSES','FACES', 'LETTERS'};
 %whichTrials = {'GRATING', 'PLAID','CIRCULAR'};
 %whichTrials = {'CRF', 'SPARSITY','ONEPULSE','GRATING', 'PLAID','CIRCULAR'};
-%whichTrials = {'CRF-1','CRF-2', 'CRF-3','CRF-4', 'CRF-5'};
+%whichTrials = {'CRF-1','CRF-2', 'CRF-3','CRF-4', 'CRF-5', 'HRFPATTERN'};
 %whichTrials = {'SPARSITY-1','SPARSITY-2', 'SPARSITY-3','SPARSITY-4'};
 %whichTrials = {'ONEPULSE-1','ONEPULSE-2', 'ONEPULSE-3','ONEPULSE-4', 'ONEPULSE-5', 'ONEPULSE-6'};
-whichTrials = {'TWOPULSE-1','TWOPULSE-2', 'TWOPULSE-3','TWOPULSE-4', 'TWOPULSE-5', 'TWOPULSE-6'};
+whichTrials = {'ONEPULSE-5', 'TWOPULSE-1','TWOPULSE-2', 'TWOPULSE-3','TWOPULSE-4', 'TWOPULSE-5', 'TWOPULSE-6'};
 %whichTrials = {'CRF-5','ONEPULSE-5', 'TWOPULSE-5'}; 
 %whichTrials = {'HRF'};
 %collapseTrialTypes = 'no'; 

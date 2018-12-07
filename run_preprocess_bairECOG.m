@@ -25,7 +25,7 @@ specs.bb_bands     = [[60 70]; [70 80]; [80 90]; [110 120]; [120 130]; [130 140]
 specs.bb_method    = 7;
 specs.epoch        = [-0.5 1.5]; % seconds
 specs.make_plots   = 'yes'; % 'yes', 'no'
-specs.overwrite    = 'no'; % 'yes', 'no'
+specs.overwrite    = 'yes'; % 'yes', 'no'
 
 %% Run!
 
