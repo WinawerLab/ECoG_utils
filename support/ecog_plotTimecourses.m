@@ -1,4 +1,4 @@
-function [out] = ecog_plotTrials(trials, whichElectrodes, trialType, collapseTrialTypes, smoothingLevelInMs, baselineType)
+function [out] = ecog_plotTimecourses(trials, whichElectrodes, trialType, collapseTrialTypes, smoothingLevelInMs, baselineType)
 
 if nargin < 6 || isempty(baselineType)
     baselineType = 'all';
@@ -42,13 +42,14 @@ end
 colors = copper(length(trial_index));
 
 out = struct;
+out.elecs = whichElectrodes;
 
 % Plot
 for dataType = {'broadband', 'evoked'}
     
     thisDataType = dataType{:};
     
-    figure('Name', thisDataType); 
+    figure('Name', [trialType{:} ' ' thisDataType]); 
     
     for ii = 1:length(el_index)
 
@@ -79,7 +80,7 @@ for dataType = {'broadband', 'evoked'}
         % Select subset of trials to plot
         for jj = 1:length(trial_index)
             % Compute mean and standard error of the mean
-            mnToPlot(:,jj) = median(elData(:,trial_index{jj}),2);
+            mnToPlot(:,jj) = mean(elData(:,trial_index{jj}),2);
             Llim(:,jj) = mnToPlot(:,jj)-(std(elData(:,trial_index{jj}),0,2)/sqrt(size(elData(:,trial_index{jj}),2)));
             Ulim(:,jj) = mnToPlot(:,jj)+(std(elData(:,trial_index{jj}),0,2)/sqrt(size(elData(:,trial_index{jj}),2)));    
             
@@ -155,14 +156,14 @@ for dataType = {'broadband', 'evoked'}
             end
         end
         
-        out.(thisDataType).(whichElectrodes{ii}).mn = mnToPlot';
-        out.(thisDataType).(whichElectrodes{ii}).se = (Ulim-mnToPlot)';
+        out.(thisDataType).(whichElectrodes{ii}).mn = double(mnToPlot');
+        out.(thisDataType).(whichElectrodes{ii}).se = double((Ulim-mnToPlot)');
         set(gca, 'XLim', [-0.5 1.5]);
-        set(gca, 'FontSize', 12);
+        set(gca, 'FontSize', 18);
 
     end
-    %set(gcf, 'Position', [150 100 1500 1250]);
-    set(gcf, 'Position', [150 100 750 625]);
+    set(gcf, 'Position', [150 100 1500 1250]);
+    %set(gcf, 'Position', [150 100 750 625]);
 	out.time = trials.time;
     
 end

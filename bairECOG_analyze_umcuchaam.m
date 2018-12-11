@@ -59,13 +59,14 @@ whichElectrodes = ecog_sortElectrodesonVisualArea(whichElectrodes,trials.viselec
 %whichTrials = {'CRF','SPARSITY','ONEPULSE', 'TWOPULSE', 'GRATING', 'PLAID', 'CIRCULAR', 'HOUSES', 'FACES', 'LETTERS'}; % everything except prf
 %collapseTrialTypes = 'yes'; % if yes, plots average across all trial types listed under 'whichTrials'
 
+%whichTrials = {'CRF-1','CRF-2', 'CRF-3','CRF-4', 'CRF-5', 'HRFPATTERN'};
+%whichTrials = {'ONEPULSE-1','ONEPULSE-2', 'ONEPULSE-3','ONEPULSE-4', 'ONEPULSE-5', 'ONEPULSE-6'};
+whichTrials = {'ONEPULSE-5', 'TWOPULSE-1','TWOPULSE-2', 'TWOPULSE-3','TWOPULSE-4', 'TWOPULSE-5', 'TWOPULSE-6'};
+
 %whichTrials = {'HOUSES','FACES', 'LETTERS'};
 %whichTrials = {'GRATING', 'PLAID','CIRCULAR'};
 %whichTrials = {'CRF', 'SPARSITY','ONEPULSE','GRATING', 'PLAID','CIRCULAR'};
-%whichTrials = {'CRF-1','CRF-2', 'CRF-3','CRF-4', 'CRF-5', 'HRFPATTERN'};
 %whichTrials = {'SPARSITY-1','SPARSITY-2', 'SPARSITY-3','SPARSITY-4'};
-%whichTrials = {'ONEPULSE-1','ONEPULSE-2', 'ONEPULSE-3','ONEPULSE-4', 'ONEPULSE-5', 'ONEPULSE-6'};
-whichTrials = {'ONEPULSE-5', 'TWOPULSE-1','TWOPULSE-2', 'TWOPULSE-3','TWOPULSE-4', 'TWOPULSE-5', 'TWOPULSE-6'};
 %whichTrials = {'CRF-5','ONEPULSE-5', 'TWOPULSE-5'}; 
 %whichTrials = {'HRF'};
 %collapseTrialTypes = 'no'; 
