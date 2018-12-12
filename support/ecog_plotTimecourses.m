@@ -1,10 +1,17 @@
-%function [out] = ecog_plotTimecourses(trials, whichElectrodes, trialType, collapseTrialTypes, smoothingLevelInMs, baselineType)
+
 function [out] = ecog_plotTimecourses(trials, whichElectrodes, trialType, specs)
+
+%function [out] = ecog_plotTimecourses(trials, whichElectrodes, trialType, collapseTrialTypes, smoothingLevelInMs, baselineType)
 
 if nargin < 4
     specs = [];
 end
 
+if ~isfield(specs, 'dataTypes') || isempty(specs.dataTypes)
+    specs.dataTypes = {'broadband', 'evoked'};
+end
+
+specs.dataTypes
 if ~isfield(specs, 'baselineType') || isempty(specs.baselineType)
     specs.baselineType = 'all';
 end
@@ -68,9 +75,9 @@ if nPlot <= (nRow*nCol)-nCol
 end
 
 % Plot
-for dataType = {'broadband', 'evoked'}
+for d = 1:length(specs.dataTypes)
     
-    thisDataType = dataType{:};
+    thisDataType = specs.dataTypes{d};
     
     figure('Name', [trialType{:} ' ' thisDataType]); 
     
@@ -105,8 +112,7 @@ for dataType = {'broadband', 'evoked'}
             % Compute mean and standard error of the mean
             mnToPlot(:,jj) = mean(elData(:,trial_index{jj}),2);
             Llim(:,jj) = mnToPlot(:,jj)-(std(elData(:,trial_index{jj}),0,2)/sqrt(size(elData(:,trial_index{jj}),2)));
-            Ulim(:,jj) = mnToPlot(:,jj)+(std(elData(:,trial_index{jj}),0,2)/sqrt(size(elData(:,trial_index{jj}),2)));    
-            
+            Ulim(:,jj) = mnToPlot(:,jj)+(std(elData(:,trial_index{jj}),0,2)/sqrt(size(elData(:,trial_index{jj}),2)));                
         end
 
         % Smooth the data?
@@ -176,8 +182,10 @@ for dataType = {'broadband', 'evoked'}
                 end
             end
         end
-       
-        title([electrodeName ' ' viselec_name]);
+        
+        plotTitle = [electrodeName ' ' viselec_name];
+        out.titles{ii} = plotTitle;
+        title(plotTitle);
 
         % Set y-axis limits
         lim = [min(mnToPlot(:)) max(mnToPlot(:))];
@@ -207,7 +215,7 @@ for dataType = {'broadband', 'evoked'}
     set(gcf, 'Position', [150 100 1500 1250]);
     %set(gcf, 'Position', [150 100 750 625]);
 	out.time = trials.time;
-    out.smoot = specs.smoothLevel;
+    out.smooth = specs.smoothLevel;
     
 end
 
