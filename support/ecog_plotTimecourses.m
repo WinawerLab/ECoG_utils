@@ -11,7 +11,6 @@ if ~isfield(specs, 'dataTypes') || isempty(specs.dataTypes)
     specs.dataTypes = {'broadband', 'evoked'};
 end
 
-specs.dataTypes
 if ~isfield(specs, 'baselineType') || isempty(specs.baselineType)
     specs.baselineType = 'all';
 end
@@ -60,7 +59,7 @@ else
 end
 
 % Plot specs
-colors = copper(length(trial_index));
+colors = parula(length(trial_index));
 %colors = sortrows(colors,'descend');
 
 out = struct;
@@ -69,7 +68,7 @@ out.elecs = whichElectrodes;
 % Decide how many subplots are needed
 nPlot = length(el_index);
 nRow = ceil(sqrt(nPlot));
-nCol = ceil(sqrt(nPlot));
+nCol = ceil(sqrt(nPlot))+1;
 if nPlot <= (nRow*nCol)-nCol
     nRow = nRow-1;
 end
@@ -212,7 +211,7 @@ for d = 1:length(specs.dataTypes)
         set(gca, 'FontSize', 18);
 
     end
-    set(gcf, 'Position', [150 100 1500 1250]);
+    set(gcf, 'Position', [150 100 2000 1250]);
     %set(gcf, 'Position', [150 100 750 625]);
 	out.time = trials.time;
     out.smooth = specs.smoothLevel;
