@@ -1,17 +1,31 @@
-function [out] = ecog_plotTimecourses(trials, whichElectrodes, trialType, collapseTrialTypes, smoothingLevelInMs, baselineType)
+%function [out] = ecog_plotTimecourses(trials, whichElectrodes, trialType, collapseTrialTypes, smoothingLevelInMs, baselineType)
+function [out] = ecog_plotTimecourses(trials, whichElectrodes, trialType, specs)
 
-if nargin < 6 || isempty(baselineType)
-    baselineType = 'all';
+if nargin < 4
+    specs = [];
 end
-if nargin < 5 || isempty(smoothingLevelInMs)
-    smoothLevel = 0;
+
+if ~isfield(specs, 'baselineType') || isempty(specs.baselineType)
+    specs.baselineType = 'all';
+end
+
+if ~isfield(specs, 'smoothingLevelInMs') || isempty(specs.smoothingLevelInMs)
+    specs.smoothLevel = 0;
 else 
-    smoothLevel = round(smoothingLevelInMs/(1000/trials.fsample)); 
+    specs.smoothLevel = round(specs.smoothingLevelInMs/(1000/trials.fsample)); 
     % number of samples to smooth over
 end
 
-if nargin < 4 || isempty(collapseTrialTypes)
-    collapseTrialTypes = 'no';
+if ~isfield(specs, 'collapseTrialTypes') || isempty(specs.collapseTrialTypes)
+    specs.collapseTrialTypes = 'no';
+end
+
+if ~isfield(specs, 'plotMax') || isempty(specs.plotMax)
+    specs.plotMax = 'no';
+end
+
+if ~isfield(specs, 'addEccToTitle') || isempty(specs.addEccToTitle)
+    specs.addEccToTitle = 'no';
 end
 
 % Find electrodes in data
@@ -31,7 +45,7 @@ else
     %fprintf('[%s] Matching whichTrials to events.trial_name\n', mfilename)    
     baseline_index = vertcat(trial_index{:});
         
-    switch collapseTrialTypes
+    switch specs.collapseTrialTypes
         case 'yes'
             trial_index = [];
             trial_index{1} = baseline_index;
@@ -40,9 +54,18 @@ end
 
 % Plot specs
 colors = copper(length(trial_index));
+%colors = sortrows(colors,'descend');
 
 out = struct;
 out.elecs = whichElectrodes;
+
+% Decide how many subplots are needed
+nPlot = length(el_index);
+nRow = ceil(sqrt(nPlot));
+nCol = ceil(sqrt(nPlot));
+if nPlot <= (nRow*nCol)-nCol
+    nRow = nRow-1;
+end
 
 % Plot
 for dataType = {'broadband', 'evoked'}
@@ -54,13 +77,13 @@ for dataType = {'broadband', 'evoked'}
     for ii = 1:length(el_index)
 
         % Make a separate plot for each channel
-        subplot(ceil(sqrt(length(el_index))),ceil(sqrt(length(el_index))), ii); hold on;
+        subplot(nRow,nCol,ii); hold on;
         %subplot(ceil(sqrt(length(el_index))),floor(sqrt(length(el_index))), ii); hold on;
         
         elData = squeeze(trials.(thisDataType)(el_index(ii),:,:));
         
         % Baseline correction: 
-        switch baselineType
+        switch specs.baselineType
             case 'all'
                 baseline_index = find(~contains(trials.events.trial_name, 'PRF'));
                 baseline = mean(mean(elData(trials.time<0,baseline_index),1),2);
@@ -87,10 +110,10 @@ for dataType = {'broadband', 'evoked'}
         end
 
         % Smooth the data?
-        if smoothLevel > 0
-            temp = smooth(mnToPlot, smoothLevel); mnToPlot = reshape(temp, size(mnToPlot));
-            temp = smooth(Llim, smoothLevel); Llim = reshape(temp, size(Llim));
-            temp = smooth(Ulim, smoothLevel); Ulim = reshape(temp, size(Ulim));
+        if specs.smoothLevel > 0
+            temp = smooth(mnToPlot, specs.smoothLevel); mnToPlot = reshape(temp, size(mnToPlot));
+            temp = smooth(Llim, specs.smoothLevel); Llim = reshape(temp, size(Llim));
+            temp = smooth(Ulim, specs.smoothLevel); Ulim = reshape(temp, size(Ulim));
         end
         
         % Plot standard errors
@@ -112,7 +135,18 @@ for dataType = {'broadband', 'evoked'}
                     ylabel('evoked response amplitude');
             end
         end
-
+        
+        % Plot max
+        switch specs.plotMax
+            case 'yes'
+                timeInx = find(trials.time>0 & trials.time<1);
+                [~,x] = max(abs(mnToPlot(timeInx,:))); 
+                for jj = 1:length(trial_index)
+                    p2 = plot(trials.time(timeInx(x(jj))),mnToPlot(timeInx(x(jj)),jj), 'Marker', '.', 'MarkerSize', 50, 'Color', colors(jj,:), 'LineStyle', 'none');
+                    p2.Annotation.LegendInformation.IconDisplayStyle = 'off';        
+                end
+        end
+        
         % Check if these electrodes have matches with visual atlases, if so, add
         % that to the plot title
          if iscell(whichElectrodes)
@@ -130,6 +164,14 @@ for dataType = {'broadband', 'evoked'}
                         %viselec_name = [viselec_name atlas{:}(1:8) ':' trials.viselec.(atlas{:}).area_labels{viselec} ' '];
                         atlasstr = strsplit(atlas{:},'_');
                         viselec_name = [viselec_name atlasstr{1} ':' trials.viselec.(atlas{:}).area_labels{viselec} ' '];
+                        switch atlas{:}
+                            case 'benson14_varea'
+                                switch specs.addEccToTitle
+                                    case 'yes'
+                                        viselec_name = [viselec_name sprintf('[ecc = %0.1f] ', trials.viselec.benson14_varea.node_eccen(viselec))];
+                                         %viselec_name = [viselec_name ' ecc = ' num2str(trials.viselec.benson14_varea.node_eccen(viselec)) ' '];
+                                 end
+                        end                         
                     end
                 end
             end
@@ -148,7 +190,7 @@ for dataType = {'broadband', 'evoked'}
 
         % Add legend
         if ii == 1
-            switch collapseTrialTypes
+            switch specs.collapseTrialTypes
                 case 'no'
                     legend(trialType);
                 case 'yes'
@@ -158,13 +200,14 @@ for dataType = {'broadband', 'evoked'}
         
         out.(thisDataType).(whichElectrodes{ii}).mn = double(mnToPlot');
         out.(thisDataType).(whichElectrodes{ii}).se = double((Ulim-mnToPlot)');
-        set(gca, 'XLim', [-0.5 1.5]);
+        set(gca, 'XLim', [-0.2 1.2]);
         set(gca, 'FontSize', 18);
 
     end
     set(gcf, 'Position', [150 100 1500 1250]);
     %set(gcf, 'Position', [150 100 750 625]);
 	out.time = trials.time;
+    out.smoot = specs.smoothLevel;
     
 end
 
