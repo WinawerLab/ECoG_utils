@@ -13,11 +13,6 @@ function h = ciplot(lower,upper,x,colour, transp);
 % colour can be specified (eg 'k'). Defaults to blue.
 % Raymond Reynolds 24/11/06
  
-% IG specify transparency to get translucent intervals; for EPS files, use
-% opaque, edit in Illustrator (else vector saving problem).
- 
-% edited by Iris Groen 08/10/12
- 
 if length(lower)~=length(upper)
     error('lower and upper vectors must be same length')
 end
@@ -46,6 +41,8 @@ h = fill([x fliplr(x)],[upper fliplr(lower)],colour);
 set(h, 'EdgeColor', 'none');
 if transp > 0 
     %camlight; lighting flat; 
-    alpha(transp)
+    set(h,'facealpha',transp);
 end
+
+
  

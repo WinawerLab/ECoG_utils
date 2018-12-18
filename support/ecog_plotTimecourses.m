@@ -26,24 +26,23 @@ if ~isfield(specs, 'collapseTrialTypes') || isempty(specs.collapseTrialTypes)
     specs.collapseTrialTypes = 'no';
 end
 
-if ~isfield(specs, 'plotMax') || isempty(specs.plotMax)
-    specs.plotMax = 'no';
-end
-
-if ~isfield(specs, 'addEccToTitle') || isempty(specs.addEccToTitle)
-    specs.addEccToTitle = 'no';
+if ~isfield(specs, 'plot') || isempty(specs.plot)
+    specs.plot.colorMap      = 'copper';
+    specs.plot.nSubPlots     = [];
+    specs.plot.addEccToTitle = 'no';
+    specs.plot.showMax       = 'no';
 end
 
 % Find electrodes in data
 el_index = ecog_matchChannels(whichElectrodes, trials);
 
-trial_index = [];
 % Find trials in data
+trial_index = [];
 if isempty(trialType)
     trialType = {'all trials'};
 	trial_index{1} = 1:size(trials.events,1);
     %baseline_index = vertcat(trial_index{:});
-    baseline_index = find(~contains(trials.events.trial_name, 'PRF'));
+    baseline_index = find(~contains(trials.events.trial_name, {'PRF', 'BLANK'}));
 else
     for ii = 1:length(trialType)
         trial_index{ii} = find(contains(trials.events.trial_name, trialType{ii}));
@@ -58,27 +57,33 @@ else
     end 
 end
 
-% Plot specs
-colors = parula(length(trial_index));
+% Plot settings
+cmap = eval(specs.plot.colorMap);
+colors = cmap(1:round((length(cmap)/length(trial_index))):length(cmap),:);
 %colors = sortrows(colors,'descend');
 
 out = struct;
 out.elecs = whichElectrodes;
 
 % Decide how many subplots are needed
-nPlot = length(el_index);
-nRow = ceil(sqrt(nPlot));
-nCol = ceil(sqrt(nPlot))+1;
-if nPlot <= (nRow*nCol)-nCol
-    nRow = nRow-1;
+if ~isempty(specs.plot.nSubPlots)
+    nRow = specs.plot.nSubPlots(1);
+    nCol = specs.plot.nSubPlots(2);
+else
+    nPlot = length(el_index);
+    nRow = ceil(sqrt(nPlot));
+    nCol = ceil(sqrt(nPlot));
+    if nPlot <= (nRow*nCol)-nCol
+        nRow = nRow-1;
+    end
 end
 
 % Plot
 for d = 1:length(specs.dataTypes)
     
     thisDataType = specs.dataTypes{d};
-    
-    figure('Name', [trialType{:} ' ' thisDataType]); 
+    figureName = strsplit(trialType{1},'-');
+    figure('Name', [figureName{1} ' ' thisDataType]); 
     
     for ii = 1:length(el_index)
 
@@ -91,7 +96,7 @@ for d = 1:length(specs.dataTypes)
         % Baseline correction: 
         switch specs.baselineType
             case 'all'
-                baseline_index = find(~contains(trials.events.trial_name, 'PRF'));
+                baseline_index = find(~contains(trials.events.trial_name, {'PRF', 'BLANK'}));
                 baseline = mean(mean(elData(trials.time<0,baseline_index),1),2);
             case 'selectedtrials'
                 baseline = mean(mean(elData(trials.time<0,baseline_index),1),2);
@@ -100,16 +105,18 @@ for d = 1:length(specs.dataTypes)
         switch thisDataType
             case 'broadband'
                 % percent signal? (similar to 'relchange' in fieldtrip)
-                elData = (elData - baseline) ./ baseline;
+                %elData = (elData - baseline) ./ baseline;
+                elData = (elData - mean(elData(trials.time<0,:),1)) ./ baseline;
             case 'evoked'
-                % standard ERP approach?
-                elData = (elData - baseline);
+                % standard ERP approach(?)
+                %elData = (elData - baseline);
+                elData = elData - mean(elData(trials.time<0,:),1);
         end
 
         % Select subset of trials to plot
         for jj = 1:length(trial_index)
             % Compute mean and standard error of the mean
-            mnToPlot(:,jj) = mean(elData(:,trial_index{jj}),2);
+            mnToPlot(:,jj) = median(elData(:,trial_index{jj}),2);
             Llim(:,jj) = mnToPlot(:,jj)-(std(elData(:,trial_index{jj}),0,2)/sqrt(size(elData(:,trial_index{jj}),2)));
             Ulim(:,jj) = mnToPlot(:,jj)+(std(elData(:,trial_index{jj}),0,2)/sqrt(size(elData(:,trial_index{jj}),2)));                
         end
@@ -135,14 +142,14 @@ for d = 1:length(specs.dataTypes)
             xlabel('time (s)');
             switch thisDataType
                 case 'broadband'
-                    ylabel(['relative change in broadband power ( ' num2str(min(trials.bb_bands(:))) '-' num2str(max(trials.bb_bands(:))) ' Hz)']);
+                    ylabel(['change in power ( ' num2str(min(trials.bb_bands(:))) '-' num2str(max(trials.bb_bands(:))) ' Hz)']);
                 case 'evoked'
                     ylabel('evoked response amplitude');
             end
         end
         
-        % Plot max
-        switch specs.plotMax
+        % Plot max?
+        switch specs.plot.showMax
             case 'yes'
                 timeInx = find(trials.time>0 & trials.time<1);
                 [~,x] = max(abs(mnToPlot(timeInx,:))); 
@@ -151,6 +158,19 @@ for d = 1:length(specs.dataTypes)
                     p2.Annotation.LegendInformation.IconDisplayStyle = 'off';        
                 end
         end
+         
+%         if specs.plot.showMax > 0
+%             timeInx = find(trials.time>0 & trials.time<1);
+%             tmpMnToPlot = mnToPlot;
+%             for mm = 1:specs.plot.showMax
+%                 [~,x] = max(abs(tmpMnToPlot(timeInx,:))); 
+%                 for jj = 1:length(trial_index)
+%                     p2 = plot(trials.time(timeInx(x(jj))),mnToPlot(timeInx(x(jj)),jj), 'Marker', '.', 'MarkerSize', 50, 'Color', colors(jj,:), 'LineStyle', 'none');
+%                     p2.Annotation.LegendInformation.IconDisplayStyle = 'off';        
+%                 end
+%                 tmpMnToPlot(timeInx(x),:) = nan;
+%             end
+%         end       
         
         % Check if these electrodes have matches with visual atlases, if so, add
         % that to the plot title
@@ -171,7 +191,7 @@ for d = 1:length(specs.dataTypes)
                         viselec_name = [viselec_name atlasstr{1} ':' trials.viselec.(atlas{:}).area_labels{viselec} ' '];
                         switch atlas{:}
                             case 'benson14_varea'
-                                switch specs.addEccToTitle
+                                switch specs.plot.addEccToTitle
                                     case 'yes'
                                         viselec_name = [viselec_name sprintf('[ecc = %0.1f] ', trials.viselec.benson14_varea.node_eccen(viselec))];
                                          %viselec_name = [viselec_name ' ecc = ' num2str(trials.viselec.benson14_varea.node_eccen(viselec)) ' '];
@@ -182,6 +202,7 @@ for d = 1:length(specs.dataTypes)
             end
         end
         
+        % Set plot title
         plotTitle = [electrodeName ' ' viselec_name];
         out.titles{ii} = plotTitle;
         title(plotTitle);
@@ -208,6 +229,7 @@ for d = 1:length(specs.dataTypes)
         out.(thisDataType).(whichElectrodes{ii}).mn = double(mnToPlot');
         out.(thisDataType).(whichElectrodes{ii}).se = double((Ulim-mnToPlot)');
         set(gca, 'XLim', [-0.2 1.2]);
+        %set(gca, 'FontSize', specs.plot.fontSize);
         set(gca, 'FontSize', 18);
 
     end
@@ -215,6 +237,7 @@ for d = 1:length(specs.dataTypes)
     %set(gcf, 'Position', [150 100 750 625]);
 	out.time = trials.time;
     out.smooth = specs.smoothLevel;
+    out.colors = colors;
     
 end
 
