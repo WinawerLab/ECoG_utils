@@ -139,7 +139,7 @@ ieeg_json.iEEGElectrodeGroups = 'n/a'; % Field to describe the way electrodes
 % are grouped into strips, grids or depth probes e.g. {'grid1': "10x8 grid 
 % on left temporal pole", 'strip2': "1x8 electrode strip on xxx"}.
 
-ieeg_json.Stimulation = "false"; % Optional field to specify if electrical stimulation 
+ieeg_json.Stimulation = 'false'; % Optional field to specify if electrical stimulation 
 % was done during the recording (options are 1 for yes, 0 for no). Parameters 
 % for event-like stimulation should be specified in the _events.tsv file 
 % (see example underneath). Continuous parameters that change across ?scans? 

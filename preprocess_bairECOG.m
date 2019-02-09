@@ -29,7 +29,8 @@ fprintf('[%s] Reading data...\n',mfilename);
 [ftdata, events, channels]  = ecog_readBIDSData(dataDir, sub_label, ses_label);
 
 % Check if there are trial_names, if not, add them
-if ~isfield(summary(events), 'trial_name')
+%if ~isfield(summary(events), 'trial_name')
+if  max(contains(events.Properties.VariableNames, 'trial_name'))>0
     fprintf('[%s] Events file lacks trial names - adding them now .\n',mfilename);
     events = bair_addTrialNamesToEventsTable(events);
 end
@@ -67,7 +68,8 @@ visualelectrodes       = electrode_to_nearest_node(E2NSpecs, dataDir);
 % NYU preprocessed data contain a status column, but umcu data does not;
 % in that case, use all channels as reference... (check w Gio whether he
 % removed bad channels)
-if isfield(summary(channels), 'status')
+%if isfield(summary(channels), 'status')
+if max(contains(channels.Properties.VariableNames, 'status'))>0
     good_channels = find(contains(channels.status, 'good'));
 else
     good_channels = find(contains(lower(channels.type),{'ecog','seeg'}));

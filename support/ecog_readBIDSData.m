@@ -31,7 +31,8 @@ for iRun = 1:length(dataFiles)
         events = eventsTable;
     else
         % Add length of PREVIOUS run in seconds to onsets
-        if isfield(summary(eventsTable),'event_sample')
+        %if isfield(summary(eventsTable),'event_sample')
+        if max(contains(eventsTable.Properties.VariableNames, 'event_sample'))>0
             eventsTable.event_sample = eventsTable.event_sample + samplesToAdd;
             eventsTable.onset = eventsTable.event_sample/hdr.Fs;
         else
