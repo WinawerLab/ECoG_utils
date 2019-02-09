@@ -30,7 +30,7 @@ fprintf('[%s] Reading data...\n',mfilename);
 
 % Check if there are trial_names, if not, add them
 %if ~isfield(summary(events), 'trial_name')
-if  max(contains(events.Properties.VariableNames, 'trial_name'))>0
+if  max(contains(events.Properties.VariableNames, 'trial_name')) == 0
     fprintf('[%s] Events file lacks trial names - adding them now .\n',mfilename);
     events = bair_addTrialNamesToEventsTable(events);
 end
@@ -150,10 +150,11 @@ end
 switch specs.make_plots
      case 'yes'
 
+        eltomatch = data.channels.name(1);
         if exist('visualelectrodes', 'var') % % e.g.
-            eltomatch = visualelectrodes.benson14_varea.elec_labels(1); %MO01-04
-        else
-            eltomatch = data.channels.name(1);
+            if ~isempty(visualelectrodes.benson14_varea)
+                eltomatch = visualelectrodes.benson14_varea.elec_labels(1); %MO01-04
+            end
         end
          
         % % Find matching channel number

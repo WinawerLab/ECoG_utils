@@ -16,7 +16,8 @@ if isfield(trials, 'hdr'); trials = rmfield(trials, 'hdr'); end
 onset_pre = epochDur(1)*data.hdr.Fs;
 onset_post = (epochDur(2)*data.hdr.Fs)-1;
 
-if isfield(summary(data.events), 'event_sample')
+%if isfield(summary(data.events), 'event_sample')
+if max(contains(data.events.Properties.VariableNames, 'event_sample'))>0
     onsetInx = data.events.event_sample;
 else
     onsetInSeconds = data.events.onset;

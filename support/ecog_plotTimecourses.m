@@ -47,6 +47,8 @@ else
     for ii = 1:length(trialType)
         trial_index{ii} = find(contains(trials.events.trial_name, trialType{ii}));
     end
+    %HACK
+    %trial_index{1} = trial_index{1}(1:54);
     %fprintf('[%s] Matching whichTrials to events.trial_name\n', mfilename)    
     baseline_index = vertcat(trial_index{:});
         
@@ -228,7 +230,8 @@ for d = 1:length(specs.dataTypes)
         
         out.(thisDataType).(whichElectrodes{ii}).mn = double(mnToPlot');
         out.(thisDataType).(whichElectrodes{ii}).se = double((Ulim-mnToPlot)');
-        set(gca, 'XLim', [-0.2 1.2]);
+        set(gca, 'XLim', [-0.2 1.5]);
+        %set(gca, 'XLim', [-0.5 3]);
         %set(gca, 'FontSize', specs.plot.fontSize);
         set(gca, 'FontSize', 18);
 
