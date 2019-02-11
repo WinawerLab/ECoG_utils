@@ -30,14 +30,14 @@ procDir = fullfile(dataPth, projectName, 'derivatives', 'preprocessed', sprintf(
 dataName = fullfile(procDir, sprintf('sub-%s_ses-%s_epoched', sub_label, ses_label));
 load(dataName);
 
-%% plot electrodes on mesh
-dataDir = fullfile(dataPth, projectName, sprintf('sub-%s', sub_label), sprintf('ses-%s', ses_label), 'ieeg');
-
-specs = [];
-specs.pID           = sub_label; % patient ID number
-specs.patientPool   = 'BAIR';
-specs.plotmesh      = 'both';
-visualelectrodes    = electrode_to_nearest_node(specs, dataDir);
+% %% plot electrodes on mesh
+% dataDir = fullfile(dataPth, projectName, sprintf('sub-%s', sub_label), sprintf('ses-%s', ses_label), 'ieeg');
+% 
+% specs = [];
+% specs.pID           = sub_label; % patient ID number
+% specs.patientPool   = 'BAIR';
+% specs.plotmesh      = 'both';
+% visualelectrodes    = electrode_to_nearest_node(specs, dataDir);
 
 %% Plot responses 
 
