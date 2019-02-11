@@ -43,16 +43,16 @@ visualelectrodes    = electrode_to_nearest_node(specs, dataDir);
 
 % Which electrodes to plot? (Each electrode gets a subplot)
 % e.g. 'MO01'; e.g. trials.viselec.benson14_varea.elec_labels
-%whichElectrodes = trials.channels.name(contains(trials.channels.name, 'GB'));
-whichElectrodes = {'GB23','GB35','GB36','GB37', 'GB38' 'GB53', 'GB69','GB70','GB71','GB85','GB86','GB87'};
+whichElectrodes = trials.channels.name(contains(trials.channels.name, 'GB'));
+%whichElectrodes = {'GB23','GB35','GB36','GB37', 'GB38' 'GB53', 'GB69','GB70','GB71','GB85','GB86','GB87'};
 
 % Which stimulus conditions to plot? 
 %whichTrials = {}; % if empty, plot average of all trials
 %whichTrials = {'CRF','SPARSITY','ONEPULSE', 'TWOPULSE', 'GRATING', 'PLAID', 'CIRCULAR', 'HOUSES', 'FACES', 'LETTERS'}; % everything except prf
 
-%whichTrials = {'CLENCH'};
+whichTrials = {'CLENCH'};
 %whichTrials = {'D', 'Y', 'V', 'F'};
-whichTrials = {'thumb','index','middle','ring','pinky'};
+%whichTrials = {'thumb','index','middle','ring','pinky'};
 
 % Plot both broadband and evoked response per electrode
 % 'out' contains the plotted time courses and SEs
@@ -61,21 +61,19 @@ whichTrials = {'thumb','index','middle','ring','pinky'};
 specs = [];
 specs.dataTypes          = {'broadband'};
 specs.smoothingLevelInMs = [];
-specs.collapseTrialTypes = 'no';
+specs.collapseTrialTypes = 'yes';
 specs.baselineType       = 'selectedtrials';%'selectedtrials';
 specs.plot.colorMap      = 'parula';
 specs.plot.nSubPlots     = [];
 specs.plot.addEccToTitle = 'yes';
-specs.plot.showMax       = 'yes';
+specs.plot.showMax       = 'no';
 
 [out] = ecog_plotTimecourses(trials, whichElectrodes, whichTrials, specs);
 
-% elecInx = 1:40:length(whichElectrodes);
+%elecInx = 1:63:length(whichElectrodes)+63;
 % for ii = 1:length(elecInx)-1
 %     [out] = ecog_plotTimecourses(trials, whichElectrodes(elecInx(ii):elecInx(ii+1)-1), whichTrials, specs);
 % end
-
-%[out] = ecog_plotTrials(trials, whichElectrodes, whichTrials,collapseTrialTypes,[], baselineType);
 
 
 

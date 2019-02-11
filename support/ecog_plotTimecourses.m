@@ -48,7 +48,7 @@ else
         trial_index{ii} = find(contains(trials.events.trial_name, trialType{ii}));
     end
     %HACK
-    %trial_index{1} = trial_index{1}(1:54);
+    trial_index{1} = trial_index{1}(1:54);
     %fprintf('[%s] Matching whichTrials to events.trial_name\n', mfilename)    
     baseline_index = vertcat(trial_index{:});
         
@@ -92,6 +92,7 @@ for d = 1:length(specs.dataTypes)
         % Make a separate plot for each channel
         subplot(nRow,nCol,ii); hold on;
         %subplot(ceil(sqrt(length(el_index))),floor(sqrt(length(el_index))), ii); hold on;
+        %subplot(8,8,ii); hold on;
         
         elData = squeeze(trials.(thisDataType)(el_index(ii),:,:));
         
@@ -150,7 +151,7 @@ for d = 1:length(specs.dataTypes)
             end
         end
         
-        % Plot max?
+        % Plot max
         switch specs.plot.showMax
             case 'yes'
                 timeInx = find(trials.time>0 & trials.time<1);
@@ -211,7 +212,8 @@ for d = 1:length(specs.dataTypes)
 
         % Set y-axis limits
         lim = [min(mnToPlot(:)) max(mnToPlot(:))];
-        ylim = [lim(1)-(0.2*lim(1)*sign(lim(1))) lim(2)+(0.2*lim(2)*sign(lim(2)))];
+        %ylim = [lim(1)-(0.2*lim(1)*sign(lim(1))) lim(2)+(0.2*lim(2)*sign(lim(2)))];
+        ylim = [-0.5 3];
         set(gca, 'YLim', ylim);
 
         % Add stim onset and zero lines
