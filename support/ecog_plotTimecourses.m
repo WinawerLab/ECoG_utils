@@ -48,7 +48,7 @@ else
         trial_index{ii} = find(contains(trials.events.trial_name, trialType{ii}));
     end
     %HACK
-    trial_index{1} = trial_index{1}(1:54);
+    %trial_index{1} = trial_index{1}(1:54);
     %fprintf('[%s] Matching whichTrials to events.trial_name\n', mfilename)    
     baseline_index = vertcat(trial_index{:});
         
@@ -212,8 +212,8 @@ for d = 1:length(specs.dataTypes)
 
         % Set y-axis limits
         lim = [min(mnToPlot(:)) max(mnToPlot(:))];
-        %ylim = [lim(1)-(0.2*lim(1)*sign(lim(1))) lim(2)+(0.2*lim(2)*sign(lim(2)))];
-        ylim = [-0.5 3];
+        ylim = [lim(1)-(0.2*lim(1)*sign(lim(1))) lim(2)+(0.2*lim(2)*sign(lim(2)))];
+        %ylim = [-0.5 3];
         set(gca, 'YLim', ylim);
 
         % Add stim onset and zero lines
