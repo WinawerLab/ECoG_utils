@@ -60,8 +60,8 @@ else
     elecList_renamed = elecList;
     for ii = 1:length(elecList)
         zeroIdx = strfind(elecList{ii}, '0'); % find the location of 0
-        lastIdx = length(elecList{ii}); % check if location of 0 is not at the end 
-        if ~isempty(zeroIdx) && zeroIdx ~= lastIdx
+        lastIdx = length(elecList{ii}); % check if location of 0 is not at the end
+        if ~isempty(zeroIdx) & zeroIdx ~= lastIdx & isempty(str2num(elecList{ii}(zeroIdx-1)))
             keepIdx = setdiff(1:lastIdx, zeroIdx);
             elecList_renamed{ii} = elecList{ii}(keepIdx);
         end

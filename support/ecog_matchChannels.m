@@ -5,7 +5,7 @@ function elInx = ecog_matchChannels(eltomatch, data)
 % matches an input string to the field data.labels (fieldtrip format),
 % returns indices into data label
 
-elInx = [];
+elInx = zeros(size(eltomatch));
 
 if ~iscell(eltomatch)
     eltomatch = {eltomatch};

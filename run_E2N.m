@@ -7,7 +7,7 @@ end
 
 specs = [];
 
-specs.pID           = '661'; % patient ID number
+specs.pID           = '708'; % patient ID number
 specs.atlasNames    = [];%{'wang2015_atlas','wang15_mplbl','benson14_varea', 'benson14_eccen'}; 
                         % default is all of these maps: 
                         % {'wang2015_atlas', ...
@@ -18,8 +18,9 @@ specs.atlasNames    = [];%{'wang2015_atlas','wang15_mplbl','benson14_varea', 'be
                         % 'template_areas'};
                         % NOTE: including benson14_varea is required to
                         % be able to obtain benson14_eccen, angle and sigma
-specs.plotmesh      = 'both'; % left, right, both, or none
-specs.plotelecs     = 'yes'; % yes or no
+specs.plotmesh      = 'left';
+specs.plotelecs     = 'yes';
+specs.plotlabel     = 'yes';
 
 out = electrode_to_nearest_node(specs);
 

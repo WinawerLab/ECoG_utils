@@ -39,6 +39,7 @@ specs.patientPool   = 'BAIR';
 specs.fsDir         = '/Volumes/server/Freesurfer_subjects/umcuchaam';
 specs.plotmesh      = 'right';
 specs.plotelecs     = 'yes';
+specs.plotlabel     = 'no';
 trials.viselec      = electrode_to_nearest_node(specs, dataDir);
 
 %% Plot responses for visual electrodes

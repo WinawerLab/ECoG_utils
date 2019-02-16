@@ -245,7 +245,7 @@ for a = 1:length(specs.atlasNames)
     elec_labels_found = elec_labels(elec_indices);
     node_indices = indices(elec_indices);
     
-    if ~isempty(elec_labels_found)
+    %if ~isempty(elec_labels_found)
 
         % Get names / colormaps associated with each atlas
         switch currentAtlas
@@ -362,10 +362,10 @@ for a = 1:length(specs.atlasNames)
                 out.benson14_varea.node_sigma = round(atlas(out.benson14_varea.node_indices),2)';
                 atlasUnits = 'degrees';
         end
-    else
-        fprintf('[%s] No electrodes in %s \n',mfilename, currentAtlas);
-        out.(currentAtlas) = [];
-    end
+    %else
+    %    fprintf('[%s] No electrodes in %s \n',mfilename, currentAtlas);
+    %    out.(currentAtlas) = [];
+    %end
         
     % Plot
     switch plotmesh
@@ -454,10 +454,10 @@ for a = 1:length(specs.atlasNames)
             plot_electrodes(elec_xyz(elec_plotindex,:), [1 1 1]*0.2,2);
             plot_electrodes(elec_xyz(elec_indices,:), [0 0 0],2);
 
-            % Plot matched nodes
-            plot_electrodes(vertices(indices(elec_plotindex),:), [1 1 1]*0.8, 1);
-            plot_electrodes(vertices(indices(elec_indices),:), [1 1 1], 1);
-            
+%             % Plot matched nodes
+%             plot_electrodes(vertices(indices(elec_plotindex),:), [1 1 1]*0.8, 1);
+%             plot_electrodes(vertices(indices(elec_indices),:), [1 1 1], 1);
+%             
             switch plotlabel
                 case 'yes'
                     for i = 1:size(elec_xyz(elec_plotindex,:),1)
@@ -481,7 +481,7 @@ for a = 1:length(specs.atlasNames)
         h=light; lightangle(h, -45, 45); lighting gouraud;
         h=light; lightangle(h, -45, -90); lighting gouraud;
 
-        %set(gcf, 'Position', [150 100 1500 1250]);
+        set(gcf, 'Position', [150 100 1500 1250]);
         axis tight
     end
 end

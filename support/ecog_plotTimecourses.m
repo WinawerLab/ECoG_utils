@@ -94,7 +94,11 @@ for d = 1:length(specs.dataTypes)
         %subplot(ceil(sqrt(length(el_index))),floor(sqrt(length(el_index))), ii); hold on;
         %subplot(8,8,ii); hold on;
         
-        elData = squeeze(trials.(thisDataType)(el_index(ii),:,:));
+        if el_index(ii)>0
+            elData = squeeze(trials.(thisDataType)(el_index(ii),:,:));
+        else
+            continue
+        end
         
         % Baseline correction: 
         switch specs.baselineType
@@ -212,8 +216,8 @@ for d = 1:length(specs.dataTypes)
 
         % Set y-axis limits
         lim = [min(mnToPlot(:)) max(mnToPlot(:))];
-        ylim = [lim(1)-(0.2*lim(1)*sign(lim(1))) lim(2)+(0.2*lim(2)*sign(lim(2)))];
-        %ylim = [-0.5 3];
+        %ylim = [lim(1)-(0.2*lim(1)*sign(lim(1))) lim(2)+(0.2*lim(2)*sign(lim(2)))];
+        ylim = [-0.5 3];
         set(gca, 'YLim', ylim);
 
         % Add stim onset and zero lines
