@@ -5,11 +5,13 @@ function elInx = ecog_matchChannels(eltomatch, data)
 % matches an input string to the field data.labels (fieldtrip format),
 % returns indices into data label
 
-elInx = zeros(size(eltomatch));
 
 if ~iscell(eltomatch)
     eltomatch = {eltomatch};
 end
+
+elInx = zeros(size(eltomatch));
+
 for ii = 1:length(eltomatch)
     %stringtomatch = ['EEG ' eltomatch{ii}];
     stringtomatch = eltomatch{ii};
@@ -23,8 +25,8 @@ for ii = 1:length(eltomatch)
         disp('could not locate channel info in data!')
     end
         
-    %x = find(strncmp(stringtomatch, chanList,length(stringtomatch)));
-    x = find(strcmp(stringtomatch,chanList));
+    x = find(strncmp(stringtomatch,chanList,length(stringtomatch)));
+    %x = find(strcmp(stringtomatch,chanList));
     if ~isempty(x)
         elInx(ii) = x;
     end

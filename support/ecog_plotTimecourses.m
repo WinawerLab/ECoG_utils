@@ -181,7 +181,7 @@ for d = 1:length(specs.dataTypes)
         
         % Check if these electrodes have matches with visual atlases, if so, add
         % that to the plot title
-         if iscell(whichElectrodes)
+        if iscell(whichElectrodes)
             electrodeName = whichElectrodes{ii};
         else
             electrodeName = whichElectrodes;
@@ -216,8 +216,8 @@ for d = 1:length(specs.dataTypes)
 
         % Set y-axis limits
         lim = [min(mnToPlot(:)) max(mnToPlot(:))];
-        %ylim = [lim(1)-(0.2*lim(1)*sign(lim(1))) lim(2)+(0.2*lim(2)*sign(lim(2)))];
-        ylim = [-0.5 3];
+        ylim = [lim(1)-(0.2*lim(1)*sign(lim(1))) lim(2)+(0.2*lim(2)*sign(lim(2)))];
+        %ylim = [-0.5 3];
         set(gca, 'YLim', ylim);
 
         % Add stim onset and zero lines
@@ -236,10 +236,10 @@ for d = 1:length(specs.dataTypes)
         
         out.(thisDataType).(whichElectrodes{ii}).mn = double(mnToPlot');
         out.(thisDataType).(whichElectrodes{ii}).se = double((Ulim-mnToPlot)');
-        set(gca, 'XLim', [-0.2 1.5]);
+        set(gca, 'XLim', [-0.2 1]);
         %set(gca, 'XLim', [-0.5 3]);
         %set(gca, 'FontSize', specs.plot.fontSize);
-        set(gca, 'FontSize', 18);
+        set(gca, 'FontSize', 8);
 
     end
     set(gcf, 'Position', [150 100 2000 1250]);
