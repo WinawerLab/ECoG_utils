@@ -12,7 +12,7 @@
 patientID   = 708;
 RawDataDir  = '/Volumes/server/Projects/BAIR/Data/Raw/ECoG/';
 BIDSDataDir = '/Volumes/server/Projects/BAIR/Data/BIDS/';
-/Users/winawerlab/matlab/git/bids-examples/ieeg_visual_multimodal
+
 % BIDS specs
 projectName = 'visual';
 sub_label   = ['som' num2str(patientID)]; 
@@ -72,7 +72,7 @@ if ~exist(T1WriteDir, 'dir'); mkdir(T1WriteDir);end
 %% Read in ECoG data
 
 % Read ECoG data
-dataFiles = dir(fullfile(RawDataDir,num2str(patientID), '*.edf'));
+dataFiles = dir(fullfile(RawDataDir,num2str(patientID), '*_512.EDF'));
 if length(dataFiles) > 1, disp('Warning: multiple datafiles found: using first one'); end
 
 fileName = [dataFiles(1).folder filesep dataFiles(1).name];    
@@ -97,7 +97,7 @@ end
 triggerChannel = find(strcmp('DC1',hdr.label));
 
 % Also write down any obviously bad channels (e.g. those with big spikes)
-badChannels = [94 80]; %75:58 35 61
+badChannels = find(strncmp('SG',hdr.label,2))';
 
 %% MANUAL STEP: Check channel selection
 
@@ -122,14 +122,11 @@ switch makePlots
 end
 
 % If necessary, update badChannels:
-morebadChannels = [75 76 1 77 78 65 68 69 70 35 58 57 49];
+morebadChannels = [];
 badChannels = [badChannels morebadChannels];
 
 % Indicate the reason why channels were marked as bad
-badChannelsDescriptions = {'clipped', 'clipped', ...
-    'spikes', 'spikes', 'spikes', 'spikes', 'spikes', 'spikes', 'spikes', 'spikes', ...
-    'lowfreqtransient', 'lowfreqtransient', ...
-    'outlier', 'outlier', 'outlier'};
+badChannelsDescriptions = {'subgenual','subgenual','subgenual','subgenual'};
 
 % All sEEG channels not labeled as bad will be labeled good
 goodChannels = setdiff(chansToPlot,badChannels)';
@@ -161,16 +158,11 @@ switch makePlots
         legend({'trigger data', 'trigger onsets'}); xlabel('time (s)'); ylabel('amplitude');
 end
 
-% There is one trigger onset for a next run, which is (probably spatial
-% object 5), for which a log file was written but no data recorded. So we
-% need to remove this trigger:
-trigger_onsets = trigger_onsets(1:end-1);
-
 %% Read in stimulus files
 
 stimDir = fullfile(RawDataDir,num2str(patientID), 'stimdata');
-stimMatFiles = dir(fullfile(stimDir, sprintf('sub-*%d*.mat', patientID)));
-stimTSVFiles = dir(fullfile(stimDir, sprintf('sub-*%d*.tsv', patientID)));
+stimMatFiles = dir(fullfile(stimDir, sprintf('sub-*%d*%s*.mat', patientID,ses_label)));
+stimTSVFiles = dir(fullfile(stimDir, sprintf('sub-*%d*%s*.tsv', patientID,ses_label)));
 
 % CHECK: Do we have all the stimfiles?
 disp('Checking whether have all the stimFiles')

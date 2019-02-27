@@ -6,8 +6,8 @@ end
 
 switch data.channels.type{chanstoplot}
     case 'trig'
-        data.(dataType)(chanstoplot,:) = data.(dataType)(chanstoplot,:)/max(data.(dataType)(chanstoplot,:));
-        yval_onsets = max(data.(dataType)(chanstoplot(:),:));
+        data.(dataType)(chanstoplot(1),:) = data.(dataType)(chanstoplot(1),:)/max(data.(dataType)(chanstoplot(1),:));
+        yval_onsets = max(data.(dataType)(chanstoplot(1),:));
     otherwise
         yval_onsets = mode(data.(dataType)(chanstoplot(:),:));
 end

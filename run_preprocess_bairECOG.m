@@ -16,8 +16,8 @@ project_name = 'visual';
 % sub_label   = 'chaam'; 
 % ses_label   = 'UMCUECOGday03';
 
-sub_label   = 'som661'; 
-ses_label   = 'nyuecog01';
+sub_label   = 'som709'; 
+ses_label   = {'nyuecog01'};
 
 % Preprocessing specs
 
@@ -39,7 +39,9 @@ if ~exist('createBIDS_ieeg_json_nyuSOM.m')
     tbUse ECoG_utils;
 end
 
-preprocess_bairECOG(dataPth, sub_label, ses_label, specs);
+for ii = 1:length(ses_label)
+    preprocess_bairECOG(dataPth, sub_label, ses_label{ii}, specs);
+end
 
 
 
