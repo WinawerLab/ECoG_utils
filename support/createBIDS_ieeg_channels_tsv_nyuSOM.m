@@ -24,9 +24,6 @@ units = repmat('microV', n, 1); % Physical unit of the value represented in this
 % e.g. V for Volt, specified according to the SI unit symbol and possibly 
 % prefix (e.g. milliV, microV), see BIDS spec for Units and Prefixes.
 
-sampling_frequency = repmat('unknown', n, 1); % OPTIONAL. Sampling rate of 
-% the channel in Hz
-
 low_cutoff = repmat('500', n, 1); %Frequencies used for the low pass filter applied to the 
 % channel in Hz. If no low pass filter was applied, use n/a. Note that 
 % anti-alias is a low pass filter, specify its frequencies here if applicable.
@@ -34,13 +31,16 @@ low_cutoff = repmat('500', n, 1); %Frequencies used for the low pass filter appl
 high_cutoff = repmat('0.15', n, 1); % Frequencies used for the high pass filter applied to 
 % the channel in Hz. If no high pass filter applied, use n/a.
 
+%% recommended and optional columns:
+sampling_frequency = repmat('unknown', n, 1); % OPTIONAL. Sampling rate of 
+% the channel in Hz
+
 notch = repmat('n/a', n, 1); % OPTIONAL. Frequencies used for the notch 
 % filter applied to the channel, in Hz. If no notch filter applied, use n/a 
 
 reference = repmat('unknown', n, 1); % Specification of the reference (options: ?bipolar?, 
 % ?mastoid?, ?intracranial?, ?ElectrodeName01?) .
 
-%% recommended and optional columns:
 group = repmat({'unknown'}, n, 1); % RECOMMENDED Which group of channels 
 % (grid/strip/seeg/depth) this channel belongs to. This is relevant because
 % one group has one cable-bundle and noise can be shared. This can be a
@@ -61,5 +61,5 @@ status_description = repmat({'n/a'}, n, 1); % OPTIONAL. Freeform text descriptio
 % why the channel was declared bad in [status].
 
 %% write
-channel_table = table(name,type,units,sampling_frequency,low_cutoff,high_cutoff, notch, reference, ...
+channel_table = table(name,type,units,low_cutoff,high_cutoff, sampling_frequency, notch, reference, ...
     group,description,status,status_description);

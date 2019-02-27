@@ -449,8 +449,8 @@ for ii = 1:nRuns
     end
     
     % Overwrite onset with onsets of triggers
-    events_table.event_sample = event_sample;
-    events_table.onset        = strtrim(cellstr(num2str(events_table.event_sample/hdr.Fs,['%.' num2str(nDecimals) 'f'])));
+    events_table.sample       = event_sample;
+    events_table.onset        = strtrim(cellstr(num2str(events_table.sample/hdr.Fs,['%.' num2str(nDecimals) 'f'])));
         
     % Update a number of other fields in events table
     events_table.stim_file    = repmat([fname '.mat'], height(events_table), 1);
@@ -466,11 +466,11 @@ for ii = 1:nRuns
     ieeg_json.SamplingFrequency = hdr_thisrun.Fs;
     ieeg_json.RecordingDuration = round(hdr_thisrun.nSamples/hdr_thisrun.Fs,nDecimals);
   
-    % Write out new data file: 
-    data_thisrun =[]; % WRITE EMPTY FILES
-    data_fname = fullfile(dataWriteDir, sprintf('%s_ieeg', fname));
-    ft_write_data(data_fname, data_thisrun, 'header', hdr_thisrun, 'dataformat', 'brainvision_eeg');
-   
+%     % Write out new data file: 
+%     data_thisrun =[]; % WRITE EMPTY FILES
+%     data_fname = fullfile(dataWriteDir, sprintf('%s_ieeg', fname));
+%     ft_write_data(data_fname, data_thisrun, 'header', hdr_thisrun, 'dataformat', 'brainvision_eeg');
+%    
     % Write out events.tsv file: 
     events_fname = fullfile(dataWriteDir, sprintf('%s_events.tsv', fname));
     writetable(events_table, events_fname, 'FileType','text', 'Delimiter', '\t')
@@ -487,10 +487,10 @@ for ii = 1:nRuns
 %     jsonfile_fname = fullfile(dataWriteDir, sprintf('%s_ieeg.json', fname));    
 %     jsonwrite(jsonfile_fname,ieeg_json,json_options)
 %     
-    % Write out channels.tsv file:
-    channels_fname = fullfile(dataWriteDir, sprintf('%s_channels.tsv', fname));    
-    writetable(channel_table,channels_fname,'FileType','text','Delimiter','\t');
-    
+%     % Write out channels.tsv file:
+%     channels_fname = fullfile(dataWriteDir, sprintf('%s_channels.tsv', fname));    
+%     writetable(channel_table,channels_fname,'FileType','text','Delimiter','\t');
+%     
 end
 
 % CHECK: Do number of triggers derived from EDF data file match the number
