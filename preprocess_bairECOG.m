@@ -172,6 +172,10 @@ end
 % Epoch the stimulus trials
 trials = ecog_epochData(data, specs.epoch);
 
+
+%% [6] Compute spectra per trial
+
+
 %% Save preprocessed and epoched data for further analysis
 % 
 % disp('saving preprocessed data...');

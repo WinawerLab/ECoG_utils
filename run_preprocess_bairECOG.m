@@ -16,7 +16,7 @@ project_name = 'visual';
 % sub_label   = 'chaam'; 
 % ses_label   = 'UMCUECOGday03';
 
-sub_label   = 'som709'; 
+sub_label   = 'som708'; 
 ses_label   = {'nyuecog01'};
 
 % Preprocessing specs
