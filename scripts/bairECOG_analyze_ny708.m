@@ -110,19 +110,57 @@ end
 
 stims = ones(1,size(data_epoch,2));
 reg_erp = 0;
-fft_w = [];
-fft_t = 1:size(data_epoch,3);
+fft_t = trials.time >0.05 & trials.time < 0.55; 
+fft_w = round(length(find(fft_t))/1);
 fft_ov = [];
 srate = trials.fsample;
 %hdr.Fs,0,hdr.Fs,hdr.Fs
 
-%[~,f] = pwelch(squeeze(data_epoch(1,1,:)),0,0,trials.fsample,trials.fsample);
+
+% dora settings
+fft_w = window(@hann,200); % window width
+fft_ov = 100; % overlap
+% do not regress ERP here, because regressing out average evoked response with only a few trials can hurt 
+reg_erp = 0; 
+fft_t = trials.time>0 & trials.time<=.5; % time segment for spectrum
 
 [f,data_epoch_spectra,data_epoch] = ecog_spectra(data_epoch,stims,fft_w,fft_t,fft_ov,srate,reg_erp);
 
 
 %% plot
+eltomatch = trials.viselec.benson14_varea.elec_labels;
+%eltomatch = {'O01', 'O02', 'P03', 'P04'};
+whichElectrodes = find(contains(trials.channels.name, eltomatch));
 
+whichTrials0 = contains(trials.events.trial_name, {'PRF-BLANK'});
+whichTrials1 = contains(trials.events.trial_name, {'GRATING'});
+whichTrials2 = contains(trials.events.trial_name, {'PLAID'});
+whichTrials3 = contains(trials.events.trial_name, {'CIRCULAR'});
+
+figure;
+for ee = 1:length(whichElectrodes)
+    subplot(2,7,ee);hold on
+    toplot = squeeze(mean(data_epoch_spectra(whichElectrodes(ee),whichTrials0,:),2));
+    plot(f,toplot,'k', 'LineWidth',2);
+    toplot = squeeze(mean(data_epoch_spectra(whichElectrodes(ee),whichTrials1,:),2));
+    plot(f,toplot,'r', 'LineWidth',2);
+    toplot = squeeze(mean(data_epoch_spectra(whichElectrodes(ee),whichTrials2,:),2));
+    plot(f,toplot,'b', 'LineWidth',2);
+    toplot = squeeze(mean(data_epoch_spectra(whichElectrodes(ee),whichTrials3,:),2));
+    plot(f,toplot,'g', 'LineWidth',2);
+    if ee == 1
+        legend({'PRF-BLANK','GRATING', 'PLAID', 'CIRCULAR'});
+    end
+    xlabel('frequency');
+    ylabel('power');
+    title(eltomatch(ee));
+	set(gca, 'FontSize', 12);
+    set(gca, 'Xlim', [10 180], 'Yscale', 'log', 'YLim', [10^-2 10^3]);
+    
+end
+set(gcf, 'Position', [553 161 1429 1177]);
+
+%%
 whichElectrodes = find(contains(trials.channels.name, trials.viselec.benson14_varea.elec_labels));
 
 
@@ -134,11 +172,11 @@ figure;
 for ee = 1:length(whichElectrodes)
     subplot(2,7,ee);hold on
     toplot = squeeze(mean(data_epoch_spectra(whichElectrodes(ee),whichTrials0,:),2));
-    plot(f,log10(toplot),'k', 'LineWidth',2);
+    plot(f,toplot,'k', 'LineWidth',2);
     toplot = squeeze(mean(data_epoch_spectra(whichElectrodes(ee),whichTrials1,:),2));
-    plot(f,log10(toplot),'r', 'LineWidth',2);
+    plot(f,toplot,'r', 'LineWidth',2);
     toplot = squeeze(mean(data_epoch_spectra(whichElectrodes(ee),whichTrials2,:),2));
-    plot(f,log10(toplot),'b', 'LineWidth',2);
+    plot(f,toplot,'b', 'LineWidth',2);
     if ee == 1
         legend({'HRF', 'ALLGRATINGS', 'OBJECTS'});
     end
@@ -147,30 +185,5 @@ for ee = 1:length(whichElectrodes)
     title(trials.viselec.benson14_varea.elec_labels(ee));
 	set(gca, 'FontSize', 12);
 end
-
-whichTrials0 = contains(trials.events.trial_name, {'GRATING'});
-whichTrials1 = contains(trials.events.trial_name, {'PLAID'});
-whichTrials2 = contains(trials.events.trial_name, {'CIRCULAR'});
-
-figure;
-for ee = 1:length(whichElectrodes)
-    subplot(2,7,ee);hold on
-    toplot = squeeze(mean(data_epoch_spectra(whichElectrodes(ee),whichTrials0,:),2));
-    plot(f,log10(toplot),'k', 'LineWidth',2);
-    toplot = squeeze(mean(data_epoch_spectra(whichElectrodes(ee),whichTrials1,:),2));
-    plot(f,log10(toplot),'r', 'LineWidth',2);
-    toplot = squeeze(mean(data_epoch_spectra(whichElectrodes(ee),whichTrials2,:),2));
-    plot(f,log10(toplot),'b', 'LineWidth',2);
-    if ee == 1
-        legend({'GRATING', 'PLAID', 'CIRCULAR'});
-    end
-    xlabel('frequency');
-    ylabel('power');
-    title(trials.viselec.benson14_varea.elec_labels(ee));
-	set(gca, 'FontSize', 12);
-end
-
-
-
 
 
