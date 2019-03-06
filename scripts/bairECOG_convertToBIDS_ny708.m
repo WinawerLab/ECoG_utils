@@ -72,7 +72,7 @@ if ~exist(T1WriteDir, 'dir'); mkdir(T1WriteDir);end
 %% Read in ECoG data
 
 % Read ECoG data
-dataFiles = dir(fullfile(RawDataDir,num2str(patientID), '*_512.EDF'));
+dataFiles = dir(fullfile(RawDataDir,num2str(patientID), '*1_512.EDF'));
 if length(dataFiles) > 1, disp('Warning: multiple datafiles found: using first one'); end
 
 fileName = [dataFiles(1).folder filesep dataFiles(1).name];    
@@ -202,7 +202,7 @@ end
 
 % CHECK: Does the number of requested triggers match the number of triggers
 % that were detected in the trigger channel?
-disp('Checking whether all triggers are in the data')
+disp('Assert whether all triggers are in the data')
 assert(isequal(requestedTriggerCount, length(trigger_onsets)))
 stimData = stimData_sorted;
 
@@ -442,11 +442,14 @@ for ii = 1:nRuns
     events_table.stim_file    = repmat([fname '.mat'], height(events_table), 1);
     events_table.duration     = strtrim(cellstr(num2str(events_table.duration,['%.' num2str(nDecimals) 'f']))); 
     events_table.ISI          = strtrim(cellstr(num2str(events_table.ISI,['%.' num2str(nDecimals) 'f'])));    
-    if contains(task_label{ii}, 'prf')
-        for jj = 1:length(events_table.trial_name)
-            events_table.trial_name{jj} = ['PRF-' events_table.trial_name{jj}];
-        end
-    end
+%     if contains(task_label{ii}, 'prf')
+%         for jj = 1:length(events_table.trial_name)
+%             events_table.trial_name{jj} = ['PRF' events_table.trial_name{jj}];
+%         end
+%     end
+
+    % Add a task column to the events_table 
+    events_table.task_name   = repmat(task_label{ii}, height(events_table), 1);
     
     % Collect info for json_ieeg file
     ieeg_json.SamplingFrequency = hdr_thisrun.Fs;

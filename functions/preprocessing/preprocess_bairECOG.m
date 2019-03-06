@@ -6,7 +6,7 @@ function preprocess_bairECOG(dataPth, sub_label, ses_label, specs)
 %
 % [1] Reading in data, events and channel info
 % [2] Computing matches with visual atlases (wang and benson)
-% [3] Common average reference (regression based)
+% [3] Common average reference (regression based - uses 'good' channels)
 % [4] Broadband computation
 % [5] Segmentation (epoching) (includes definition of blank 'trials')
 % [6] Baseline correction (optional)
@@ -73,7 +73,7 @@ if max(contains(channels.Properties.VariableNames, 'status'))>0
 else
     good_channels = find(contains(lower(channels.type),{'ecog','seeg'}));
 end
-signal = ecog_carRegress_dora(ftdata.trial{1}, good_channels);
+signal = ecog_carRegress(ftdata.trial{1}, good_channels);
 
 %% [3] DIAGNOSTICS: Look at the effect of CAR
 
@@ -106,19 +106,19 @@ end
 [broadband, methodstr] = ecog_extractBroadband(signal', ftdata.fsample, specs.bb_method, specs.bb_bands);
 
 % Create a data structure to save
-epochs = struct();
+data = struct();
 
-epochs.hdr        = ftdata.hdr;
-epochs.time       = ftdata.time{1};
-epochs.raw        = ftdata.trial{1}; 
-epochs.car_reref  = signal;
-epochs.broadband  = broadband;
-epochs.bb_bands   = specs.bb_bands;
-epochs.bb_method  = methodstr;
-epochs.events     = events;
-epochs.channels   = channels;
-epochs.viselec    = visualelectrodes;
-epochs.cfg        = ftdata.cfg;
+data.hdr        = ftdata.hdr;
+data.time       = ftdata.time{1};
+data.raw        = ftdata.trial{1}; 
+data.car_reref  = signal;
+data.broadband  = broadband;
+data.bb_bands   = specs.bb_bands;
+data.bb_method  = methodstr;
+data.events     = events;
+data.channels   = channels;
+data.viselec    = visualelectrodes;
+data.cfg        = ftdata.cfg;
 
 %% [4] DIAGNOSTICS: Plot filtered time course and broadband for channel(s) of interest
 
@@ -130,17 +130,17 @@ switch specs.make_plots
     case 'yes'
         
         % check for a trigger channel
-        if max(contains(epochs.channels.type,'trig'))
-            eltomatch = epochs.channels.name{find(contains(epochs.channels.type,'trig'))};
-        elseif max(contains(epochs.channels.name, 'MKR')) % Utrecht data
-            eltomatch = epochs.channels.name{find(contains(epochs.channels.name,'MKR'))};
+        if max(contains(data.channels.type,'trig'))
+            eltomatch = data.channels.name{find(contains(data.channels.type,'trig'))};
+        elseif max(contains(data.channels.name, 'MKR')) % Utrecht data
+            eltomatch = data.channels.name{find(contains(data.channels.name,'MKR'))};
         else
             fprintf('[%s] Could not find trigger channel, not plotting triggers\n', mfilename)
             eltomatch = [];
         end
         if ~isempty(eltomatch)
-            el = ecog_matchChannels(eltomatch, epochs);
-            ecog_plotFullTimeCourse(epochs,'raw', el); title('triggers');
+            el = ecog_matchChannels(eltomatch, data);
+            ecog_plotFullTimeCourse(data,'raw', el); title('triggers');
             set(gcf, 'Name', 'triggers');
         end
         
@@ -153,7 +153,7 @@ end
 switch specs.make_plots
      case 'yes'
 
-        eltomatch = epochs.channels.name(1);
+        eltomatch = data.channels.name(1);
         if exist('visualelectrodes', 'var') && ~ isempty(visualelectrodes)% % e.g.
             if ~isempty(visualelectrodes.benson14_varea)
                 eltomatch = visualelectrodes.benson14_varea.elec_labels(1); %MO01-04
@@ -161,11 +161,11 @@ switch specs.make_plots
         end
          
         % % Find matching channel number
-        el = ecog_matchChannels(eltomatch, epochs);
+        el = ecog_matchChannels(eltomatch, data);
          
         % % Plot voltage and broadband
         % ecog_plotFullTimeCourse(data,'car_reref', el);
-        ecog_plotFullTimeCourse(epochs,'broadband', el); % no smoothing
+        ecog_plotFullTimeCourse(data,'broadband', el); % no smoothing
         % ecog_plotFullTimeCourse(data,'broadband', el, data.hdr.Fs/2); % with smoothing
         set(gcf, 'Name', 'example broadband time course');
 end
@@ -175,7 +175,7 @@ end
 % Add blank trials to non-prf tasks:
 
 % Epoch the stimulus trials
-trials = ecog_epochData(epochs, specs.epoch);
+trials = ecog_epochData(data, specs.epoch);
 
 
 %% [6] Compute spectra per trial
@@ -196,15 +196,16 @@ fft_t = trials.time>0 & trials.time<=.5; % time segment for spectrum
 [f,spectra] = ecog_spectra(epochs,stims,fft_w,fft_t,fft_ov,trials.fsample,reg_erp);
 
 %% Save preprocessed and epoched data for further analysis
-% 
-% disp('saving preprocessed data...');
-% saveName = fullfile(saveDir, sprintf('sub-%s_ses-%s_preproc_bbmethod%d_bandwidth%d', sub_label, ses_label, bbmethod, bands(1,2)-bands(1,1)));
+ 
+% fprintf('[%s] Saving preprocessed continuous data...\n',mfilename);
+% %saveName = fullfile(saveDir, sprintf('sub-%s_ses-%s_preproc_bbmethod%d_bandwidth%d', sub_label, ses_label, bbmethod, bands(1,2)-bands(1,1)));
+% saveName = fullfile(saveDir, sprintf('sub-%s_ses-%s_preproc.mat', sub_label, ses_label));
 % save(saveName, 'data'); 
 
 %saveName = fullfile(saveDir, sprintf('sub-%s_ses-%s_epoched_bbmethod%d_bandwidth%d', sub_label, ses_label, bbmethod, bands(1,2)-bands(1,1)));
 saveName = fullfile(saveDir, sprintf('sub-%s_ses-%s_epoched.mat', sub_label, ses_label));
 
-fprintf('[%s] Saving epoched data...\n',mfilename);
+fprintf('[%s] Saving preprocessed epoched data...\n',mfilename);
 if exist(saveName,'file')
     fprintf('[%s] Warning: epoched data file already exists!\n',mfilename);
     switch specs.overwrite

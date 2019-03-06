@@ -121,7 +121,7 @@ if ~isfield(specs, 'pID') || isempty(specs.pID)
     fprintf('[%s] Please specify a patient ID\n',mfilename);
     return
 else
-    fprintf('[%s] Running patient %s...\n',mfilename,num2str(specs.pID));
+    fprintf('[%s] Running electrode_to_node for patient %s...\n',mfilename,num2str(specs.pID));
 end
         
 % Read electrode coordinate file from BAIR or RAW directory
