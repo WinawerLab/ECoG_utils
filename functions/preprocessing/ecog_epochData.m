@@ -13,8 +13,8 @@ if isfield(trials, 'cfg'); trials = rmfield(trials, 'cfg'); end
 if isfield(trials, 'hdr'); trials = rmfield(trials, 'hdr'); end
 
 % Determine how many samples to go back and forth to extract epoch
-onset_pre = epochDur(1)*data.hdr.Fs;
-onset_post = (epochDur(2)*data.hdr.Fs)-1;
+onset_pre = round(epochDur(1)*data.hdr.Fs);
+onset_post = round((epochDur(2)*data.hdr.Fs)-1);
 
 %if isfield(summary(data.events), 'event_sample')
 if max(contains(data.events.Properties.VariableNames, 'event_sample'))>0
@@ -33,6 +33,10 @@ for ii = 1:length(onsetInx)
     trials.broadband(:,:,ii) = data.broadband(:,onsetInx(ii)+onset_pre:onsetInx(ii)+onset_post);
     % evoked
     trials.evoked(:,:,ii) = data.car_reref(:,onsetInx(ii)+onset_pre:onsetInx(ii)+onset_post);
+    % broadband
+    %trials.broadband{ii} = data.broadband(:,onsetInx(ii)+onset_pre:onsetInx(ii)+onset_post);
+    % evoked
+    %trials.evoked{ii} = data.car_reref(:,onsetInx(ii)+onset_pre:onsetInx(ii)+onset_post);
 end
 
 %disp('done');

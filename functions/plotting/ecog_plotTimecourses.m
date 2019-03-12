@@ -39,13 +39,14 @@ el_index = ecog_matchChannels(whichElectrodes, trials);
 % Find trials in data
 trial_index = [];
 if isempty(trialType)
-    trialType = {'all trials'};
+    trialType = {'all'};
 	trial_index{1} = 1:size(trials.events,1);
     %baseline_index = vertcat(trial_index{:});
-    baseline_index = find(~contains(trials.events.trial_name, {'PRF', 'BLANK'}));
+    baseline_index = find(~contains(trials.events.task_name, {'prf'}));
 else
     for ii = 1:length(trialType)
         trial_index{ii} = find(contains(trials.events.trial_name, trialType{ii}));
+        %trial_index{ii} = find(contains(trials.events.task_name, trialType{ii}));
     end
     %HACK
     %trial_index{1} = trial_index{1}(1:54);
@@ -216,8 +217,8 @@ for d = 1:length(specs.dataTypes)
 
         % Set y-axis limits
         lim = [min(mnToPlot(:)) max(mnToPlot(:))];
-        ylim = [lim(1)-(0.2*lim(1)*sign(lim(1))) lim(2)+(0.2*lim(2)*sign(lim(2)))];
-        %ylim = [-0.5 3];
+        %ylim = [lim(1)-(0.2*lim(1)*sign(lim(1))) lim(2)+(0.2*lim(2)*sign(lim(2)))];
+        ylim = [-0.5 4];
         set(gca, 'YLim', ylim);
 
         % Add stim onset and zero lines
@@ -239,7 +240,7 @@ for d = 1:length(specs.dataTypes)
         set(gca, 'XLim', [-0.2 1]);
         %set(gca, 'XLim', [-0.5 3]);
         %set(gca, 'FontSize', specs.plot.fontSize);
-        set(gca, 'FontSize', 8);
+        set(gca, 'FontSize', 10);
 
     end
     set(gcf, 'Position', [150 100 2000 1250]);
@@ -247,7 +248,7 @@ for d = 1:length(specs.dataTypes)
 	out.time = trials.time;
     out.smooth = specs.smoothLevel;
     out.colors = colors;
-    
+    out.subplotdim = [nRow nCol];   
 end
 
 % For broadband, add figure with sum across time:

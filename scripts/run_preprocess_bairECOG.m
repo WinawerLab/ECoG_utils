@@ -16,8 +16,8 @@ project_name = 'visual';
 % sub_label   = 'chaam'; 
 % ses_label   = 'UMCUECOGday03';
 
-sub_label   = 'som708'; 
-ses_label   = {'nyuecog01','nyuecog02'};
+sub_label   = 'som718'; 
+ses_label   = {'nyuecog01'};%,'nyuecog02'};
 
 % PREPROCESSING SPECS
 
@@ -28,8 +28,8 @@ specs.bb_bands     = [[70 80]; [80 90]; [90 100]; [100 110]; [130 140]; [140 150
 specs.bb_method    = 7;
 
 % epochs
-specs.epoch        = [-0.5 1.5]; % seconds
-
+%specs.epoch        = [-0.5 1.5]; % seconds
+specs.epoch         = [-0.2 1.2];
 % baseline correction
 
 % spectra

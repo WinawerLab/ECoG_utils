@@ -38,16 +38,16 @@ end
 
 %% [1] Remove non-relevant channels
 
-% Remove redundant channels (e.g. DC channels, channels without coordinates)
-relevant_channels = find(contains(lower(channels.type), {'ecog', 'seeg','ecg','trig'}));
-
-ftdata.trial{1} = ftdata.trial{1}(relevant_channels,:);
-ftdata.label = ftdata.label(relevant_channels);
-ftdata.hdr.label = ftdata.hdr.label(relevant_channels);
-ftdata.hdr.chantype = ftdata.hdr.chantype(relevant_channels);
-ftdata.hdr.chanunit = ftdata.hdr.chanunit(relevant_channels);
-
-channels = channels(relevant_channels,:);
+% % Remove redundant channels (e.g. DC channels, channels without coordinates)
+% relevant_channels = find(contains(lower(channels.type), {'ecog', 'seeg','ecg','trig'}));
+% 
+% ftdata.trial{1} = ftdata.trial{1}(relevant_channels,:);
+% ftdata.label = ftdata.label(relevant_channels);
+% ftdata.hdr.label = ftdata.hdr.label(relevant_channels);
+% ftdata.hdr.chantype = ftdata.hdr.chantype(relevant_channels);
+% ftdata.hdr.chanunit = ftdata.hdr.chanunit(relevant_channels);
+% 
+% channels = channels(relevant_channels,:);
 
 %% [2] Compute matches with visual regions
 
@@ -90,7 +90,8 @@ switch specs.make_plots
         title(ftdata.label(channel_plot));
 
         subplot(1,2,2),hold on
-        [pxx,freqs] = pwelch(ftdata.trial{1}(contains(lower(channels.type),{'ecog','seeg'}),:)',ftdata.fsample,0,ftdata.fsample,ftdata.fsample);
+        %[pxx,freqs] = pwelch(ftdata.trial{1}(contains(lower(channels.type),{'ecog','seeg'}),:)',ftdata.fsample,0,ftdata.fsample,ftdata.fsample);
+        [pxx,freqs] = pwelch(ftdata.trial{1}(contains(lower(channels.status),'good'),:)',ftdata.fsample,0,ftdata.fsample,ftdata.fsample);
         [pxx2,~] = pwelch(signal',ftdata.fsample,0,ftdata.fsample,ftdata.fsample);
         plot(freqs,pxx(:,channel_plot),'k')
         plot(freqs,pxx2(:,channel_plot),'g'); 
@@ -172,28 +173,48 @@ end
 
 %% [5] Segment the data (all channels, all tasks)
 
-% Add blank trials to non-prf tasks:
-
 % Epoch the stimulus trials
 trials = ecog_epochData(data, specs.epoch);
 
+% Add 'no stimulation' blank trials for non-prf tasks
+fprintf('[%s] Constructing blank events...\n',mfilename);
 
-%% [6] Compute spectra per trial
+mockdata = data;
+mockdata.events = mockdata.events(contains(data.events.task_name, {'hrfpattern','spatialpattern', 'temporalpattern', 'spatialobject'}),:);
 
-epochs = zeros(size(trials.evoked,1), size(trials.evoked,3), size(trials.evoked,2));
+% Define an epoch in which there were no stimuli
+% hrf: ITI between 3 and 24 seconds, stimduration 0.2s
+% spatpat/spatobj/temppat: ITI between 1.25 and 1.75 seconds, stimduration 0.5s
 
-for ii = 1:size(trials.evoked,3)
-    epochs(:,ii,:) = trials.evoked(:,:,ii);
+blank_epoch = [specs.epoch(1)-0.5 specs.epoch(1)];
+if blank_epoch(1) < -.75
+    fprintf('[%s] Warning: blank epoch overlaps with stimulus epoch for spatialpattern/temporalpattern/spatialobject! \n',mfilename);
 end
 
-% dora settings
-fft_w = window(@hann,200); % window width
-fft_ov = 100; % overlap
-% do not regress ERP here, because regressing out average evoked response with only a few trials can hurt 
-reg_erp = 0; 
-fft_t = trials.time>0 & trials.time<=.5; % time segment for spectrum
+% Epoch the baseline 'trials'
+blank_trials = ecog_epochData(mockdata, blank_epoch);
+blank_trials.events.trial_name = repmat('BLANK', [height(blank_trials.events) 1]);
+blank_trials.events.onset = blank_trials.events.onset-blank_epoch(1);
+blank_trials.events.duration = repmat(blank_epoch(2)-blank_epoch(1),[height(blank_trials.events) 1]); 
+blank_trials.events.ISI=[];
+blank_trials.events.event_sample = blank_trials.events.event_sample - round(blank_epoch(2)-blank_epoch(1)*data.hdr.Fs);
 
-[f,spectra] = ecog_spectra(epochs,stims,fft_w,fft_t,fft_ov,trials.fsample,reg_erp);
+% %% [6] Compute spectra per trial
+% 
+% epochs = zeros(size(trials.evoked,1), size(trials.evoked,3), size(trials.evoked,2));
+% 
+% for ii = 1:size(trials.evoked,3)
+%     epochs(:,ii,:) = trials.evoked(:,:,ii);
+% end
+% 
+% % dora settings
+% fft_w = window(@hann,200); % window width
+% fft_ov = 100; % overlap
+% % do not regress ERP here, because regressing out average evoked response with only a few trials can hurt 
+% reg_erp = 0; 
+% fft_t = trials.time>0 & trials.time<=.5; % time segment for spectrum
+% 
+% [f,spectra] = ecog_spectra(epochs,stims,fft_w,fft_t,fft_ov,trials.fsample,reg_erp);
 
 %% Save preprocessed and epoched data for further analysis
  
@@ -217,7 +238,7 @@ if exist(saveName,'file')
     end
 end
 
-save(saveName, 'trials', '-v7.3'); 
+save(saveName, 'trials', 'blank_trials', '-v7.3'); 
 fprintf('[%s] Finished preprocessing!\n',mfilename);
 
 
