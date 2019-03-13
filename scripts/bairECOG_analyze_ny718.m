@@ -46,8 +46,8 @@ elInx = trials.channels.name(contains(trials.channels.status, 'good'));
 %whichTrials = {'CRF-1','CRF-2', 'CRF-3','CRF-4', 'CRF-5'};
 %whichTrials = {'ONEPULSE-1','ONEPULSE-2', 'ONEPULSE-3','ONEPULSE-4', 'ONEPULSE-5', 'ONEPULSE-6'};
 %whichTrials = {'TWOPULSE-1','TWOPULSE-2', 'TWOPULSE-3','TWOPULSE-4', 'TWOPULSE-5', 'TWOPULSE-6'};
-%whichTrials = {'HOUSES','FACES', 'LETTERS'};
-whichTrials = {'GRATING', 'PLAID','CIRCULAR'};
+whichTrials = {'HOUSES','FACES', 'LETTERS'};
+%whichTrials = {'GRATING', 'PLAID','CIRCULAR'};
 %whichTrials = {'CRF', 'SPARSITY','ONEPULSE','GRATING', 'PLAID','CIRCULAR'};
 %whichTrials = {'SPARSITY-1','SPARSITY-2', 'SPARSITY-3','SPARSITY-4'};
 %whichTrials = {'CRF','ONEPULSE', 'TWOPULSE'}; 
@@ -132,6 +132,8 @@ elInx = ecog_matchChannels(whichElectrodes, trials);
 
 whichTrials0 = contains(blanks.events.task_name, {'hrfpattern'});
 whichTrials1 = contains(trials.events.trial_name, {'HRF'});
+cmap = eval(specs.plot.colorMap);
+colors = cmap(1:round((length(cmap)/3)):length(cmap),:);
 
 figure;
 for ee = 1:length(elInx)
@@ -139,13 +141,14 @@ for ee = 1:length(elInx)
     toplot = squeeze(mean(blanks_spectra(elInx(ee),whichTrials0,:),2));
     plot(f,toplot,'k', 'LineWidth',2);
     toplot = squeeze(mean(trials_spectra(elInx(ee),whichTrials1,:),2));
-    plot(f,toplot,'b', 'LineWidth',2);
+    %plot(f,toplot,'Color',colors(1,:), 'LineWidth',2);
+    plot(f,toplot,'c', 'LineWidth',2);
     if ee == 1
-        legend({'BLANK','HF'});
+        legend({'BLANK','HRF'});
         xlabel('frequency');
         ylabel('power');
     end
-    title(eltomatch(ee));
+    title(whichElectrodes(ee));
 	set(gca, 'FontSize', 10);
     set(gca, 'Xlim', [10 180], 'Yscale', 'log', 'YLim', [10^-2.5 10^2.5]);
 end
@@ -180,7 +183,7 @@ for ee = 1:length(elInx)
         xlabel('frequency');
         ylabel('power');
     end
-    title(eltomatch(ee));
+    title(whichElectrodes(ee));
 	set(gca, 'FontSize', 10);
     set(gca, 'Xlim', [10 180], 'Yscale', 'log', 'YLim', [10^-2.5 10^2.5]);
 end
@@ -214,7 +217,7 @@ for ee = 1:length(elInx)
         xlabel('frequency');
         ylabel('power');
     end
-    title(eltomatch(ee));
+    title(whichElectrodes(ee));
 	set(gca, 'FontSize', 10);
     set(gca, 'Xlim', [10 180], 'Yscale', 'log', 'YLim', [10^-2.5 10^2.5]);
 end
