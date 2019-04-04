@@ -69,11 +69,6 @@ specs.plot.showMax       = 'no';
 % 'out' contains the plotted time courses and SEs
 [out] = ecog_plotTimecourses(trials, elInx, whichTrials, specs);
 %[out] = ecog_plotTrials(trials, whichElectrodes, whichTrials);
-%%
-elecInx = 1:(length(elInx)/2):length(elInx)+(length(elInx)/3);
-for ii = 1:length(elecInx)-1
-    [out] = ecog_plotTimecourses(trials, elInx(elecInx(ii):elecInx(ii+1)-1), whichTrials, specs);
-end
 
 %% SPECTRA
 % Input:
