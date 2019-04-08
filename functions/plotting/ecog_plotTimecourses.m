@@ -49,8 +49,8 @@ else
         %trial_index{ii} = find(contains(trials.events.task_name, trialType{ii}));
     end
     %HACK
-    %trial_index{1} = trial_index{1}(1:54);
-    %fprintf('[%s] Matching whichTrials to events.trial_name\n', mfilename)    
+    %trial_index{1} = trial_index{1}(33:64);
+    fprintf('[%s] Matching whichTrials to events.trial_name\n', mfilename)    
     baseline_index = vertcat(trial_index{:});
         
     switch specs.collapseTrialTypes
