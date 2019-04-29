@@ -1,4 +1,3 @@
-
 function [out] = electrode_to_nearest_node(specs, varargin)
 
 % This function matches a list of electrode locations in an ECoG patient to
@@ -12,6 +11,15 @@ function [out] = electrode_to_nearest_node(specs, varargin)
 % specs.pID         = patient ID 
 %
 % OPTIONAL additional fields: 
+% specs.dataDir     = directory that has the patient electrode positions, 
+%                     default: /Volumes/server/Projects/BAIR/Data/BIDS. If
+%                     not found in default, looks in Raw ECoG data folder
+%                     (/Volumes/server/Projects/BAIR/Data/Raw/ECoG).
+%                     default /Volumes/server/Freesurfer_subjects/som
+% specs.fsDir       = freesurfer directory of patient (include full path);
+%                     should contain the wang and benson atlases that can
+%                     be obtained through the nben/neuropythy docker >
+%                     default /Volumes/server/Freesurfer_subjects/som
 % specs.atlasNames  = list of atlases to match electrode locations with.
 %                     Current options are (default = all):
 %                                         {'wang2015_atlas', ...
@@ -30,14 +38,7 @@ function [out] = electrode_to_nearest_node(specs, varargin)
 % specs.thresh      = maximum allowed distance between electrode and node,
 %                     in mm (if empty, thresh is infinite, meaning that the
 %                     electrode can be infinitely far) - default empty
-% specs.fsDir       = freesurfer directory of patient (include full path);
-%                     should contain the wang and benson atlases that can
-%                     be obtained through the nben/neuropythy docker >
-%                     default '/Volumes/server/Freesurfer_subjects/som
-% specs.patientPool = should be either 'BAIR' or 'SOM' (may be removed
-%                     later but necessary now to deal with differences in
-%                     formatting of electrode files between bids-formatted
-%                     and non-bids-formatted data) - default SOM
+
 %
 % OUTPUT: a struct containing the following fields for two probablistic
 % atlases of visual brain regions (wang2015 and benson14)
@@ -66,24 +67,26 @@ function [out] = electrode_to_nearest_node(specs, varargin)
 %       node_eccen: [0.39 0.21 0.11 2.42 9.45 5.82 27.62]
 %       node_angle: [106.68 178.32 177.33 136.13 80.88 0 64.06]
 %       node_sigma: [0.75 0.61 0.33 1.87 7.52 8.16 21.11]
- 
-% TO DO sort outputs by visual area (have flag?)
 
-if ~isfield(specs, 'atlasNames') || isempty(specs.atlasNames)
-    specs.atlasNames = {'wang2015_atlas','wang15_mplbl', 'benson14_varea', 'benson14_eccen', 'benson14_angle', 'benson14_sigma', 'template_areas'};
-end
-
-if ~isfield(specs, 'patientPool') || isempty(specs.patientPool)
-    specs.patientPool = 'SOM'; 
+if ~isfield(specs, 'dataDir') || isempty(specs.dataDir)
+    rootDir = fullfile(filesep, 'Volumes', 'server', 'Projects', 'BAIR', 'Data');
+    if contains(specs.pID, {'som', 'umcu', 'ny'})
+        % this is a BIDS formatted dataset; look in the BIDS folder
+        specs.dataDir = fullfile(rootDir, 'BIDS'); 
+        BIDSformatted = 1;
+    else
+        % this is not a BIDS formatted dataset; look in the Raw folder 
+        specs.dataDir = fullfile(rootDir, 'Raw', 'ECoG'); 
+        BIDSformatted = 0;
+    end
 end
 
 if ~isfield(specs, 'fsDir') || isempty(specs.fsDir)
-    switch specs.patientPool
-        case 'SOM'
-            specs.fsDir = fullfile(filesep, 'Volumes', 'server', 'Freesurfer_subjects', sprintf('som%s',specs.pID)); 
-        case 'BAIR'
-            specs.fsDir = fullfile('/Volumes/server/Freesurfer_subjects/', num2str(specs.pID)); 
-    end
+    specs.fsDir = fullfile(filesep, 'Volumes', 'server', 'Freesurfer_subjects'); 
+end
+
+if ~isfield(specs, 'atlasNames') || isempty(specs.atlasNames)
+    specs.atlasNames = {'wang2015_atlas','wang15_mplbl', 'benson14_varea', 'benson14_eccen', 'benson14_angle', 'benson14_sigma', 'template_areas'};
 end
 
 if ~isfield(specs, 'thresh') || isempty(specs.thresh)
@@ -125,21 +128,48 @@ else
 end
         
 % Read electrode coordinate file from BAIR or RAW directory
-switch specs.patientPool
-    case 'BAIR'
-        
-        % For BIDS formatted data, patient ID is specified in dataDir
-        patientDir = varargin{1};
-        
-        D = dir([patientDir '/*electrodes*.tsv']);
-        if ~isempty(D)
-           
+%fprintf('[%s] Searching for patient data in %s...\n',mfilename,num2str(specs.dataDir));
+
+if BIDSformatted
+    
+    % Check which projectfolder this patient is located
+    patientDir = fullfile(specs.dataDir, 'visual', sprintf('sub-%s', specs.pID));
+    if ~isdir(patientDir)
+        patientDir = fullfile(specs.dataDir, 'motor', sprintf('sub-%s', specs.pID));
+    end
+    if ~isdir(patientDir)
+        patientDir = fullfile(specs.dataDir, 'tactilepilot', sprintf('sub-%s', specs.pID));
+    end
+    if ~isdir(patientDir)
+        fprintf('[%s] Could not find patient data folder. Please check paths. \n',mfilename);
+        out = [];
+        return
+    end
+
+    % Find an ECoG session directory
+    sessionList = dir(fullfile(patientDir, sprintf('ses*ecog*')));
+    if isempty(sessionList)
+        sessionList = dir(fullfile(patientDir, sprintf('ses*ECOG*')));
+    end
+    if isempty(sessionList)
+        fprintf('[%s] Could not find ECoG sessions for this patient. Please check paths. \n',mfilename);
+        out = [];
+        return
+    else
+        D = dir(fullfile(patientDir, sessionList(1).name, 'ieeg', '*electrodes.tsv'));          
+        if isempty(D)
+            fprintf('[%s] Electrode coordinate file not found in %s - exiting [%s]. \n', ...
+                mfilename,fullfile(patientDir, sessionList(1).name, mfilename));
+            out = [];
+            return
+        else
             elec_file = D(1).name;
-            fprintf('[%s] Reading %s...\n',mfilename,elec_file);
+            elec_folder = D(1).folder;
+            fprintf('[%s] Reading %s...\n',mfilename,fullfile(elec_folder,elec_file));
 
             % Prefer to use readtable for tsv files because it doesn't require
             % knowing the order of the columns beforehand (as textscan does). 
-            
+
             E = readtable(fullfile(D(1).folder, elec_file), 'FileType', 'text');
             elec_labels = E.name;
             if iscell(E.x)
@@ -151,57 +181,57 @@ switch specs.patientPool
             else
                 elec_xyz = [E.x E.y E.z];
             end
-            if contains(specs.pID,'chaam')
+            if contains(specs.pID,'umcuchaam')
                 % subtract effect of cropping by freesurfer
                 elec_xyz(:,1) = elec_xyz(:,1)-3.4490;
                 elec_xyz(:,2) = elec_xyz(:,2)-34.6040;
                 elec_xyz(:,3) = elec_xyz(:,3)+6.2660;
             end
-        else
-            fprintf('[%s] Electrode coordinate file not found - exiting [%s]. (NYU: is the server mapped?)\n',mfilename,mfilename);
+        end
+    end
+
+else        
+    patientDir = fullfile(specs.dataDir, specs.pID);
+
+    % Check whether this patient is in the RAW BAIR directory, if not find it in SoM
+    if ~isdir(patientDir)
+        specs.dataDir = '/Volumes/server/Projects/BAIR/Data/Raw/ECoG/SoM/';
+        patientDir = fullfile(specs.dataDir, specs.pID);
+        if ~isdir(patientDir)
+            fprintf('[%s] Patient data directory not found - exiting [%s]. \n',mfilename,mfilename);
             out = [];
             return
         end
-    case 'SOM'
-        
-        % Check whether this patient is in the RAW BAIR directory, if not find it in SoM
-        patientDir = '/Volumes/server/Projects/BAIR/Data/Raw/ECoG/';
-        if ~isdir([patientDir num2str(specs.pID)])
-            patientDir = '/Volumes/server/Projects/BAIR/Data/Raw/ECoG/SoM/';
-            if ~isdir([patientDir num2str(specs.pID)])
-                fprintf('[%s] Patient data directory not found - exiting [%s]. (NYU: is the server mapped?)\n',mfilename,mfilename);
-                out = [];
-                return
-            end
-        end
-        
-        % Read electrode coordinate file from Raw/SoM directory
-        D = dir([patientDir num2str(specs.pID) '/*coor_T1*.txt']);
-        if ~isempty(D)
-            elec_file = D(1).name;% if there are multiple coor_T1 files for separate hemisphere, D(1) will always be the full list
-            fprintf('[%s] Reading %s...\n',mfilename,elec_file);
-            fid = fopen([patientDir num2str(specs.pID) '/' elec_file]); E = textscan(fid, '%s%f%f%f%s'); fclose(fid);
-            elec_xyz = [E{2} E{3} E{4}]; 
-            elec_labels = E{1};
-            elec_types = unique(E{5});
-            fprintf('[%s] types of electrodes found: %s...\n',mfilename,elec_types{:});
-        else
-            fprintf('[%s] Electrode coordinate file not found - exiting [%s] (NYU: is the server mapped?)\n',mfilename,mfilename);
-            out = [];
-            return
-        end
+    end
+
+    % Read electrode coordinate file from Raw/SoM directory
+    D = dir(fullfile(patientDir, '/*coor_T1*.txt'));
+    if ~isempty(D)
+        elec_file = D(1).name;% if there are multiple coor_T1 files for separate hemisphere, D(1) will always be the full list
+        elec_folder = D(1).folder;
+        fprintf('[%s] Reading %s...\n',mfilename,fullfile(elec_folder,elec_file));
+        fid = fopen(fullfile(patientDir,elec_file)); E = textscan(fid, '%s%f%f%f%s'); fclose(fid);
+        elec_xyz = [E{2} E{3} E{4}]; 
+        elec_labels = E{1};
+        elec_types = unique(E{5});
+        fprintf('[%s] Types of electrodes found: %s\n',mfilename,[elec_types{:}]);
+    else
+        fprintf('[%s] Electrode coordinate file not found - exiting [%s] (NYU: is the server mapped?)\n',mfilename,mfilename);
+        out = [];
+        return
+    end
+    
+    % Add 'som' to name in order to be able to read freesurfer directory
+    specs.pID = sprintf('som%s',specs.pID);
 end
 
 % Read surface reconstructions from Freesurfer_subjects directory
-surf_file_rh = [specs.fsDir '/surf/rh.pial'];
-surf_file_lh = [specs.fsDir '/surf/lh.pial'];
-% FOR TESTING COLORMAPS (if we want to plot inflated/sphere versions, need
-% to adjust center coordinates which default to zero in freesurfer
-%surf_file_rh = [specs.fsDir '/surf/rh.sphere'];
-%surf_file_lh = [specs.fsDir '/surf/lh.sphere'];
-
+surf_file_rh = fullfile(specs.fsDir, specs.pID, 'surf', 'rh.pial');
+surf_file_lh = fullfile(specs.fsDir, specs.pID, 'surf', 'lh.pial');
 if exist(surf_file_rh, 'file') && exist(surf_file_lh, 'file')
+    fprintf('[%s] Reading Freesurfer pial surface file %s ...\n',mfilename, surf_file_rh);
     [vertices_r, faces_r] = read_surf(surf_file_rh);
+    fprintf('[%s] Reading Freesurfer pial surface file %s ...\n',mfilename, surf_file_lh);
     [vertices_l, faces_l] = read_surf(surf_file_lh);
     vertices = [vertices_r;vertices_l];
 else
@@ -221,14 +251,14 @@ elec_xyz = elec_xyz(keep_idx,:);
 % Output
 out.patientID = specs.pID;
 
-
 for a = 1:length(specs.atlasNames)
     
     currentAtlas = specs.atlasNames{a};
     
     % Get atlases for this subject
-    atlas_file_rh = [specs.fsDir '/surf/rh.' currentAtlas '.mgz'];
-    atlas_file_lh = [specs.fsDir '/surf/lh.' currentAtlas '.mgz'];
+    fullfile(specs.fsDir, specs.pID, 'surf', 'rh.pial');
+    atlas_file_rh = fullfile(specs.fsDir, specs.pID, 'surf', sprintf('rh.%s.mgz', currentAtlas));
+    atlas_file_lh = fullfile(specs.fsDir, specs.pID, 'surf', sprintf('lh.%s.mgz', currentAtlas));
     if exist(atlas_file_rh, 'file') && exist(atlas_file_lh, 'file')
         [atlas_rh] = load_mgh(atlas_file_rh);
         [atlas_lh] = load_mgh(atlas_file_lh);
@@ -439,11 +469,11 @@ for a = 1:length(specs.atlasNames)
 
             switch plotmesh
                 case 'left'
-                    electoplot = find(elec_xyz(:,1) < 0);
+                    electoplot = find(elec_xyz(:,1) <= 10);
                     elec_indices = intersect(elec_indices,electoplot);
                     elec_plotindex = electoplot;
                 case 'right'
-                    electoplot = find(elec_xyz(:,1) >= 0);
+                    electoplot = find(elec_xyz(:,1) >= -10);
                     elec_indices = intersect(elec_indices,electoplot);
                     elec_plotindex = electoplot;
                 otherwise
