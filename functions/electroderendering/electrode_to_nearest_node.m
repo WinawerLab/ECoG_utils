@@ -15,7 +15,6 @@ function [out] = electrode_to_nearest_node(specs, varargin)
 %                     default: /Volumes/server/Projects/BAIR/Data/BIDS. If
 %                     not found in default, looks in Raw ECoG data folder
 %                     (/Volumes/server/Projects/BAIR/Data/Raw/ECoG).
-%                     default /Volumes/server/Freesurfer_subjects/som
 % specs.fsDir       = freesurfer directory of patient (include full path);
 %                     should contain the wang and benson atlases that can
 %                     be obtained through the nben/neuropythy docker >
@@ -38,7 +37,7 @@ function [out] = electrode_to_nearest_node(specs, varargin)
 % specs.thresh      = maximum allowed distance between electrode and node,
 %                     in mm (if empty, thresh is infinite, meaning that the
 %                     electrode can be infinitely far) - default empty
-
+%
 %
 % OUTPUT: a struct containing the following fields for two probablistic
 % atlases of visual brain regions (wang2015 and benson14)
@@ -51,7 +50,7 @@ function [out] = electrode_to_nearest_node(specs, varargin)
 %                     sigma estimates for these nodes (probabilistic)
 %   
 % EXAMPLE INPUT:
-% specs.pID           = '668'; % patient ID number
+% specs.pID           = 'som668'; % patient ID 
 % specs.plotmesh      = 'left'; % left, right, both, or none
 % specs.plotelecs     = 'no'; % yes or no
 % out = electrode_to_nearest_node(specs);
@@ -251,6 +250,63 @@ elec_xyz = elec_xyz(keep_idx,:);
 % Output
 out.patientID = specs.pID;
 
+% Generate figures
+
+% First, plot electrodes on brain without any atlases
+fig = figure('Name', [num2str(specs.pID)]); hold on;
+
+switch plotmesh
+    case 'both'                                                 
+        plot_mesh(faces_l, vertices_l, ones([1 1 size(vertices_l,1)]), []);
+        plot_mesh(faces_r, vertices_r, ones([1 1 size(vertices_r,1)]), []);
+    case 'left'
+        plot_mesh(faces_l, vertices_l, ones([1 1 size(vertices_l,1)]), []);
+    case 'right'
+        plot_mesh(faces_r, vertices_r, ones([1 1 size(vertices_r,1)]), []);   
+end
+
+switch plotelecs        
+    case 'yes'            
+        if ~exist('fig','var')
+            fig = figure('Name', [num2str(specs.pID) ' ' currentAtlas]); hold on;
+        end
+        
+        [elec_indices] = find(indices);
+
+        switch plotmesh
+            case 'left'
+                electoplot = find(elec_xyz(:,1) <= 10);
+                elec_indices = intersect(elec_indices,electoplot);
+                elec_plotindex = electoplot;
+            case 'right'
+                electoplot = find(elec_xyz(:,1) >= -10);
+                elec_indices = intersect(elec_indices,electoplot);
+                elec_plotindex = electoplot;
+            otherwise
+                elec_plotindex = 1:size(elec_xyz,1);
+        end
+
+        % Plot electrodes
+        plot_electrodes(elec_xyz(elec_plotindex,:), [1 1 1]*0.2,2);
+        plot_electrodes(elec_xyz(elec_indices,:), [0 0 0],2);
+
+        switch plotlabel
+            case 'yes'
+                for i = 1:size(elec_xyz(elec_plotindex,:),1)
+                    [x, y, z] = adjust_elec_label(elec_xyz(elec_plotindex(i),:),2);
+                    text('Position',[x y z],'String',elec_labels(elec_plotindex(i),:),'Color','w','VerticalAlignment','top');
+                end
+        end
+end
+
+% Set view parameters
+if exist('fig','var')
+    set_view(gcf)
+end
+
+% Then, match electrodes with each atlas and make figure if there are
+% matches
+
 for a = 1:length(specs.atlasNames)
     
     currentAtlas = specs.atlasNames{a};
@@ -265,7 +321,7 @@ for a = 1:length(specs.atlasNames)
     else
         fprintf('[%s] No annotations found for %s \n',mfilename, currentAtlas);
         out.(currentAtlas) = [];
-        continue
+        continue % move on to the next atlas
     end
     
     % Match nearest nodes to atlas labels
@@ -275,128 +331,118 @@ for a = 1:length(specs.atlasNames)
     elec_labels_found = elec_labels(elec_indices);
     node_indices = indices(elec_indices);
     
-    %if ~isempty(elec_labels_found)
+    % Get names / colormaps associated with each atlas
+    switch currentAtlas
 
-        % Get names / colormaps associated with each atlas
-        switch currentAtlas
+        case {'wang2015_atlas', 'wang15_mplbl'} % Wang atlas
 
-            case {'wang2015_atlas', 'wang15_mplbl'} % Wang atlas
+            % Labels come from: '/Volumes/server/Projects/Kastner2015Atlas/ProbAtlas_v4/ROIfiles_Labeling.txt';
+            area_labels =  {'V1v','V1d', ...
+                            'V2v','V2d', ...
+                            'V3v','V3d', ...
+                            'hV4', ...
+                            'VO1','VO2', ...
+                            'PHC1','PHC2', ...
+                            'TO2','TO1', ...
+                            'LO2','LO1', ...
+                            'V3b','V3a', ...
+                            'IPS0','IPS1','IPS2','IPS3','IPS4','IPS5', ...
+                            'SPL1','FEF'}; 
+            area_cmap   = [102  51   0; 255   0   0; 
+                           102   0  51; 255 128   0;
+                            51   0 102; 255 255   0;
+                             0 128 255;
+                             0 102  51; 153 153   0;
+                           204 102   0; 204   0   0;
+                             0  76 153; 153  76   0;
+                           255  51 153; 102   0 204;
+                             0 255 255;   0 255   0;
+                           255 153 153; 255 204 153; 255 255 153; 153 255 153; 153 255 255; 153 153 255; 
+                           255 153 255; 255 178 102]./255;
+            out.(currentAtlas).area_names   = area_labels;
 
-                % Labels come from: '/Volumes/server/Projects/Kastner2015Atlas/ProbAtlas_v4/ROIfiles_Labeling.txt';
-                area_labels =  {'V1v','V1d', ...
-                                'V2v','V2d', ...
-                                'V3v','V3d', ...
-                                'hV4', ...
-                                'VO1','VO2', ...
-                                'PHC1','PHC2', ...
-                                'TO2','TO1', ...
-                                'LO2','LO1', ...
-                                'V3b','V3a', ...
-                                'IPS0','IPS1','IPS2','IPS3','IPS4','IPS5', ...
-                                'SPL1','FEF'}; 
-                area_cmap   = [102  51   0; 255   0   0; 
-                               102   0  51; 255 128   0;
-                                51   0 102; 255 255   0;
-                                 0 128 255;
-                                 0 102  51; 153 153   0;
-                               204 102   0; 204   0   0;
-                                 0  76 153; 153  76   0;
-                               255  51 153; 102   0 204;
-                                 0 255 255;   0 255   0;
-                               255 153 153; 255 204 153; 255 255 153; 153 255 153; 153 255 255; 153 153 255; 
-                               255 153 255; 255 178 102]./255;
-                out.(currentAtlas).area_names   = area_labels;
+        case 'benson14_varea' % Noah template: areas 
 
-            case 'benson14_varea' % Noah template: areas 
+            % Labels come from Noah email:  values in order from 1-12: V1 V2 V3 hV4 VO1 VO2 LO1 LO2 TO1 TO2 V3b V3a
+            area_labels = {'V1', ...
+                           'V2', ...
+                           'V3', ...
+                           'hV4', ...
+                           'VO1', 'VO2', ...
+                           'LO1', 'LO2', ...
+                           'TO1', 'TO2', ...
+                           'V3b', 'V3a'}; 
+            area_cmap   = [255   0   0; 
+                           255 128   0; 
+                           255 255   0; 
+                             0 128 255;
+                             0  76 153; 153  76   0;
+                             0 102  51; 153 153   0;  
+                           255  51 153; 102   0 204;
+                             0 255 255;   0 255   0]./255;
+            out.(currentAtlas).area_names   = area_labels;
 
-                % Labels come from Noah email:  values in order from 1-12: V1 V2 V3 hV4 VO1 VO2 LO1 LO2 TO1 TO2 V3b V3a
-                area_labels = {'V1', ...
-                               'V2', ...
-                               'V3', ...
-                               'hV4', ...
-                               'VO1', 'VO2', ...
-                               'LO1', 'LO2', ...
-                               'TO1', 'TO2', ...
-                               'V3b', 'V3a'}; 
-                area_cmap   = [255   0   0; 
-                               255 128   0; 
-                               255 255   0; 
-                                 0 128 255;
-                                 0  76 153; 153  76   0;
-                                 0 102  51; 153 153   0;  
-                               255  51 153; 102   0 204;
-                                 0 255 255;   0 255   0]./255;
-                out.(currentAtlas).area_names   = area_labels;
-                
-            case 'template_areas' % old Noah templates
-                
-                area_labels = {'V1', 'V2', 'V3'}; 
-                area_cmap   = [255 255 0; 0 255 255; 0 0 255]./255;
-                out.(currentAtlas).area_names   = area_labels;
+        case 'template_areas' % old Noah templates
 
-            otherwise
-                
-                switch specs.plotmesh
-                    case {'both', 'left', 'right'}
-                    
-                        fprintf('[%s] Loading colormap_%s \n',mfilename, currentAtlas);
-                        A = load(['colormap_' currentAtlas]);
-                        
-                        switch currentAtlas
-                            case 'benson14_eccen'
-                                area_cmap = A.cmap(15:end-200,2:4);
-                            otherwise
-                                area_cmap = A.cmap(:,2:4); 
-                                % actually different colormaps should be
-                                % used for left and right polar angle, but
-                                % not possible to implement for 'both
-                                % hemisphere ' plot
-                        end
+            area_labels = {'V1', 'V2', 'V3'}; 
+            area_cmap   = [255 255 0; 0 255 255; 0 0 255]./255;
+            out.(currentAtlas).area_names   = area_labels;
 
-                        %atlas_range = range(atlas);
-                        %cmap_index = round(linspace(1,length(area_cmap),atlas_range));
-                        %area_cmap = area_cmap(cmap_index,:);   
-                end
-        end
+        otherwise
+
+            switch specs.plotmesh
+                case {'both', 'left', 'right'}
+
+                    fprintf('[%s] Loading colormap_%s \n',mfilename, currentAtlas);
+                    A = load(['colormap_' currentAtlas]);
+
+                    switch currentAtlas
+                        case 'benson14_eccen'
+                            area_cmap = A.cmap(15:end-200,2:4);
+                        otherwise
+                            area_cmap = A.cmap(:,2:4); 
+                            % actually different colormaps should be
+                            % used for left and right polar angle, but
+                            % not possible to implement for 'both
+                            % hemisphere ' plot
+                    end
+
+                    %atlas_range = range(atlas);
+                    %cmap_index = round(linspace(1,length(area_cmap),atlas_range));
+                    %area_cmap = area_cmap(cmap_index,:);   
+            end
+    end
         
-        % Get area labels and specs for matched nodes
-        switch currentAtlas
-            case {'wang2015_atlas', 'wang15_mplbl', 'benson14_varea', 'template_areas'}
+    % Get area labels and specs for matched nodes
+    switch currentAtlas
+        case {'wang2015_atlas', 'wang15_mplbl', 'benson14_varea', 'template_areas'}
 
-                area_count = zeros(1,length(area_labels));
-                for i = 1:length(elec_labels_found)
-                    area_count(atlas_elec(elec_indices(i))) = area_count(atlas_elec(elec_indices(i))) + 1;
-                end
-                area_labels_found = area_labels(round(atlas_elec(elec_indices)));
+            area_count = zeros(1,length(area_labels));
+            for i = 1:length(elec_labels_found)
+                area_count(atlas_elec(elec_indices(i))) = area_count(atlas_elec(elec_indices(i))) + 1;
+            end
+            area_labels_found = area_labels(round(atlas_elec(elec_indices)));
 
-                out.(currentAtlas).area_count   = area_count;
-                out.(currentAtlas).elec_labels  = elec_labels_found';
-                out.(currentAtlas).area_labels  = area_labels_found;
-                out.(currentAtlas).node_indices = node_indices;
-                atlasUnits = 'visual area';
+            out.(currentAtlas).area_count   = area_count;
+            out.(currentAtlas).elec_labels  = elec_labels_found';
+            out.(currentAtlas).area_labels  = area_labels_found;
+            out.(currentAtlas).node_indices = node_indices;
+            atlasUnits = 'visual area';
 
-            case 'benson14_eccen'
-                out.benson14_varea.node_eccen = round(atlas(out.benson14_varea.node_indices),2)';
-                atlasUnits = 'degrees';
-                % bin eccentricity values?
-%                atlas_rh = ceil(atlas_rh);
-%                atlas_lh = ceil(atlas_lh);
-%                atlas_rh(atlas_rh > 20) = 20;
+        case 'benson14_eccen'
+            out.benson14_varea.node_eccen = round(atlas(out.benson14_varea.node_indices),2)';
+            atlasUnits = 'degrees';
 
-            case 'benson14_angle' 
-                out.benson14_varea.node_angle = round(atlas(out.benson14_varea.node_indices),2)';
-                atlasUnits = 'degrees';
-                % atlas(atlas>6) = 6.00;
+        case 'benson14_angle' 
+            out.benson14_varea.node_angle = round(atlas(out.benson14_varea.node_indices),2)';
+            atlasUnits = 'degrees';
+            % atlas(atlas>6) = 6.00;
 
-            case 'benson14_sigma'
-                out.benson14_varea.node_sigma = round(atlas(out.benson14_varea.node_indices),2)';
-                atlasUnits = 'degrees';
-        end
-    %else
-    %    fprintf('[%s] No electrodes in %s \n',mfilename, currentAtlas);
-    %    out.(currentAtlas) = [];
-    %end
-        
+        case 'benson14_sigma'
+            out.benson14_varea.node_sigma = round(atlas(out.benson14_varea.node_indices),2)';
+            atlasUnits = 'degrees';
+    end
+  
     % Plot
     switch plotmesh
         
@@ -409,31 +455,15 @@ for a = 1:length(specs.atlasNames)
             fig = figure('Name', [num2str(specs.pID) ' ' currentAtlas]); hold on;
             
             switch plotmesh
-                case 'both'          
-                    
-                    t_r = trimesh(faces_r+1, vertices_r(:,1), vertices_r(:,2), vertices_r(:,3), atlas_rh, 'FaceColor', 'flat'); 
-                    t_r.LineStyle = 'none';
-                    hold on;
-                    t_l = trimesh(faces_l+1, vertices_l(:,1), vertices_l(:,2), vertices_l(:,3), atlas_lh, 'FaceColor', 'flat'); 
-                    t_l.LineStyle = 'none';             
-                    
+                case 'both'                                                 
+                    plot_mesh(faces_r, vertices_r, atlas_rh, area_cmap);
+                    plot_mesh(faces_l, vertices_l, atlas_lh, area_cmap);
                 case 'left'
-
-                    t_l = trimesh(faces_l+1, vertices_l(:,1), vertices_l(:,2), vertices_l(:,3), atlas_lh, 'FaceColor', 'flat'); 
-                    t_l.LineStyle = 'none';             
-                
+                    plot_mesh(faces_l, vertices_l, atlas_lh, area_cmap);
                 case 'right'
-                    
-                    % Plot mesh
-                    t_r = trimesh(faces_r+1, vertices_r(:,1), vertices_r(:,2), vertices_r(:,3), atlas_rh, 'FaceColor', 'flat'); 
-                    t_r.LineStyle = 'none';
-                    
+                    plot_mesh(faces_r, vertices_r, atlas_rh, area_cmap);   
             end
-            
-            axis equal; hold on;
-            cmap = [[1 1 1]*.7; area_cmap];
-            colormap(gcf,cmap);
-                        
+                                     
              % Clip Benson atlases (results in better colormap scaling)
             switch currentAtlas
                 case 'benson14_eccen'
@@ -484,10 +514,6 @@ for a = 1:length(specs.atlasNames)
             plot_electrodes(elec_xyz(elec_plotindex,:), [1 1 1]*0.2,2);
             plot_electrodes(elec_xyz(elec_indices,:), [0 0 0],2);
 
-%             % Plot matched nodes
-%             plot_electrodes(vertices(indices(elec_plotindex),:), [1 1 1]*0.8, 1);
-%             plot_electrodes(vertices(indices(elec_indices),:), [1 1 1], 1);
-%             
             switch plotlabel
                 case 'yes'
                     for i = 1:size(elec_xyz(elec_plotindex,:),1)
@@ -495,24 +521,12 @@ for a = 1:length(specs.atlasNames)
                         text('Position',[x y z],'String',elec_labels(elec_plotindex(i),:),'Color','w','VerticalAlignment','top');
                     end
             end
-            
-        otherwise
-            % do nothing
     end
            
     if exist('fig','var')
-        
+
         % Set view parameters
-        axis off; set(gcf, 'color','white','InvertHardCopy', 'off');
-        view(0,0);
-        material dull;
-
-        h=light; lightangle(h,  45, 45); lighting gouraud;
-        h=light; lightangle(h, -45, 45); lighting gouraud;
-        h=light; lightangle(h, -45, -90); lighting gouraud;
-
-        set(gcf, 'Position', [150 100 1500 1250]);
-        axis tight
+        set_view(gcf)
     end
 end
 
@@ -562,10 +576,31 @@ function plot_electrodes(xyz, color, radius)
        s = surface(xyz(ii,1)+x, xyz(ii,2)+y, xyz(ii,3)+z, 'FaceColor', color, 'EdgeColor', 'none', 'AmbientStrength',0.7);
        s.CDataMapping = 'direct';
     end
-    %shading interp;
-    %lighting gouraud;
-    %material dull;
-    %light;
+end
+
+function plot_mesh(faces, vertices, atlas, area_cmap)
+
+    t = trimesh(faces+1, vertices(:,1), vertices(:,2), vertices(:,3), atlas, 'FaceColor', 'flat'); 
+    t.LineStyle = 'none';
+    
+	axis equal; hold on;
+    cmap = [[1 1 1]*.7; area_cmap];
+    colormap(gcf,cmap);    
+end
+
+function set_view(gcf)
+    
+    axis off; set(gcf, 'color','white','InvertHardCopy', 'off');
+    view(0,0);
+    material dull;
+
+    h=light; lightangle(h,  45, 45); lighting gouraud;
+    h=light; lightangle(h, -45, 45); lighting gouraud;
+    h=light; lightangle(h, -45, -90); lighting gouraud;
+
+    set(gcf, 'Position', [150 100 1500 1250]);
+    axis tight
+    
 end
 
 function [x, y, z] = adjust_elec_label(xyz,radius)
