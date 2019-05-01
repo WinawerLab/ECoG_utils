@@ -16,9 +16,10 @@ function [out] = electrode_to_nearest_node(specs, varargin)
 %                     not found in default, looks in Raw ECoG data folder
 %                     (/Volumes/server/Projects/BAIR/Data/Raw/ECoG).
 % specs.fsDir       = freesurfer directory of patient (include full path);
-%                     should contain the wang and benson atlases that can
-%                     be obtained through the nben/neuropythy docker >
-%                     default /Volumes/server/Freesurfer_subjects/som
+%                     default: /Volumes/server/Freesurfer_subjects/som
+%                     for plotting atlases, the freesurfer directory should 
+%                     contain the wang and benson atlases that can be 
+%                     obtained through the nben/neuropythy docker
 % specs.atlasNames  = list of atlases to match electrode locations with.
 %                     Current options are (default = all):
 %                                         {'wang2015_atlas', ...
@@ -239,10 +240,10 @@ else
     return
 end
 
-% match the electrode xyz with the nodes in the surfaces; find nearest
+% Match the electrode xyz with the nodes in the surfaces; find nearest
 [indices, bestSqDist] = nearpoints(elec_xyz', vertices'); % function from vistasoft
 
-% ignore electrodes that are more than [thresh] away from any surface node
+% Ignore electrodes that are more than [thresh] away from any surface node
 keep_idx = find(bestSqDist<specs.thresh);
 indices = indices(keep_idx);
 elec_xyz = elec_xyz(keep_idx,:);
@@ -253,8 +254,9 @@ out.patientID = specs.pID;
 % Generate figures
 
 % First, plot electrodes on brain without any atlases
-fig = figure('Name', [num2str(specs.pID)]); hold on;
+fig = figure('Name', specs.pID); hold on;
 
+% Plot pial surface as mesh
 switch plotmesh
     case 'both'                                                 
         plot_mesh(faces_l, vertices_l, ones([1 1 size(vertices_l,1)]), []);
@@ -265,6 +267,7 @@ switch plotmesh
         plot_mesh(faces_r, vertices_r, ones([1 1 size(vertices_r,1)]), []);   
 end
 
+% Add the electrodes
 switch plotelecs        
     case 'yes'            
         if ~exist('fig','var')
@@ -289,7 +292,8 @@ switch plotelecs
         % Plot electrodes
         plot_electrodes(elec_xyz(elec_plotindex,:), [1 1 1]*0.2,2);
         plot_electrodes(elec_xyz(elec_indices,:), [0 0 0],2);
-
+        
+        % Add electrode labels
         switch plotlabel
             case 'yes'
                 for i = 1:size(elec_xyz(elec_plotindex,:),1)
@@ -304,9 +308,7 @@ if exist('fig','var')
     set_view(gcf)
 end
 
-% Then, match electrodes with each atlas and make figure if there are
-% matches
-
+% Then, match electrodes with each atlas; make figure if requested
 for a = 1:length(specs.atlasNames)
     
     currentAtlas = specs.atlasNames{a};
@@ -524,14 +526,12 @@ for a = 1:length(specs.atlasNames)
     end
            
     if exist('fig','var')
-
         % Set view parameters
         set_view(gcf)
     end
 end
 
-% Print to window how many maps were found, and
-% make a count per area (across hemispheres)
+% Print to window how many maps were found, and make a count per area (across hemispheres)
 
 % Check which of these atlases we ran
 atlasNames = intersect({'wang2015_atlas','wang15_mplbl', 'benson14_varea', 'template_areas'}, specs.atlasNames);
@@ -566,7 +566,9 @@ for a = 1:length(atlasNames)
     end
 end
 
-function plot_electrodes(xyz, color, radius)
+%%% SUBFUNCTIONS %%%%
+
+function plot_electrodes(xyz, color, radius)   
     [x, y, z] = sphere;
     if ~exist('radius', 'var'), radius = 2; end
         x = radius * x;
@@ -579,50 +581,39 @@ function plot_electrodes(xyz, color, radius)
 end
 
 function plot_mesh(faces, vertices, atlas, area_cmap)
-
     t = trimesh(faces+1, vertices(:,1), vertices(:,2), vertices(:,3), atlas, 'FaceColor', 'flat'); 
-    t.LineStyle = 'none';
-    
+    t.LineStyle = 'none';    
 	axis equal; hold on;
     cmap = [[1 1 1]*.7; area_cmap];
     colormap(gcf,cmap);    
 end
 
 function set_view(gcf)
-    
     axis off; set(gcf, 'color','white','InvertHardCopy', 'off');
     view(0,0);
     material dull;
-
     h=light; lightangle(h,  45, 45); lighting gouraud;
     h=light; lightangle(h, -45, 45); lighting gouraud;
     h=light; lightangle(h, -45, -90); lighting gouraud;
-
     set(gcf, 'Position', [150 100 1500 1250]);
-    axis tight
-    
+    axis tight    
 end
 
 function [x, y, z] = adjust_elec_label(xyz,radius)
-
     if ~exist('radius','var')
         radius = 2;
     end
-
     if xyz(1)>0
         x = xyz(1)+radius;
     else
         x = xyz(1)-radius;
     end
-
     if xyz(3)>0
         z = xyz(3)+radius;
     else
         z = xyz(3)-radius;
     end
-
     y = xyz(2);
-
 end
 
 
