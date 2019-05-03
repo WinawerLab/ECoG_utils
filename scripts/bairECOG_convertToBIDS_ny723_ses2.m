@@ -21,10 +21,9 @@ BIDSDataDir = '/Volumes/server/Projects/BAIR/Data/BIDS/';
 % BIDS specs
 projectName = 'visual';
 sub_label   = ['som' num2str(patientID)]; 
-ses_label   = 'nyuecog01';
+ses_label   = 'nyuecog02';
 ses_labelt1 = 'som3t01';
-task_label  = {'hrfpattern', ...
-               'prf',...
+task_label  = {'prf',...
                'prf', ...
                'spatialpattern', ...
                'spatialpattern', ...
@@ -40,7 +39,7 @@ task_label  = {'hrfpattern', ...
                'temporalpattern', ...
                'hrfpattern', ...
               };              
-run_label = {'01','01','02','01','02','01','02','01','02','03','04','03','04','03','04', '02'};
+run_label = {'01','02','01','02','01','02','01','02','03','04','03','04','03','04', '02','01'};
 
 % Make plots?
 makePlots = 1;
@@ -75,20 +74,6 @@ t = ((0:hdr.nSamples-1)/hdr.Fs);
 % Plot the raw voltage time course of each channel
 if makePlots, for cChan = size(data,1):-1:1; figure;plot(t,data(cChan,:)); title([num2str(cChan) ': ' hdr.label{cChan}]); waitforbuttonpress; close; end; end
 
-% Generate spectral plot; check command window output for outliers; 
-inx_notEEGchans = find(contains(hdr.chantype, 'ecg'));
-inx_DCchans = find(contains(hdr.label, 'DC'));
-chansToPlot = setdiff(1:length(hdr.label),[inx_notEEGchans; inx_DCchans; badChannels']);
-[outliers] = ecog_plotChannelSpectra(data, chansToPlot,hdr);
-
-% NOTE: outliers (identified as channels with mean power that is more that
-% two standard deviations above or below the average across channels) should
-% not be used to automatically identify bad channels, because channels with
-% strong activation can have higher power on average! Instead, look at
-% the time courses of those channels again to see what makes them stand out:
-
-if makePlots, for cChan = 1:length(outliers);figure; plot(t, data(outliers(cChan),:)); title([num2str(outliers(cChan)) ': ' hdr.label{outliers(cChan)}]); end; end
-
 % WRITE DOWN THE FOLLOWING
 
 % Trigger channel: index for the trigger channel (probably one labeled 'DC', see hdr.label)
@@ -104,6 +89,20 @@ badChannelsDescriptions = repmat({'bad'}, [length(badChannels) 1]);%{'subgenual'
 goodChannels = setdiff(chansToPlot,badChannels)';
 
 % CHECK THE CHANNEL SELECTIONS
+
+% Generate spectral plot; check command window output for outliers; 
+inx_notEEGchans = find(contains(hdr.chantype, 'ecg'));
+inx_DCchans = find(contains(hdr.label, 'DC'));
+chansToPlot = setdiff(1:length(hdr.label),[inx_notEEGchans; inx_DCchans; badChannels']);
+[outliers] = ecog_plotChannelSpectra(data, chansToPlot,hdr);
+
+% NOTE: outliers (identified as channels with mean power that is more that
+% two standard deviations above or below the average across channels) should
+% not be used to automatically identify bad channels, because channels with
+% strong activation can have higher power on average! Instead, look at
+% the time courses of those channels again to see what makes them stand out:
+
+if makePlots, for cChan = 1:length(outliers);figure; plot(t, data(outliers(cChan),:)); title([num2str(outliers(cChan)) ': ' hdr.label{outliers(cChan)}]); end; end
 
 % Check the powerplot of all the good channels, no leftover outliers?
 if makePlots, ecog_plotChannelSpectra(data, goodChannels, hdr); end
