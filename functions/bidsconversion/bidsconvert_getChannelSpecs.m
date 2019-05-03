@@ -36,11 +36,11 @@ if max(contains(hdr.label, 'REF')) == 1
                 if length(inx) == 1
                     elecInx(ii) = inx;
                 elseif length(inx) < 1
-                    fprintf('Warning: could not match channel %s with electrode information! \n', chanName);
+                    fprintf('[%s] Warning: could not find coordinates for channel %s with electrode information! \n', mfilename, chanName);
                     chanNames{ii} = chanName;
                     chanTypes{ii} = 'unknown';
                 elseif length(inx) > 1
-                    error('Multiple matches for channel %s with electrode information! \n', chanName);
+                    error('[%s] Multiple coordinates found for channel %s! \n', mfilename, chanName);
                 end
                 chanNames{ii} = chanName;
             case 'ECG'   
@@ -83,11 +83,11 @@ else
                 elecInx(ii) = inx;
                 chanNames{ii} = elecList{inx};
             elseif length(inx) < 1
-                fprintf('Warning: could not match channel %s! \n', chanName);
+                fprintf('[%s] Warning: could not find coordinates for channel %s! \n', mfilename, chanName);
                 chanNames{ii} = chanName;
                 chanTypes{ii} = 'unknown';
             elseif length(inx) > 1
-                error('Multiple matches with channel %s! \n', chanName);
+                error('[%s] Multiple coordinates found for channel %s! \n', mfilename, chanName);
             end
         end
     end
@@ -107,7 +107,7 @@ for ii = 1:length(elecInx)
 end
 
 elecInx = elecInx(~isnan(elecInx));
-fprintf('Matched %d out of %d electrodes and %d channels \n', length(elecInx), length(elecList), length(hdr.label));
+fprintf('[%s] Found coordinates for %d out of %d electrodes and %d channels \n', mfilename, length(elecInx), length(elecList), length(hdr.label));
 
 
 
