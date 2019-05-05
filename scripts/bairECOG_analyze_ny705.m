@@ -45,9 +45,9 @@ visualelectrodes    = electrode_to_nearest_node(specs, dataDir);
 
 % Which electrodes to plot? (Each electrode gets a subplot)
 whichElectrodes = trials.channels.name(contains(trials.channels.name, 'GB'));
-whichElectrodes = [{''};{''};whichElectrodes];
+whichElectrodes = [{'GB1-nodata'};{'GB2-nodata'};whichElectrodes];
 %whichElectrodes = {'GB23','GB35','GB36','GB37', 'GB38' 'GB53', 'GB69','GB70','GB71','GB85','GB86','GB87'};
-%whichElectrodes = {'GB53'};
+whichElectrodes = {'GB23', 'GB35', 'GB85', 'GB71'};
 
 % Which stimulus conditions to plot? 
 %whichTrials = {}; % if empty, plot average of all trials
@@ -59,24 +59,34 @@ whichTrials = {'CLENCH'};
 % 'out' contains the plotted time courses and SEs
 
 % PLOT time course for each condition
+% specs
 specs = [];
 specs.dataTypes          = {'broadband'};
 specs.smoothingLevelInMs = [];
 specs.collapseTrialTypes = 'no';
 specs.baselineType       = 'selectedtrials';%'selectedtrials';
+% plot specs
 specs.plot.colorMap      = 'parula';
 specs.plot.nSubPlots     = [];
 specs.plot.addEccToTitle = 'yes';
 specs.plot.showMax       = 'no';
+specs.plot.fontSize      = 18;
+specs.plot.Xlim          = [trials.time(1) trials.time(end)];
 
-%inx = [1:8 17:24 33:40 49:56 65:72 81:88 97:104 113:120];
+
+[out] = ecog_plotTimecourses(trials, whichElectrodes, whichTrials, specs);
+
+%% TOP HALF oF HD GRID
 v = 1:16:113;
 inx = [v v+1 v+2 v+3 v+4 v+5 v+6 v+7];
 [out] = ecog_plotTimecourses(trials, whichElectrodes(inx), whichTrials, specs);
 
-inx = inx + 8; %inx = inx(1:length(inx)-2);
-[out] = ecog_plotTimecourses(trials, whichElectrodes(inx), whichTrials, specs);
+%% BOTTOM HALF OF HD GRID
+% inx = inx + 8; %inx = inx(1:length(inx)-2);
+% [out] = ecog_plotTimecourses(trials, whichElectrodes(inx), whichTrials, specs);
 
+%% OLD
+%inx = [1:8 17:24 33:40 49:56 65:72 81:88 97:104 113:120];
 %elecInx = 1:63:length(whichElectrodes)+63;
 % for ii = 1:length(elecInx)-1
 %     [out] = ecog_plotTimecourses(trials, whichElectrodes(elecInx(ii):elecInx(ii+1)-1), whichTrials, specs);

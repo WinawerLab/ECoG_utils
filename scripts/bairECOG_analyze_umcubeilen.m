@@ -10,8 +10,10 @@ ses_label = 'day03';
 
 %% Load preprocessed data
 
-dataToLoad = fullfile(anaDir, projectName, ['sub-' sub_label], ...
-    ['sub-' sub_label '_' 'ses-' ses_label '_epoched']);
+%dataToLoad = fullfile(anaDir, projectName, ['sub-' sub_label], ...
+%    ['sub-' sub_label '_' 'ses-' ses_label '_epoched']);
+
+dataToLoad = '/Volumes/server/Projects/BAIR/Data/BIDS/visual/derivatives/preprocessed/sub-umcubeilen/ses-day03/sub-beilen_ses-day03_epoched.mat';
 
 load(dataToLoad);
 
@@ -19,10 +21,12 @@ load(dataToLoad);
 
 % According to sub-beilen_acq-clinicalprojectedregions_electrodes.tsv: 
 % Electrodes with lateral-occipital coverage: 
-eltomatch = {'BT12'}; % 'OT07'
+%eltomatch = {'BT12'}; % 'OT07'
 % Electrodes with inferior-parietal coverage: 
 %eltomatch = {'BT16', 'OT08', 'OT16'};
 
+eltomatch = {'OT15'}; % 'OT07'
+%eltomatch = {'BT16'}; 
 signaltoplot = 'broadband';
 el = find(strcmp(eltomatch{1}, trials.label));
 

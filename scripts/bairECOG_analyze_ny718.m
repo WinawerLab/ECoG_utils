@@ -38,8 +38,8 @@ blanks = all{1}.blank_trials;
 %ElecsToExclude  = trials.channels.name(contains(trials.channels.status, 'bad'));
 
 % Which electrodes to plot? (Each electrode gets a subplot)
-elInx = trials.channels.name(contains(trials.channels.status, 'good'));
-
+%elInx = trials.channels.name(contains(trials.channels.status, 'good'));
+elInx = trials.channels.name(contains(trials.channels.name, 'DPMT'));
 % Which stimulus conditions to plot? 
 %whichTrials = {''}; % if empty, plot average of all trials
 %whichTrials = {'CRF','SPARSITY','ONEPULSE', 'TWOPULSE', 'GRATING', 'PLAID', 'CIRCULAR', 'HOUSES', 'FACES', 'LETTERS'}; % everything except prf
