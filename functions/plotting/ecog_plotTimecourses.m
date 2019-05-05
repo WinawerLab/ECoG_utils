@@ -27,11 +27,15 @@ if ~isfield(specs, 'collapseTrialTypes') || isempty(specs.collapseTrialTypes)
 end
 
 if ~isfield(specs, 'plot') || isempty(specs.plot)
-    specs.plot.colorMap      = 'copper';
-    specs.plot.nSubPlots     = [];
-    specs.plot.addEccToTitle = 'no';
-    specs.plot.showMax       = 'no';
+    specs.plot = [];
 end
+
+if ~isfield(specs.plot, 'colorMap') || isempty(specs.plot.colorMap), specs.plot.colorMap = 'copper'; end
+if ~isfield(specs.plot, 'nSubPlots') || isempty(specs.plot.nSubPlots), specs.plot.nSubPlots = []; end
+if ~isfield(specs.plot, 'addEccToTitle') || isempty(specs.plot.addEccToTitle), specs.plot.addEccToTitle = 'no'; end
+if ~isfield(specs.plot, 'showMax') || isempty(specs.plot.showMax), specs.plot.showMax = 'no'; end
+if ~isfield(specs.plot, 'fontSize') || isempty(specs.plot.fontSize), specs.plot.fontSize = 12; end
+if ~isfield(specs.plot, 'XLim') || isempty(specs.plot.XLim), specs.plot.XLim = [-0.2 1];end
 
 % Find electrodes in data
 el_index = ecog_matchChannels(whichElectrodes, trials);
@@ -42,15 +46,18 @@ if isempty(trialType)
     trialType = {'all'};
 	trial_index{1} = 1:size(trials.events,1);
     %baseline_index = vertcat(trial_index{:});
-    baseline_index = find(~contains(trials.events.task_name, {'prf'}));
+    baseline_index = find(~contains(lower(trials.events.task_name), {'prf'}));
 else
     for ii = 1:length(trialType)
         trial_index{ii} = find(contains(trials.events.trial_name, trialType{ii}));
         %trial_index{ii} = find(contains(trials.events.task_name, trialType{ii}));
     end
     %HACK
-    %trial_index{1} = trial_index{1}(33:64);
-    fprintf('[%s] Matching whichTrials to events.trial_name\n', mfilename)    
+%     trial_index{1} = 100:114;%trial_index{1}(33:64);
+%     trial_index{1} = 85:99;%trial_index{1}(33:64);
+%     trial_index{1} = 70:84;%trial_index{1}(33:64);
+%     trial_index{1} = 55:69;%trial_index{1}(33:64);
+%     fprintf('[%s] Matching whichTrials to events.trial_name\n', mfilename)    
     baseline_index = vertcat(trial_index{:});
         
     switch specs.collapseTrialTypes
@@ -88,6 +95,7 @@ for d = 1:length(specs.dataTypes)
     figureName = strsplit(trialType{1},'-');
     figure('Name', [figureName{1} ' ' thisDataType]); 
     
+    subplotWithLegendIndex = 1;
     for ii = 1:length(el_index)
 
         % Make a separate plot for each channel
@@ -95,9 +103,24 @@ for d = 1:length(specs.dataTypes)
         %subplot(ceil(sqrt(length(el_index))),floor(sqrt(length(el_index))), ii); hold on;
         %subplot(8,8,ii); hold on;
         
+        % Add x and y labels
+        if ii == 1
+            xlabel('time (s)');
+            switch thisDataType
+                case 'broadband'
+                    ylabel(['change in power ( ' num2str(min(trials.bb_bands(:))) '-' num2str(max(trials.bb_bands(:))) ' Hz)']);
+                case 'evoked'
+                    ylabel('evoked response amplitude');
+            end
+        end
+        
+        % Check if we have data to plot for this electrode, if not, go on
+        % to the next one
         if el_index(ii)>0
             elData = squeeze(trials.(thisDataType)(el_index(ii),:,:));
         else
+            subplotWithLegendIndex = subplotWithLegendIndex+1;
+            set(gca, 'FontSize', specs.plot.fontSize);
             continue
         end
         
@@ -145,15 +168,6 @@ for d = 1:length(specs.dataTypes)
         % Plot means
         for jj = 1:length(trial_index)
             plot(trials.time, mnToPlot(:,jj),'Color', colors(jj,:), 'LineWidth',2);
-        end
-        if ii == 1
-            xlabel('time (s)');
-            switch thisDataType
-                case 'broadband'
-                    ylabel(['change in power ( ' num2str(min(trials.bb_bands(:))) '-' num2str(max(trials.bb_bands(:))) ' Hz)']);
-                case 'evoked'
-                    ylabel('evoked response amplitude');
-            end
         end
         
         % Plot max
@@ -220,28 +234,32 @@ for d = 1:length(specs.dataTypes)
         %ylim = [lim(1)-(0.2*lim(1)*sign(lim(1))) lim(2)+(0.2*lim(2)*sign(lim(2)))];
         ylim = [-0.5 4];
         set(gca, 'YLim', ylim);
-
-        % Add stim onset and zero lines
-        line([0 0], ylim,'LineStyle', ':', 'Color', 'k');
-        line([trials.time(1) trials.time(end)], [0 0],'LineStyle', ':', 'Color', 'k');
-
+        
         % Add legend
-        if ii == 1
+        if ii == subplotWithLegendIndex 
             switch specs.collapseTrialTypes
-                case 'no'
-                    legend(trialType);
-                case 'yes'
-                    legend([trialType{:}])
+                    case 'no'
+                        legend(trialType);
+                    case 'yes'
+                        legend([trialType{:}])
             end
         end
         
+        % Add stim onset and zero lines
+        l1 = line([0 0], ylim,'LineStyle', ':', 'Color', 'k');
+        set(get(get(l1,'Annotation'),'LegendInformation'),'IconDisplayStyle','off'); 
+        l2 = line([trials.time(1) trials.time(end)], [0 0],'LineStyle', ':', 'Color', 'k');
+        set(get(get(l2,'Annotation'),'LegendInformation'),'IconDisplayStyle','off'); 
+        
+        % Save plotted lines in an output struct
         out.(thisDataType).(whichElectrodes{ii}).mn = double(mnToPlot');
         out.(thisDataType).(whichElectrodes{ii}).se = double((Ulim-mnToPlot)');
-        set(gca, 'XLim', [-0.2 1]);
+        set(gca, 'XLim', specs.plot.XLim);
         %set(gca, 'XLim', [-0.5 3]);
-        %set(gca, 'FontSize', specs.plot.fontSize);
-        set(gca, 'FontSize', 10);
-
+        
+        % Set font size
+        set(gca, 'FontSize', specs.plot.fontSize);
+        
     end
     set(gcf, 'Position', [150 100 2000 1250]);
     %set(gcf, 'Position', [150 100 750 625]);

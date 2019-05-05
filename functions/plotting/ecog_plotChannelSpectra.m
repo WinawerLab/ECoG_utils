@@ -38,18 +38,34 @@ outliers = [];
 idx = find(mn>(mean(mn,2)+2*sd));
 if ~isempty(idx)
     disp('Two SD above the mean:');
-    disp(idx);
-    disp(hdr.label(idx));
-    outliers = [outliers idx];
+    disp(chan_select(idx));
+    disp(hdr.label(chan_select(idx)));
+    outliers = [outliers chan_select(idx)];
 end
 
 idx = find(mn<(mean(mn,2)-2*sd));
 if ~isempty(idx)
     disp('Two SD below the mean:');
-    disp(idx);
-    disp(hdr.label(idx));
-    outliers = [outliers idx];
+    disp(chan_select(idx));
+    disp(hdr.label(chan_select(idx)));
+    outliers = [outliers chan_select(idx)];
 end
+
+% idx = find(mn>(mean(mn,2)+2*sd));
+% if ~isempty(idx)
+%     disp('Two SD above the mean:');
+%     disp(idx);
+%     disp(hdr.label(idx));
+%     outliers = [outliers idx];
+% end
+% 
+% idx = find(mn<(mean(mn,2)-2*sd));
+% if ~isempty(idx)
+%     disp('Two SD below the mean:');
+%     disp(idx);
+%     disp(hdr.label(idx));
+%     outliers = [outliers idx];
+% end
 
 end
 

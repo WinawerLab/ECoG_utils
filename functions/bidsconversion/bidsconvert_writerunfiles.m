@@ -30,7 +30,7 @@ nDecimals = 4; % Specify temporal precision of time stamps in events files
 [ieeg_json, json_options] = createBIDS_ieeg_json_nyuSOM();
 
 % Add a count of all the channels (based on channel_table)
-[ieeg_json] = bidsconvert_addChannelCounts(ieeg_json, channel_table);
+[ieeg_json] = bidsconvert_addchannelcounts(ieeg_json, channel_table);
 
 % If patient was collected at the OLD SOM location, overwrite the
 % Manufacturers Model Name:

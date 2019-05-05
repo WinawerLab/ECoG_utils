@@ -31,7 +31,7 @@ else
     elec_types = replace(elec_types, 'S', 'surface');
 
     % Match elec names; sort coordinates and electrode types based on matching
-    [elecInx, chanNames, chanTypes, chanUnits] = bidsconvert_getChannelSpecs(hdr, elec_labels, elec_types);
+    [elecInx, chanNames, chanTypes, chanUnits] = bidsconvert_getchannelspecs(hdr, elec_labels, elec_types);
 end
 
 % Generate an  electrodes table with SOM defaults
