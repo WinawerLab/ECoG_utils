@@ -16,6 +16,7 @@ preprocDir     = fullfile(BIDSDataDir, projectName, 'derivatives', 'preprocessed
 if ~exist(dataWriteDir, 'dir'); mkdir(dataWriteDir);end
 if ~exist(stimWriteDir, 'dir'); mkdir(stimWriteDir);end
 if ~exist(T1WriteDir, 'dir'); mkdir(T1WriteDir);end
-if ~exist(preprocDir, 'dir'); mkdir(preprocDir); mkdir(fullfile(preprocDir, 'figures', 'bidsconversion')); end
+if ~exist(preprocDir, 'dir'); mkdir(preprocDir);end
+if ~exist(fullfile(preprocDir, 'figures', 'bidsconversion'), 'dir'); mkdir(fullfile(preprocDir, 'figures', 'bidsconversion')); end
 
 end
