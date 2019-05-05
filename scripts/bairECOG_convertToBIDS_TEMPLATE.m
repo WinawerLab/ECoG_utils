@@ -14,7 +14,7 @@ end
 %% Define paths and BIDS specs %%
 
 % Input paths specs
-patientID   = []; % Specify patient's raw folder name here
+patientID   = 723; % Specify patient's raw folder name here
 RawDataDir  = '/Volumes/server/Projects/BAIR/Data/Raw/ECoG/';
 BIDSDataDir = '/Volumes/server/Projects/BAIR/Data/BIDS/';
 
@@ -56,6 +56,17 @@ makePlot = 1;
 % Read ECoG data
 [data, hdr] = bidsconvert_readecogdata(dataReadDir, ses_label);
 
+% PATIENTSPECIFIC HACK %%
+% For 723, there's a mismatch for one set of electrodes that are labeled
+% 'RDS' in the data, but 'RDSI' in the electrode coordinates provided by
+% SoM. Hack by overwriting names in the hdr:
+INX = find(contains(hdr.label, 'RDS')); 
+for ii = 1:length(INX)
+    oldlabel = hdr.label{INX(ii)};
+    newlabel = [oldlabel(1:3) 'I' oldlabel(4:end)];
+    hdr.label{INX(ii)} = newlabel;
+end
+
 %% START OF MANUAL SECTION %%
 
 % Manually click through each channel to identify to trigger channel, as
@@ -86,10 +97,38 @@ triggerChannelName = 'DC1';
     % Second column: indicate reason why marked as bad (optional)
         % (status channels and SG, DC, ECG will be excluded automatically)
 
-% EXAMPLE
 BADCHANNELS_MANUALTABLE = {...
-    1, 'spikes';
-    2, 'spikes';};
+    31, 'spikes';
+    46, 'spikes';
+    64, 'spikes';
+    82, 'spikes';
+    83, 'spikes';
+    85, 'spikes';
+    88, 'spikes';
+    99, 'spikes';
+    115, 'spikes';
+    116, 'spikes';
+    117, 'spikes';
+    118, 'spikes';
+    119, 'spikes';
+    121, 'spikes';
+    138, 'spikes';
+    144, 'spikes';
+    145, 'spikes';
+    146, 'spikes';
+    147, 'spikes';
+    150, 'spikes';
+    151, 'spikes';
+    152, 'spikes';
+    153, 'spikes';
+    154, 'spikes';
+    155, 'spikes';
+    156, 'spikes'};
+
+% PATIENT SPECIFIC notes:
+% There were a substantial number of electrodes with a strong low frequency
+% component (kind of like 'drift'), not sure if those are bad for CAR so I
+% just left them in for now (not labeled as bad)
 
 %% CHECK THE CHANNEL SELECTIONS
 
@@ -107,7 +146,8 @@ end
 
 % Check the timeseries of all the good channels, no noisy moments?
 if makePlot 
-    figure;plot(t,data(chansToPlot,:)); xlabel('Time (s)'); ylabel('Raw amplitude (microV)'); title('all good channels'); set(gca,'fontsize',16); 
+    figure('Name', 'Good channels time course');
+    plot(t,data(chansToPlot,:)); xlabel('Time (s)'); ylabel('Raw amplitude (microV)'); title('all good channels'); set(gca,'fontsize',16); 
     % Get trigger time points from data file
     [trigger_onsets] = bidsconvert_findtriggers(data, hdr, triggerChannel, 0);
     hold on; plot(trigger_onsets, ones(length(trigger_onsets),1),'k.','MarkerSize', 25, 'LineStyle','none');
@@ -124,7 +164,8 @@ end
 
 if makePlot 
     for cChan = 1:length(outliers)
-        figure; plot(t, data(outliers(cChan),:)); 
+        figure('Name', sprintf('Outlier %d', cChan)); 
+        plot(t, data(outliers(cChan),:)); 
         title([num2str(outliers(cChan)) ': ' hdr.label{outliers(cChan)}]); 
         xlabel('Time (s)'); ylabel('Raw amplitude (microV)'); set(gca,'fontsize',16); 
     end 
@@ -138,12 +179,18 @@ end
 
 % Get trigger time points from data file
 [trigger_onsets] = bidsconvert_findtriggers(data, hdr, triggerChannel, makePlot);
+if makePlot
+    saveas(gcf, fullfile(preprocDir, 'figures', 'bidsconversion', sprintf('%s-%s-triggers_found',sub_label, ses_label)), 'epsc');
+end
 
 % Generate electrode files
 [electrode_table, channel_table] = bidsconvert_getelectrodefiles(dataReadDir, hdr, triggerChannel, badChannels, badChannelsDescriptions);
 
 % Read in stimulus files
-[stimData] = bidsconvert_matchstimulusfiles(dataReadDir, patientID, ses_label, task_label, run_label, trigger_onsets, makePlot);
+[stimData] = bidsconvert_matchstimulusfiles(dataReadDir, patientID, ses_label, task_label, run_label, trigger_onsets, 1);
+if makePlot
+    saveas(gcf, fullfile(preprocDir, 'figures', 'bidsconversion', sprintf('%s-%s-triggers_requested',sub_label, ses_label)), 'epsc');
+end
 
 %% WRITING OF FILES %%%
 

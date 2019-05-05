@@ -21,6 +21,7 @@ end
 % thing is that when you click on the lines it returns the channel numbers
 figure;
 spectopo(data(chan_select,:),size(data,2),hdr.Fs);
+set(gcf, 'Name', 'Good channels spectra');
 
 % This is another way to look at the power spectum and make a plot. This
 % returns the frequency (f) and power (pxx) and you can check for outliers.

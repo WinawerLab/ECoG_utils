@@ -1,7 +1,7 @@
-function [trigger_onsets] = bidsconvert_findtriggers(data, hdr, triggerChannel, makePlots)
+function [trigger_onsets] = bidsconvert_findtriggers(data, hdr, triggerChannel, makePlot)
 
 if nargin < 4 
-    makePlots = 0;
+    makePlot = 0;
 end
 
 % Get trigger time points from data file
@@ -12,13 +12,14 @@ t = ((0:hdr.nSamples-1)/hdr.Fs);
 fprintf('[%s] Reading triggers from data \n', mfilename);
 [~,trigger_onsets] = findpeaks(triggers, hdr.Fs, 'MinPeakHeight', 0.8, 'MinPeakDistance', 0.5);
 
-if makePlots 
-    figure;hold on
-    %plot(t,data(triggerChannel,:))
+if makePlot 
+    figure('Name', 'Found triggers'); hold on;
     plot(t,triggers);
     plot(trigger_onsets, ones(length(trigger_onsets),1),'r.','MarkerSize', 25, 'LineStyle','none');
     %stem(trigger_onsets,ones(length(trigger_onsets),1)*(max(data(triggerChannel,:))),'r');
     legend({'trigger data', 'trigger onsets'}); xlabel('time (s)'); ylabel('amplitude');
+    title('found triggers');
+    xlabel('Time (s)'); set(gca, 'FontSize', 12);
 end
 fprintf('[%s] Found %d triggers in total \n', mfilename, length(trigger_onsets));
 

@@ -46,13 +46,13 @@ end
 % CHECK: Does the trigger structure match the tasks?
 if makePlot
     subPlotDims = ceil(sqrt(length(stimMatFiles)));
-    figure; hold on;
+    figure('Name', 'Requested triggers'); hold on;
 	set(gcf, 'Position', [150 100 1500 1250]);
     for ii = 1:length(stimMatFiles)   
         subplot(subPlotDims,subPlotDims,ii); hold on
         plot(stimData_sorted(ii).stimulus.seqtiming, stimData_sorted(ii).stimulus.trigSeq, 'o-')
         title(sprintf('%s-%s', task_label{ii}, run_label{ii}));
-        xlabel('Time (s)'); ylabel('Requested triggers'); set(gca, 'FontSize', 12);
+        xlabel('Time (s)'); set(gca, 'FontSize', 12);
     end
 end
 
