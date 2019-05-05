@@ -8,8 +8,12 @@ function [out] = electrode_to_nearest_node_fsaverage(specs)
 pID    = specs.pID;
 thresh = specs.thresh;
 
-if isempty(thresh)
+if isempty(specs.thresh)
     thresh = inf;
+end
+
+if ~isfield(specs, 'fsDir') || isempty(specs.fsDir)
+    specs.fsDir = fullfile(filesep, 'Volumes', 'server', 'Freesurfer_subjects'); 
 end
 
 plotlabel = specs.plotlabel;
@@ -19,7 +23,7 @@ plotmesh  = specs.plotmesh;
 disp(['running patient ' num2str(pID)]);
 
 % Read electrode coordinate file from BAIR/ECOG directory
-elec_file = specs.elecFile;
+%elec_file = specs.elecFile;
 
 switch specs.patientPool
     case 'BAIR'
@@ -46,9 +50,9 @@ switch specs.patientPool
     case 'SOM'
         
         % check which directory patient is in main BAIR directory, if not find it in SoM
-        patientDir = '/Volumes/server/Projects/BAIR/ECoG/';
+        patientDir = '/Volumes/server/Projects/BAIR/Data/Raw/ECoG/';
         if ~isdir([patientDir num2str(pID)])
-            patientDir = '/Volumes/server/Projects/BAIR/ECoG/SoM/';
+            patientDir = '/Volumes/server/Projects/BAIR/Data/Raw/ECoG/SoM/';
             if ~isdir([patientDir num2str(pID)])
                 disp('patient directory not found - exiting');
                 out = [];
@@ -77,6 +81,9 @@ end
 surf_file_rh = ['/Volumes/server/Freesurfer_subjects/fsaverage_sym/surf/rh.pial'];
 surf_file_lh = ['/Volumes/server/Freesurfer_subjects/fsaverage_sym/surf/lh.pial'];
 
+%surf_file_rh = fullfile(specs.fsDir, sprintf('som%s', specs.pID), 'surf', 'rh.pial');
+%surf_file_lh = fullfile(specs.fsDir, sprintf('som%s', specs.pID), 'surf', 'lh.pial');
+
 if exist(surf_file_rh, 'file') && exist(surf_file_lh, 'file')
     [vertices_r, faces_r] = read_surf(surf_file_rh);
     [vertices_l, faces_l] = read_surf(surf_file_lh);
@@ -99,7 +106,9 @@ elec_xyz = elec_xyz(keep_idx,:);
 atlasNames = {'wang2015_atlas'};%;,'template_areas', 'template_angle', 'template_eccen'};
 
 for a = 1:length(atlasNames)
-    
+	
+    currentAtlas = atlasNames{a};
+
     % get atlas label names
     if a == 1 % Wang atlas
         % Labels from: '/Volumes/server/Projects/Kastner2015Atlas/ProbAtlas_v4/ROIfiles_Labeling.txt';
@@ -114,17 +123,17 @@ for a = 1:length(atlasNames)
         area_labels = num2cell(0:90);
     end
 
-    % get atlases for this subject
-    atlas_file_rh = [specs.fsDir '/surf/rh.' atlasNames{a} '.mgz'];
-    atlas_file_lh = [specs.fsDir '/surf/lh.' atlasNames{a} '.mgz'];
-    if exist(atlas_file_rh, 'file') && exist(atlas_file_lh, 'file')
-        [atlas_rh] = load_mgh(atlas_file_rh);
-        [atlas_lh] = load_mgh(atlas_file_lh);
-    else
-        disp('no atlas annotations found - exiting');
-        out = [];
-        return
-    end
+%     % get atlases for this subject
+%     atlas_file_rh = fullfile(specs.fsDir, sprintf('som%s', specs.pID), 'surf', sprintf('rh.%s.mgz', currentAtlas));
+%     atlas_file_lh = fullfile(specs.fsDir, sprintf('som%s', specs.pID), 'surf', sprintf('lh.%s.mgz', currentAtlas));
+%     if exist(atlas_file_rh, 'file') && exist(atlas_file_lh, 'file')
+%         [atlas_rh] = load_mgh(atlas_file_rh);
+%         [atlas_lh] = load_mgh(atlas_file_lh);
+%     else
+%         disp('no atlas annotations found - exiting');
+%         out = [];
+%         return
+%     end
     
 %     % match nearest nodes to atlas labels
 %     atlas = [squeeze(atlas_rh);squeeze(atlas_lh)]; % concatenate hemis   
@@ -150,12 +159,12 @@ for a = 1:length(atlasNames)
 %         
     % plot
     switch plotmesh
-        case 'yes'
+        case {'left', 'right', 'both'}
             switch pID 
-                case '439'
+                case '648'
                     
-                    figure(1)%,'Name', ['fsaverage ' atlasNames{a}]); hold on;
-                    
+                    %figure(1)%,'Name', ['fsaverage ' atlasNames{a}]); hold on;
+                    figure('Name', 'fsaverage '); hold on;
                     t_r = trimesh(faces_r+1, vertices_r(:,1), vertices_r(:,2), vertices_r(:,3), 'FaceColor', 'flat');
                     t_r.LineStyle = 'none';
                     axis equal; hold on;
@@ -164,7 +173,7 @@ for a = 1:length(atlasNames)
                     %cmap = [[1 1 1]*.7; colormap(flipud(jet(length(area_labels))))];
                     cmap = [1 1 1]*.7;
                     colormap(cmap);
-                    caxis([0 max(atlas_rh)]);
+                    %caxis([0 max(atlas_rh)]);
                     
                     plot_electrodes(elec_xyz, [1 1 1]*0.2,2);
                     %plot_electrodes(elec_xyz(elec_indices,:), [0 0 0],2);
@@ -196,7 +205,7 @@ for a = 1:length(atlasNames)
         otherwise
             % do not plot
     end
-    
+    axis tight
     % save 
     % also include count per atlas map to facilitate computing distribution
     % across patients?
