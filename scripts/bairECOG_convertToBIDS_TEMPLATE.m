@@ -14,7 +14,7 @@ end
 %% Define paths and BIDS specs %%
 
 % Input paths specs
-patientID   = 723; % Specify patient's raw folder name here
+patientID   = []; % Specify patient's raw folder name here
 RawDataDir  = '/Volumes/server/Projects/BAIR/Data/Raw/ECoG/';
 BIDSDataDir = '/Volumes/server/Projects/BAIR/Data/BIDS/';
 
@@ -56,17 +56,6 @@ makePlot = 1;
 % Read ECoG data
 [data, hdr] = bidsconvert_readecogdata(dataReadDir, ses_label);
 
-% PATIENTSPECIFIC HACK %%
-% For 723, there's a mismatch for one set of electrodes that are labeled
-% 'RDS' in the data, but 'RDSI' in the electrode coordinates provided by
-% SoM. Hack by overwriting names in the hdr:
-INX = find(contains(hdr.label, 'RDS')); 
-for ii = 1:length(INX)
-    oldlabel = hdr.label{INX(ii)};
-    newlabel = [oldlabel(1:3) 'I' oldlabel(4:end)];
-    hdr.label{INX(ii)} = newlabel;
-end
-
 %% START OF MANUAL SECTION %%
 
 % Manually click through each channel to identify to trigger channel, as
@@ -97,38 +86,12 @@ triggerChannelName = 'DC1';
     % Second column: indicate reason why marked as bad (optional)
         % (status channels and SG, DC, ECG will be excluded automatically)
 
+% EXAMPLE
 BADCHANNELS_MANUALTABLE = {...
-    31, 'spikes';
-    46, 'spikes';
-    64, 'spikes';
-    82, 'spikes';
-    83, 'spikes';
-    85, 'spikes';
-    88, 'spikes';
-    99, 'spikes';
-    115, 'spikes';
-    116, 'spikes';
-    117, 'spikes';
-    118, 'spikes';
-    119, 'spikes';
-    121, 'spikes';
-    138, 'spikes';
-    144, 'spikes';
-    145, 'spikes';
-    146, 'spikes';
-    147, 'spikes';
-    150, 'spikes';
-    151, 'spikes';
-    152, 'spikes';
-    153, 'spikes';
-    154, 'spikes';
-    155, 'spikes';
-    156, 'spikes'};
-
-% PATIENT SPECIFIC notes:
-% There were a substantial number of electrodes with a strong low frequency
-% component (kind of like 'drift'), not sure if those are bad for CAR so I
-% just left them in for now (not labeled as bad)
+    1, 'spikes';
+    2, 'epileptic tissue';
+    3, 'low freq drift';
+    };
 
 %% CHECK THE CHANNEL SELECTIONS
 
