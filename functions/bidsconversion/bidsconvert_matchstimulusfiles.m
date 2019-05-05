@@ -1,6 +1,6 @@
-function [stimData] = bidsconvert_matchstimulusfiles(dataReadDir, patientID, sub_label, ses_label, task_label, run_label, trigger_onsets, makePlot)
+function [stimData] = bidsconvert_matchstimulusfiles(dataReadDir, patientID, ses_label, task_label, run_label, trigger_onsets, makePlot)
 
-if nargin < 8 || isempty(makePlot)
+if nargin < 7 || isempty(makePlot)
     makePlot = 0;
 end
 % READ IN relevant data files %%%%%%%%%%%%%%%%%%
@@ -54,8 +54,6 @@ if makePlot
         title(sprintf('%s-%s', task_label{ii}, run_label{ii}));
         xlabel('Time (s)'); ylabel('Requested triggers'); set(gca, 'FontSize', 12);
     end
-    saveas(gcf, fullfile(preprocDir, 'figures', 'bidsconversion', sprintf('%s-%s-goodchannels_timecourse',sub_label, ses_label)), 'epsc');
-
 end
 
 % CHECK: Does the number of requested triggers match the number of triggers

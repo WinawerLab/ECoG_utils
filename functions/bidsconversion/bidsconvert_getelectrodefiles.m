@@ -1,4 +1,4 @@
-function [electrode_table, channel_table] = bidsconvert_getelectrodefiles(dataReadDir, hdr, triggerChannel, goodChannels, badChannels, badChannelsDescriptions)
+function [electrode_table, channel_table] = bidsconvert_getelectrodefiles(dataReadDir, hdr, triggerChannel, badChannels, badChannelsDescriptions)
 
 % READ IN relevant data files %%%%%%%%%%%%%%%%%%
 
@@ -34,7 +34,7 @@ else
     [elecInx, chanNames, chanTypes, chanUnits] = bidsconvert_getChannelSpecs(hdr, elec_labels, elec_types);
 end
 
-% Generate table with SOM defaults
+% Generate an  electrodes table with SOM defaults
 n = length(elecInx);
 [electrode_table] = createBIDS_ieeg_electrodes_tsv_nyuSOM(n);
 
@@ -45,27 +45,27 @@ electrode_table.y = elec_xyz(elecInx,2);
 electrode_table.z = elec_xyz(elecInx,3);
 electrode_table.type = elec_types(elecInx);
 
-% Generate a channel table default (written out for each run in big loop below)
+% Generate a channel table with SOM defaults 
 [channel_table] = createBIDS_ieeg_channels_tsv_nyuSOM(length(chanNames));
 channel_table.name  = chanNames;
 channel_table.type  = chanTypes;
-channel_table.units = chanUnits;
+if ~isempty(chanUnits), channel_table.units = chanUnits; end
 channel_table.sampling_frequency = repmat(hdr.Fs,size(channel_table,1),1);
 
 % Indicate which channel is the trigger channel in channels.tsv
 channel_table.type{triggerChannel} = 'trig';
 
 % Indicate channel statuses
-%channel_table.status = repmat({'n/a'},height(channel_table),1);
+%channel_table.status = repmat({'bad'},height(channel_table),1);
 %channel_table.status_description = repmat({'bad'},height(channel_table),1);
 %channel_table = table2cell(channel_table);
-%ecogChannels = find(contains(channel_table.type,{'seeg', 'ecog'}));
-%for ii = 1:length(ecogChannels)
-%   channel_table.status{ecogChannels(ii)} = 'good';
-%end
-for ii = 1:length(goodChannels)
-   channel_table.status{goodChannels(ii)} = 'good';
+ecogChannels = find(contains(channel_table.type,{'seeg', 'ecog'}));
+for ii = 1:length(ecogChannels)
+   channel_table.status{ecogChannels(ii)} = 'good';
 end
+%for ii = 1:length(goodChannels)
+%   channel_table.status{goodChannels(ii)} = 'good';
+%end
 for ii = 1:length(badChannels)
     channel_table.status{badChannels(ii)} = 'bad';
     if exist('badChannelsDescriptions', 'var')

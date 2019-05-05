@@ -49,7 +49,7 @@ for ii = 1:nRuns
     % Generate filename
     fname = sprintf('sub-%s_ses-%s_task-%s_run-%s', ...
             sub_label, ses_label, task_label{ii}, run_label{ii});
-    fprintf('Writing eeg, events, stimuli, json and channel files for %s \n', fname);
+    fprintf('[%s] Writing eeg, events, stimuli, json and channel files for %s \n', mfilename, fname);
     
     % Collect task-specific info for json file   
     if contains(task_label{ii}, 'hrf')                 
@@ -157,6 +157,6 @@ end
 % CHECK: Do number of triggers derived from EDF data file match the number
 % of trials from the stimulus files?
 assert(isequal(length(trigger_onsets), num_triggers_total))
-disp('done');
+fprintf('[%s] BIDS conversion done\n', mfilename)
 
 end

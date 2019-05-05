@@ -14,16 +14,17 @@ end
 %% Define paths and BIDS specs %%
 
 % Input paths specs
-patientID   = 723;
+patientID   = []; % Specify patient's raw folder name here
 RawDataDir  = '/Volumes/server/Projects/BAIR/Data/Raw/ECoG/';
 BIDSDataDir = '/Volumes/server/Projects/BAIR/Data/BIDS/';
 
-% BIDS specs
+% BIDS specs: assuming defaults for a first session, full visual set:
 projectName = 'visual';
 sub_label   = ['som' num2str(patientID)]; 
-ses_label   = 'nyuecog02';
+ses_label   = 'nyuecog01';
 ses_labelt1 = 'som3t01';
-task_label  = {'prf',...
+task_label  = {'hrfpattern', ...
+               'prf',...
                'prf', ...
                'spatialpattern', ...
                'spatialpattern', ...
@@ -36,18 +37,17 @@ task_label  = {'prf',...
                'spatialobject', ...
                'spatialobject', ...
                'temporalpattern', ...            
-               'temporalpattern', ...
-               'hrfpattern', ...
+               'temporalpattern'             
               };              
-run_label = {'01','02','01','02','01','02','01','02','03','04','03','04','03','04','01'};
+run_label = {'01','01','02','01','02','01','02','01','02','03','04','03','04','03','04'};
+% NOTE: task and run labels should be noted in the order they were run!
 
 % Make plots?
-makePlot = 0;
-savePlot = 0; 
-% Saved figures will go into
+makePlot = 1;
+% NOTE: Figures will be saved into
 % derivatives/preprocessed/sub-label/ses-label/figures/bidsconversion
 
-%% Define paths and read data
+%% DEFINE PATHS AND DATA
 
 % Define paths
 [dataReadDir, dataWriteDir, stimWriteDir, T1WriteDir, preprocDir] = bidsconvert_getpaths(patientID, RawDataDir, ...
@@ -55,17 +55,6 @@ savePlot = 0;
 
 % Read ECoG data
 [data, hdr] = bidsconvert_readecogdata(dataReadDir, ses_label);
-
-% PATIENTSPECIFIC HACK %%
-% For 723, there's a mismatch for one set of electrodes that are labeled
-% 'RDS' in the data, but 'RDSI' in the electrode coordinates provided by
-% SoM. Hack by overwriting names in the hdr:
-INX = find(contains(hdr.label, 'RDS')); 
-for ii = 1:length(INX)
-    oldlabel = hdr.label{INX(ii)};
-    newlabel = [oldlabel(1:3) 'I' oldlabel(4:end)];
-    hdr.label{INX(ii)} = newlabel;
-end
 
 %% START OF MANUAL SECTION %%
 
@@ -97,38 +86,10 @@ triggerChannelName = 'DC1';
     % Second column: indicate reason why marked as bad (optional)
         % (status channels and SG, DC, ECG will be excluded automatically)
 
+% EXAMPLE
 BADCHANNELS_MANUALTABLE = {...
-    31, 'spikes';
-    46, 'spikes';
-    64, 'spikes';
-    82, 'spikes';
-    83, 'spikes';
-    85, 'spikes';
-    88, 'spikes';
-    99, 'spikes';
-    115, 'spikes';
-    116, 'spikes';
-    117, 'spikes';
-    118, 'spikes';
-    119, 'spikes';
-    121, 'spikes';
-    138, 'spikes';
-    144, 'spikes';
-    145, 'spikes';
-    146, 'spikes';
-    147, 'spikes';
-    150, 'spikes';
-    151, 'spikes';
-    152, 'spikes';
-    153, 'spikes';
-    154, 'spikes';
-    155, 'spikes';
-    156, 'spikes'};
-
-% PATIENT SPECIFIC notes:
-% There were a substantial number of electrodes with a strong low frequency
-% component (kind of like 'drift'), not sure if those are bad for CAR so I
-% just left them in for now (not labeled as bad)
+    1, 'spikes';
+    2, 'spikes';};
 
 %% CHECK THE CHANNEL SELECTIONS
 
@@ -138,11 +99,10 @@ badChannelsDescriptions = BADCHANNELS_MANUALTABLE(:,2);
 
 % Generate spectral plot; check command window output for outliers; 
 if makePlot 
-    inx_notEEGchans = [find(contains(hdr.chantype, 'ecg')); find(contains(hdr.label,{'DC','SG', 'Pleth', 'PR', 'OSAT', 'TRIG'}))];
-    inx_DCchans = find(contains(hdr.label, 'DC'));
-    chansToPlot = setdiff(1:length(hdr.label),[inx_notEEGchans; inx_DCchans; badChannels]);
+    inx_notEEGchans = [find(contains(hdr.chantype, 'ecg')); find(contains(hdr.label, {'DC', 'SG', 'Pleth', 'PR', 'OSAT', 'TRIG'}))];
+    chansToPlot = setdiff(1:length(hdr.label),[inx_notEEGchans; badChannels]);
     [outliers] = ecog_plotChannelSpectra(data, chansToPlot, hdr); title('channel spectra');
-    if savePlot, saveas(gcf, fullfile(preprocDir, 'figures', 'bidsconversion', sprintf('%s-%s-goodchannels_spectra',sub_label, ses_label)), 'epsc');end
+    saveas(gcf, fullfile(preprocDir, 'figures', 'bidsconversion', sprintf('%s-%s-goodchannels_spectra',sub_label, ses_label)), 'epsc');
 end
 
 % Check the timeseries of all the good channels, no noisy moments?
@@ -151,7 +111,7 @@ if makePlot
     % Get trigger time points from data file
     [trigger_onsets] = bidsconvert_findtriggers(data, hdr, triggerChannel, 0);
     hold on; plot(trigger_onsets, ones(length(trigger_onsets),1),'k.','MarkerSize', 25, 'LineStyle','none');
-    if savePlot, saveas(gcf, fullfile(preprocDir, 'figures', 'bidsconversion', sprintf('%s-%s-goodchannels_timecourse',sub_label, ses_label)), 'epsc');end
+    saveas(gcf, fullfile(preprocDir, 'figures', 'bidsconversion', sprintf('%s-%s-goodchannels_timecourse',sub_label, ses_label)), 'epsc');
 end
 
 % NOTE: Outliers (identified as channels with mean power that is more that
@@ -183,7 +143,7 @@ end
 [electrode_table, channel_table] = bidsconvert_getelectrodefiles(dataReadDir, hdr, triggerChannel, badChannels, badChannelsDescriptions);
 
 % Read in stimulus files
-[stimData] = bidsconvert_readstimulusfiles(dataReadDir, patientID, ses_label, run_label, trigger_onsets, makePlot);
+[stimData] = bidsconvert_matchstimulusfiles(dataReadDir, patientID, ses_label, task_label, run_label, trigger_onsets, makePlot);
 
 %% WRITING OF FILES %%%
 

@@ -18,7 +18,12 @@ end
 elecInx = nan(length(hdr.label),1); % this will be an index into elecList
 chanNames = hdr.label;
 chanTypes = hdr.chantype;
-chanUnits = hdr.chanunit;
+
+if ~isequal(unique(hdr.chanunit), {'unknown'})
+    chanUnits = hdr.chanunit;
+else
+    chanUnits = [];
+end
 
 % Match channel names from data header with names from electrode file
 
@@ -73,7 +78,7 @@ else
             % this is an ECG channel
             chanNames{ii} = chanName;
             chanTypes{ii} = 'ecg';
-        elseif contains(chanName, 'DC')
+        elseif contains(chanName, {'DC', 'TRIG', 'Pleth', 'PR', 'OSAT'})
             % this is a DC channel
             chanNames{ii} = chanName;
             chanTypes{ii} = 'other';
@@ -85,7 +90,7 @@ else
             elseif length(inx) < 1
                 fprintf('[%s] Warning: could not find coordinates for channel %s! \n', mfilename, chanName);
                 chanNames{ii} = chanName;
-                chanTypes{ii} = 'unknown';
+                chanTypes{ii} = 'other';
             elseif length(inx) > 1
                 error('[%s] Multiple coordinates found for channel %s! \n', mfilename, chanName);
             end

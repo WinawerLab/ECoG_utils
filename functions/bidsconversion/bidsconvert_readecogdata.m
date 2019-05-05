@@ -1,6 +1,6 @@
 function [data, hdr] = bidsconvert_readecogdata(dataReadDir, ses_label)
 
-if nargin < 3 || isempty(ses_label)
+if nargin < 2 || isempty(ses_label)
     ses_label = 'nyuecog01';
 end
 
@@ -18,11 +18,9 @@ if length(dataFiles) > 1
 else
     session_inx = 1;
 end
-
 fileName = [dataFiles(session_inx).folder filesep dataFiles(session_inx).name];    
 fprintf('[%s] Reading %s ...\n', mfilename, fileName);
 hdr = ft_read_header(fileName);
 data = ft_read_data(fileName);
 % To read in EDF data with channels with different sampling rates: data = edf2fieldtrip(fileName);
-
 end
