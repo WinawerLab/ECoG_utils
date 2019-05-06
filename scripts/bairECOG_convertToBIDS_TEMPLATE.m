@@ -89,9 +89,14 @@ triggerChannelName = 'DC1';
 % EXAMPLE
 BADCHANNELS_MANUALTABLE = {...
     1, 'spikes';
-    2, 'epileptic tissue';
-    3, 'low freq drift';
+    2, 'epileptictissue';
+    3, 'lowfreqdrift';
+    4, 'excessivenoise';
     };
+
+% If you want to exclude many consecutive channels for same reason, use:
+exclude_inx = [1 2 3]; % list of consecutive elec numbers
+BADCHANNELS_MANUALTABLE = [num2cell(exclude_inx)' repmat({'spikes'}, [length(exclude_inx) 1])];
 
 %% CHECK THE CHANNEL SELECTIONS
 
