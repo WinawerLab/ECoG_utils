@@ -138,7 +138,7 @@ end
 
 % From here on, everything should run automatically:
 
-%% AUTOMATED EXTRACTION %%
+% AUTOMATED EXTRACTION %%
 
 % Get trigger time points from data file
 [trigger_onsets] = bidsconvert_findtriggers(data, hdr, triggerChannel, makePlot);
@@ -155,7 +155,7 @@ if makePlot
     saveas(gcf, fullfile(preprocDir, 'figures', 'bidsconversion', sprintf('%s-%s-triggers_requested',sub_label, ses_label)), 'epsc');
 end
 
-%% WRITING OF FILES %%%
+% WRITING OF FILES %%%
 
 % Write session files
 bidsconvert_writesessionfiles(dataReadDir, dataWriteDir, T1WriteDir, sub_label, ses_label, ses_labelt1, electrode_table)
