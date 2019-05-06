@@ -13,18 +13,15 @@ end
 
 %% Define paths and BIDS specs %%
 
-% Input paths specs
-patientID   = []; % Specify patient's raw folder name here
+patientID   = 692; % Specify patient's raw folder name here
 RawDataDir  = '/Volumes/server/Projects/BAIR/Data/Raw/ECoG/';
 BIDSDataDir = '/Volumes/server/Projects/BAIR/Data/BIDS/';
 
-% BIDS specs: assuming defaults for a first session, full visual set:
 projectName = 'visual';
 sub_label   = ['som' num2str(patientID)]; 
 ses_label   = 'nyuecog01';
 ses_labelt1 = 'som3t01';
-task_label  = {'hrfpattern', ...
-               'prf',...
+task_label  = {'prf',...
                'prf', ...
                'spatialpattern', ...
                'spatialpattern', ...
@@ -37,32 +34,21 @@ task_label  = {'hrfpattern', ...
                'spatialobject', ...
                'spatialobject', ...
                'temporalpattern', ...            
-               'temporalpattern'             
+               'temporalpattern', ...
               };              
-run_label = {'01','01','02','01','02','01','02','01','02','03','04','03','04','03','04'};
-% NOTE: task and run labels should be noted in the order they were run!
+run_label = {'01','02','01','02','01','02','01','02','03','04','03','04','03','04'};
 
-% Make plots?
 makePlot = 1;
-% NOTE: Figures will be saved into
-% derivatives/preprocessed/sub-label/ses-label/figures/bidsconversion
 
 %% DEFINE PATHS AND DATA
 
-% Define paths
 [dataReadDir, dataWriteDir, stimWriteDir, T1WriteDir, preprocDir] = bidsconvert_getpaths(patientID, RawDataDir, ...
     BIDSDataDir, projectName, sub_label, ses_label, ses_labelt1);
 
-% Read ECoG data
 [data, hdr] = bidsconvert_readecogdata(dataReadDir, ses_label);
 
 %% START OF MANUAL SECTION %%
 
-% Manually click through each channel to identify to trigger channel, as
-% well as bad channels (specify in next cell)
-
-% Define time axis (in seconds). First time point = 0 (this is assumed by
-% the function we used to detect triggers below, and also in fieldtrip).
 t = ((0:hdr.nSamples-1)/hdr.Fs); 
 
 % Plot the raw voltage time course of each channel
@@ -77,26 +63,20 @@ end
 
 %% WRITE DOWN THE FOLLOWING
 
-% Trigger channel name (probably a 'DC' channel, see hdr.label)
 triggerChannelName = 'DC1';
 
-% Bad channel numbers (e.g. those with big spikes):
-    % First column: bad channel index (number)
-        % (all sEEG/ECOG channels not labeled as bad will be labeled good)
-    % Second column: indicate reason why marked as bad (optional)
-        % (status channels and SG, DC, ECG will be excluded automatically)
-
-% EXAMPLE
 BADCHANNELS_MANUALTABLE = {...
-    1, 'spikes';
-    2, 'epileptic tissue';
-    3, 'low freq drift';
+    33, 'excessivenoise';
+    48, 'excessivenoise';
+    89, 'excessivenoise';
+    93, 'excessivenoise';
+    94, 'excessivenoise';
+    96, 'excessivenoise';
+    112, 'excessivenoise';
+    124, 'excessivenoise';
     };
 
 %% CHECK THE CHANNEL SELECTIONS
-
-% Compare selection above with excluding NO channels (comment/uncomment):
-BADCHANNELS_MANUALTABLE  = {[],[]};
 
 triggerChannel = find(strcmp(triggerChannelName,hdr.label));
 badChannels = cell2mat(BADCHANNELS_MANUALTABLE(:,1));

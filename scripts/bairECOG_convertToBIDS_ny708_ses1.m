@@ -14,7 +14,7 @@ end
 %% Define paths and BIDS specs %%
 
 % Input paths specs
-patientID   = []; % Specify patient's raw folder name here
+patientID   = 708; % Specify patient's raw folder name here
 RawDataDir  = '/Volumes/server/Projects/BAIR/Data/Raw/ECoG/';
 BIDSDataDir = '/Volumes/server/Projects/BAIR/Data/BIDS/';
 
@@ -37,15 +37,11 @@ task_label  = {'hrfpattern', ...
                'spatialobject', ...
                'spatialobject', ...
                'temporalpattern', ...            
-               'temporalpattern'             
+               'temporalpattern', ...
               };              
 run_label = {'01','01','02','01','02','01','02','01','02','03','04','03','04','03','04'};
-% NOTE: task and run labels should be noted in the order they were run!
 
-% Make plots?
 makePlot = 1;
-% NOTE: Figures will be saved into
-% derivatives/preprocessed/sub-label/ses-label/figures/bidsconversion
 
 %% DEFINE PATHS AND DATA
 
@@ -81,22 +77,25 @@ end
 triggerChannelName = 'DC1';
 
 % Bad channel numbers (e.g. those with big spikes):
-    % First column: bad channel index (number)
-        % (all sEEG/ECOG channels not labeled as bad will be labeled good)
-    % Second column: indicate reason why marked as bad (optional)
-        % (status channels and SG, DC, ECG will be excluded automatically)
-
-% EXAMPLE
 BADCHANNELS_MANUALTABLE = {...
-    1, 'spikes';
-    2, 'epileptic tissue';
-    3, 'low freq drift';
-    };
+   87, 'outlierspectrum';
+   88, 'outlierspectrum';
+   };
+
+% NOTE: there is a lot of shared noise on these channels, making it
+% impossible to see the raw time courses. Preliminary analysis showed that
+% this was resolved through the common average referencing. For now,
+% marking just two channels that showed clearly deviating spectra (note
+% that these are V1 electrodes, so in preprocessing, should compare CAR
+% with and without these to see if there might still be some signal there).
+
+% NOTE from Adeen (per email, May 15 2018), on when data looks identical
+% across channels: "The data is fine but sometimes the EEG techs mess up
+% the reference a bit. If you run a common average reference it will all
+% clear up. In case that doesn?t work (it did for me) you can do a CAR in
+% groups of 64 which would remove shared noise per amplifier."
 
 %% CHECK THE CHANNEL SELECTIONS
-
-% Compare selection above with excluding NO channels (comment/uncomment):
-BADCHANNELS_MANUALTABLE  = {[],[]};
 
 triggerChannel = find(strcmp(triggerChannelName,hdr.label));
 badChannels = cell2mat(BADCHANNELS_MANUALTABLE(:,1));
