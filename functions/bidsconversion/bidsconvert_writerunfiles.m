@@ -41,6 +41,7 @@ end
 % Initialize trigger count
 num_triggers_total = 0;
 nRuns = length(run_label);
+segmentOnFlips = 1;
 
 for ii = 1:nRuns
     
@@ -51,7 +52,8 @@ for ii = 1:nRuns
             sub_label, ses_label, task_label{ii}, run_label{ii});
     fprintf('[%s] Writing eeg, events, stimuli, json and channel files for %s \n', mfilename, fname);
     
-    % Collect task-specific info for json file   
+   
+    % Collect task-specific info for json file
     if contains(task_label{ii}, 'hrf')                 
         ieeg_json.TaskName = 'bair_hrfpattern';
         ieeg_json.TaskDescription = 'Visual textures presented at irregular intervals';        
@@ -70,39 +72,79 @@ for ii = 1:nRuns
     end   
     ieeg_json.Instructions = 'Detect color change (red/green) at fixation';
     
+    % Fix some problems in older stimulus files 
+    if contains(task_label{ii}, 'hrf')   
+        if length(find(stimData(ii).stimulus.trigSeq)) ~=32
+            % There are additional triggers that we should not use
+            fprintf('[%s] Warning: hrf stimulus file has incorrect number of triggers \n', mfilename)
+            fprintf('[%s] Removing directly adjacent triggers from stimfile \n', mfilename)
+            requestedTriggerInx = find(stimData(ii).stimulus.trigSeq);
+            requestedTriggerInx_diff = [nan diff(requestedTriggerInx)];
+            stimData(ii).stimulus.trigSeq(requestedTriggerInx(requestedTriggerInx_diff == 1)) = 0;
+        end
+    end
+    if contains(task_label{ii}, 'prf')
+        if length(find(stimData(ii).stimulus.trigSeq)) ~=224
+            % Old prf stim files had too many triggers + missing triggers
+            fprintf('[%s] Warning: prf stimulus file has incorrect number of triggers \n', mfilename)
+            [newTrigSeq] = bidsconvert_fixprftrigseq(stimData(ii).stimulus);
+            stimData(ii).stimulus.trigSeq = newTrigSeq;
+        end
+    end
+    
     % Get the onsets in the data recordings for this run
     t = ((0:hdr.nSamples-1)/hdr.Fs); 
     num_triggers = length(find(stimData(ii).stimulus.trigSeq));
     num_triggers_total = num_triggers_total + num_triggers;
     onsets = trigger_onsets(stim0:num_triggers_total); 
     [~,onset_indices] = intersect(t, onsets);
-
-    % First trigger is task onset trigger:
-    run_start_inx = onset_indices(1);
-    % Last trigger is task offset trigger:
-    run_stop_inx = onset_indices(end);
-    % Stimulus onsets are those in between
-    onset_indices = onset_indices(2:end-1);
-
+   
+    % Check if there are onset/offset triggers
+    if max(stimData(ii).stimulus.trigSeq) == 256
+        % THESE DATA HAVE ONSET/OFFSET TRIGGERS
+        hasOnOffTriggers = 1;
+        % First trigger is task onset trigger:
+        run_start_inx = onset_indices(1);
+        % Last trigger is task offset trigger:
+        run_stop_inx = onset_indices(end);
+        % Stimulus onsets are those in between
+        onset_indices = onset_indices(2:end-1);
+    else
+        % THESE DATA DO NOT HAVE ONSET/OFFSET TRIGGERS
+        hasOnOffTriggers = 0;
+        % Segment 3 seconds before first onset
+        run_start_inx = onset_indices(1)-3*hdr.Fs;
+        % Segment 3 seconds after last onset
+        run_stop_inx = onset_indices(end)+3*hdr.Fs;             
+    end
+    
     % Clip data from run using task onset and offset triggers
     data_thisrun = data(:,run_start_inx:run_stop_inx-1); % subtract one sample to make length of 'between run' data exactly 6 seconds
     hdr_thisrun = hdr;
     hdr_thisrun.nSamples = size(data_thisrun,2);
     
-    % % Determine trial onset based on the triggers:
-    % event_sample = (onset_indices - run_start_inx);
-    
-    % Determine trial onset based on the flips:   
-    % Get the fliptimes for the requested triggers
-	flips        = stimData(ii).response.flip(stimData(ii).stimulus.trigSeq>0); % in seconds
-    % Align to first time-point. This is assumed to be same as the task
-    % onset trigger on the basis of which the run is segmented.
-    flips        = flips-flips(1);
-    % Drop the task onset and offsets
-    flips        = flips(2:end-1);
-    % Convert to samples
-    flip_indices = round(flips*hdr.Fs); % need to round because flip times do not always align with sample rate
-    event_sample = flip_indices';
+    if segmentOnFlips    
+        % Determine trial onset based on the flips:   
+        % Get the fliptimes for the requested triggers
+        flips        = stimData(ii).response.flip(stimData(ii).stimulus.trigSeq>0); % in seconds
+        % Align to first flip
+        flips        = flips-flips(1);
+        if hasOnOffTriggers
+            % First flip is the same as the onset trigger on the basis of
+            % which the run is segmented. Drop the task onset and offsets
+            flips = flips(2:end-1);
+        else
+            % First flip is aligned with the first stimulus onset trigger,
+            % which we position 3 seconds after start of the run:
+            flips = flips+3;
+        end
+        % Convert to samples
+        flip_indices = round(flips*hdr.Fs); % need to round because flip times do not always align with sample rate
+        event_sample = flip_indices';
+    else
+        % Determine trial onset based on the triggers:
+        event_sample = (onset_indices - run_start_inx);
+    end
     
     % Collect info for tsv file
     events_table = stimData(ii).stimulus.tsv;
@@ -118,11 +160,6 @@ for ii = 1:nRuns
     events_table.stim_file    = repmat([fname '.mat'], height(events_table), 1);
     events_table.duration     = strtrim(cellstr(num2str(events_table.duration,['%.' num2str(nDecimals) 'f']))); 
     events_table.ISI          = strtrim(cellstr(num2str(events_table.ISI,['%.' num2str(nDecimals) 'f'])));    
-%     if contains(task_label{ii}, 'prf')
-%         for jj = 1:length(events_table.trial_name)
-%             events_table.trial_name{jj} = ['PRF' events_table.trial_name{jj}];
-%         end
-%     end
 
     % Add a task column to the events_table 
     events_table.task_name   = repmat(task_label{ii}, height(events_table), 1);

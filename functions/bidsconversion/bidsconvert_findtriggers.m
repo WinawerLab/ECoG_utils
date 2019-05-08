@@ -1,4 +1,8 @@
-function [trigger_onsets] = bidsconvert_findtriggers(data, hdr, triggerChannel, makePlot)
+function [trigger_onsets,t] = bidsconvert_findtriggers(data, hdr, triggerChannel, makePlot, triggerIndex)
+
+if nargin < 5 
+    triggerIndex = [];
+end
 
 if nargin < 4 
     makePlot = 0;
@@ -15,7 +19,11 @@ fprintf('[%s] Reading triggers from data \n', mfilename);
 if makePlot 
     figure('Name', 'Found triggers'); hold on;
     plot(t,triggers);
-    plot(trigger_onsets, ones(length(trigger_onsets),1),'r.','MarkerSize', 25, 'LineStyle','none');
+    if ~isempty(triggerIndex)
+        plot(trigger_onsets(triggerIndex), ones(length(trigger_onsets(triggerIndex)),1),'r.','MarkerSize', 25, 'LineStyle','none');
+    else
+        plot(trigger_onsets, ones(length(trigger_onsets),1),'r.','MarkerSize', 25, 'LineStyle','none');
+    end
     %stem(trigger_onsets,ones(length(trigger_onsets),1)*(max(data(triggerChannel,:))),'r');
     legend({'trigger data', 'trigger onsets'}); xlabel('time (s)'); ylabel('amplitude');
     title('found triggers');

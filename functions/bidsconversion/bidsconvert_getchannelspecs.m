@@ -31,11 +31,20 @@ if max(contains(hdr.label, 'REF')) == 1
     % this is an older SOM dataset in which channels have not been renamed
     for ii = 1:length(hdr.label)
         C = strsplit(hdr.label{ii}, {' ', '_', '-'});
-        % get rid of -REF field
-        C = C(1:end-1);
-        switch C{1}
-            case 'EEG'
-                chanName = strcat(C{2:end});
+        if size(C{end},2) == 3
+            % get rid of -REF field
+            C = C(1:end-1);
+        else
+            C{end} = C{end}(1:end-3);
+            C = {[C{:}]};
+        end
+        if ~isempty(C)
+            if contains(C{1}, 'EEG')
+                if max(size(C)) == 1
+                    chanName = C{1}(4:end);
+                else
+                    chanName = strcat(C{2:end});
+                end
                 %inx = find(contains(elecList, chanName));
                 inx = find(strncmp(elecList, chanName, length(chanName)));
                 if length(inx) == 1
@@ -48,14 +57,25 @@ if max(contains(hdr.label, 'REF')) == 1
                     error('[%s] Multiple coordinates found for channel %s! \n', mfilename, chanName);
                 end
                 chanNames{ii} = chanName;
-            case 'ECG'   
-                chanName = strcat(C{2:end});
+            elseif contains (C{1}, 'ECG')
+                if max(size(C)) == 1
+                    chanName = C{1}(4:end);
+                else
+                    chanName = strcat(C{2:end});
+                end
                 chanNames{ii} = chanName;
                 chanTypes{ii} = 'ecg';
-            otherwise
+            else
                 chanNames{ii} = strcat(C{:});
                 chanTypes{ii} = 'other'; 
-        end
+            end
+        else
+            chanName{ii} = hdr.label{ii};
+            chanTypes{ii} = 'other'; 
+        end        
+    end
+    if size(chanTypes,2) > size(chanTypes,1)
+        chanTypes = chanTypes';
     end
 else
 	% this is a newer SOM dataset in which channels been renamed to no
