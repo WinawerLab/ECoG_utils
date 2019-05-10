@@ -30,8 +30,22 @@ for ii = 1:length(eltomatch)
     if ~isempty(x)
         if length(x) > 1
            fprintf('[%s] warning: found multiple matches for electrode %s!\n',mfilename,stringtomatch);
-        end
-        elInx(ii) = x(1);
+           newx = [];
+           for kk = 1:length(x)
+               if length(chanList{x(kk)}) == length(stringtomatch)
+                   newx(kk) = x(kk);
+               end            
+           end
+           if length(newx) == 1
+               fprintf('[%s] warning: checked name length and found a single match for %s - continuing\n',mfilename,stringtomatch)
+               elInx(ii) = newx;
+           else
+               fprintf('[%s] warning: checked name length and still found multiple matched for %s, pls check channel names!\n',mfilename,stringtomatch)
+               elInx(ii) = x(1);
+           end
+        else
+            elInx(ii) = x(1);
+        end     
     end
 end
 

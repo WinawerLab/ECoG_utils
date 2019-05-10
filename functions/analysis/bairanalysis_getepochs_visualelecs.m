@@ -33,14 +33,10 @@ for ii = 1:length(viselec)
     wangInx = strmatch(viselec{ii}, viselec_wang, 'exact');
     if ~isempty(wangInx)
         wang{ii} = visarea_wang{wangInx};
-    %else
-    %    wang{ii} = ' ';
     end
     bensonInx = strmatch(viselec{ii}, viselec_benson, 'exact');
     if ~isempty(bensonInx)
         benson{ii} = visarea_benson{bensonInx};
-    %else
-    %    benson{ii} = ' ';
     end
 end
 visareas = table(name, wang, benson);
@@ -52,6 +48,12 @@ trials.channels = trials.channels(elInx,:);
 blank_trials.broadband = blank_trials.broadband(elInx,:,:);
 blank_trials.evoked = blank_trials.evoked(elInx,:,:);
 blank_trials.channels = blank_trials.channels(elInx,:);
+
+% Add area matches to channel table
+trials.channels.wangatlas = wang;
+trials.channels.bensonatlas = benson;
+blank_trials.channels.wangatlas = wang;
+blank_trials.channels.bensonatlas = benson;
 
 out.sub = sub_label;
 out.ses = ses_label;
