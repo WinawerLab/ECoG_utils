@@ -13,7 +13,7 @@ ses_label   = 'nyuecog01';
 dataPth     = '/Volumes/server/Projects/BAIR/Data/BIDS/';
 
 % Output paths specs
-procDir = fullfile(dataPth, projectName, 'derivatives', 'preprocessed', sprintf('sub-%s', sub_label));
+procDir = fullfile(dataPth, projectName, 'derivatives', 'preprocessed', sprintf('sub-%s', sub_label), sprintf('ses-%s', ses_label));
 
 %% Load preprocessed data
 
@@ -31,9 +31,9 @@ procDir = fullfile(dataPth, projectName, 'derivatives', 'preprocessed', sprintf(
 bbmethod = 8;
 bbbandw  = 10;
 
-dataName = fullfile(procDir, sprintf('sub-%s_ses-%s_epoched_bbmethod%d_bandwidth%d', sub_label, ses_label,bbmethod,bbbandw));
+%dataName = fullfile(procDir, sprintf('sub-%s_ses-%s_epoched_bbmethod%d_bandwidth%d', sub_label, ses_label,bbmethod,bbbandw));
+dataName = fullfile(procDir, sprintf('sub-%s_ses-%s_epoched', sub_label, ses_label));
 load(dataName);
-
 
 %% compute spectra
 % for ii = size(trials.channels,1) 
@@ -57,23 +57,37 @@ visualelectrodes    = electrode_to_nearest_node(specs, dataDir);
 % e.g. 'MO01'; e.g. trials.viselec.benson14_varea.elec_labels
 %whichElectrodes = unique([trials.viselec.benson14_varea.elec_labels, trials.viselec.wang2015_atlas.elec_labels]); 
 %whichElectrodes = {'IO01', 'IO02','IO03','IO04'};
-%whichElectrodes = {'MO01', 'MO02','MO03','MO04'};
+whichElectrodes = {'MO01', 'MO02','MO03','MO04'};
 %whichElectrodes = {'IO02'};
-whichElectrodes = {'MO01'};
+%whichElectrodes = {'MO01'};
 
 % Which stimulus conditions to plot? 
 %whichTrials = {'HRFPATTERN','CRF','ONEPULSE', 'TWOPULSE'}; 
 %whichTrials = {'HRFPATTERN', 'SCENES','FACES', 'LETTERS'};
 %whichTrials = {'CIRCULAR', 'GRATING','PLAID'};
-%whichTrials = {'HRFPATTERN','CRF-1','CRF-2', 'CRF-3','CRF-4', 'CRF-5'};
+%whichTrials = {'CRF-1','CRF-2', 'CRF-3','CRF-4', 'CRF-5'};
 %whichTrials = {'SPARSITY-1','SPARSITY-2', 'SPARSITY-3','SPARSITY-4'};
 %whichTrials = {'ONEPULSE-1','ONEPULSE-2', 'ONEPULSE-3','ONEPULSE-4', 'ONEPULSE-5'};
-whichTrials = {'TWOPULSE-1','TWOPULSE-2', 'TWOPULSE-3','TWOPULSE-4', 'TWOPULSE-5'};
+%whichTrials = {'TWOPULSE-1','TWOPULSE-2', 'TWOPULSE-3','TWOPULSE-4', 'TWOPULSE-5'};
 %whichTrials = {'HRFPATTERN','CRF-5','ONEPULSE-5', 'TWOPULSE-5'}; 
 %whichTrials = {}; % if empty, plot average of all trials
-%whichTrials = {'HRFPATTERN'};
+whichTrials = {'HRFPATTERN'};
 
-% Plot each type individually or combine?
+specs = [];
+specs.dataTypes          = {'broadband'};
+specs.smoothingLevelInMs = [];
+specs.collapseTrialTypes = 'no';
+specs.baselineType       = 'selectedtrials';
+specs.plot.colorMap      = 'parula';
+specs.plot.nSubPlots     = [];
+specs.plot.addEccToTitle = 'no';
+specs.plot.showMax       = 'no';
+
+% Plot both broadband and evoked response per electrode
+% 'out' contains the plotted time courses and SEs
+[out] = ecog_plotTimecourses(trials, whichElectrodes, whichTrials, specs);
+
+%% Plot each type individually or combine?
 % if yes, plots average across all trial types listed under 'whichTrials'
 collapseTrialTypes = 'no'; 
 
@@ -83,7 +97,7 @@ smoothingLevelInMs = [];
 
 % Plot both broadband and evoked response per electrode
 % 'out' contains the plotted time courses and SEs
-[out] = ecog_plotTrials(trials, whichElectrodes, whichTrials, collapseTrialTypes, smoothingLevelInMs);
+%[out] = ecog_plotTrials(trials, whichElectrodes, whichTrials, collapseTrialTypes, smoothingLevelInMs);
 
 
 

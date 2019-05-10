@@ -171,7 +171,8 @@ stimFiles = dir(fullfile(stimDir, sprintf('%s*2017*.mat', num2str(patientID))));
 for ii = 1:length(stimFiles)
     fileName = [stimDir filesep stimFiles(ii).name];
     stimData(ii) = load(fileName) ;    
-    disp(['Reading ' stimData(ii).params.loadMatrix])
+    %disp(['Reading ' stimData(ii).params.loadMatrix])
+    disp(['Reading ' stimFiles(ii).name])
     switch makePlots 
         case 'yes'
             figure; hold on
@@ -206,7 +207,7 @@ else
 end
 
 % Match elec names; sort coordinates and electrode types based on matching
-[elecInx, chanNames, chanTypes, chanUnits] = bidsconvert_getChannelSpecs(hdr, elec_labels, elec_types);
+[elecInx, chanNames, chanTypes, chanUnits] = bidsconvert_getchannelspecs(hdr, elec_labels, elec_types);
 
 % Generate a channel table default (written out for each run in big loop below)
 [channel_table] = createBIDS_ieeg_channels_tsv_nyuSOM(length(chanNames));
@@ -326,7 +327,7 @@ writetable(electrode_table,electrodes_tsv_name,'FileType','text','Delimiter','\t
 [ieeg_json, json_options] = createBIDS_ieeg_json_nyuSOM();
 
 % Add a count of all the channels (based on channel_table)
-[ieeg_json] = bidsconvert_addChannelCounts(ieeg_json, channel_table);
+[ieeg_json] = bidsconvert_addchannelcounts(ieeg_json, channel_table);
 
 % If patient was collected at the OLD SOM location, overwrite the
 % Manufacturers Model Name:
@@ -442,6 +443,10 @@ for ii = 1:nRuns
   
     % Write out tsv file 
     events_table = table(onset, duration, ISI, trial_type, trial_name, stim_file, stim_file_index, event_sample);
+    
+    % Add a task column to the events_table 
+    events_table.task_name   = repmat(task_label{ii}, height(events_table), 1);
+    
     events_fname = fullfile(dataWriteDir, sprintf('%s_events.tsv', fname));
     writetable(events_table, events_fname, 'FileType','text', 'Delimiter', '\t')
     
