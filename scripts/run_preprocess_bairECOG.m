@@ -17,7 +17,7 @@ project_name = 'visual';
 % ses_label   = 'UMCUECOGday03';
 
 sub_label   = 'som723'; 
-ses_label   = {'nyuecog01'};%,'nyuecog02'};
+ses_label   = {'nyuecog01','nyuecog02'};
 
 % PREPROCESSING SPECS
 
@@ -37,7 +37,7 @@ specs.reg_erp      = 0; % regress out erp for spectra?
 
 % general
 specs.make_plots   = 'yes'; % 'yes', 'no'
-specs.overwrite    = 'no'; % 'yes', 'no'
+specs.overwrite    = 'yes'; % 'yes', 'no'
 
 %% Run!
 
