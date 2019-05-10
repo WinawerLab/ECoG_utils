@@ -27,7 +27,7 @@ if ~exist(saveDir, 'dir'); mkdir(saveDir);end
 
 %% [1] Read in ECoG data
 
-fprintf('[%s] Reading data...\n',mfilename);
+fprintf('[%s] Reading data for sub-%s, ses-%s...\n',mfilename, sub_label, ses_label);
 [ftdata, events, channels]  = ecog_readBIDSData(dataDir, sub_label, ses_label);
 
 % Check if there are trial_names, if not, add them
@@ -180,7 +180,11 @@ trials = ecog_epochData(data, specs.epoch);
 fprintf('[%s] Constructing blank events...\n',mfilename);
 
 mockdata = data;
-mockdata.events = mockdata.events(contains(data.events.task_name, {'hrfpattern','spatialpattern', 'temporalpattern', 'spatialobject'}),:);
+if isfield(summary(mockdata.events), 'task_name')
+    mockdata.events = mockdata.events(contains(data.events.task_name, {'hrfpattern','spatialpattern', 'temporalpattern', 'spatialobject', 'soc'}),:);
+else
+    mockdata.events = mockdata.events(~contains(data.events.trial_name, {'PRF', 'BLANK'}),:);
+end
 
 % Define an epoch in which there were no stimuli
 % hrf: ITI between 3 and 24 seconds, stimduration 0.2s
@@ -196,8 +200,10 @@ blank_trials = ecog_epochData(mockdata, blank_epoch);
 blank_trials.events.trial_name = repmat('BLANK', [height(blank_trials.events) 1]);
 blank_trials.events.onset = blank_trials.events.onset-blank_epoch(1);
 blank_trials.events.duration = repmat(blank_epoch(2)-blank_epoch(1),[height(blank_trials.events) 1]); 
-blank_trials.events.ISI=[];
-blank_trials.events.event_sample = blank_trials.events.event_sample - round(blank_epoch(2)-blank_epoch(1)*data.hdr.Fs);
+if isfield(summary(trials.events), 'ISI'), blank_trials.events.ISI=[]; end
+if isfield(summary(trials.events), 'event_sample')
+    blank_trials.events.event_sample = blank_trials.events.event_sample - round(blank_epoch(2)-blank_epoch(1)*data.hdr.Fs);
+end
 
 % %% [6] Compute spectra per trial
 % 

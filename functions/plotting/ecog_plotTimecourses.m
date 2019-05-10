@@ -231,8 +231,8 @@ for d = 1:length(specs.dataTypes)
 
         % Set y-axis limits
         lim = [min(mnToPlot(:)) max(mnToPlot(:))];
-        %ylim = [lim(1)-(0.2*lim(1)*sign(lim(1))) lim(2)+(0.2*lim(2)*sign(lim(2)))];
-        ylim = [-0.5 5];
+        ylim = [lim(1)-(0.2*lim(1)*sign(lim(1))) lim(2)+(0.2*lim(2)*sign(lim(2)))];
+        %ylim = [-0.5 5];
         set(gca, 'YLim', ylim);
         
         % Add legend
