@@ -89,6 +89,9 @@ for ii = 1:nRuns
             fprintf('[%s] Warning: prf stimulus file has incorrect number of triggers \n', mfilename)
             [newTrigSeq] = bidsconvert_fixprftrigseq(stimData(ii).stimulus);
             stimData(ii).stimulus.trigSeq = newTrigSeq;
+            % Overwrite trial names to prevent concatenation problems in
+            % preprocessing
+            stimData(ii).stimulus.tsv.trial_name = [repmat('PRF', [height(stimData(ii).stimulus.tsv),1]) num2str(stimData(ii).stimulus.tsv.trial_name)];
         end
     end
     
@@ -156,11 +159,11 @@ for ii = 1:nRuns
     events_table.event_sample = event_sample;
     events_table.onset        = strtrim(cellstr(num2str(events_table.event_sample/hdr.Fs,['%.' num2str(nDecimals) 'f'])));
         
-     % Update a number of other fields in events table
+    % Update a number of other fields in events table
     events_table.stim_file    = repmat([fname '.mat'], height(events_table), 1);
     events_table.duration     = strtrim(cellstr(num2str(events_table.duration,['%.' num2str(nDecimals) 'f']))); 
     events_table.ISI          = strtrim(cellstr(num2str(events_table.ISI,['%.' num2str(nDecimals) 'f'])));    
-
+    
     % Add a task column to the events_table 
     events_table.task_name   = repmat(task_label{ii}, height(events_table), 1);
     

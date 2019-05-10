@@ -25,7 +25,7 @@ for iRun = 1:length(dataFiles)
       
     % Read in events for this run
     eventsTable = readtable(fullfile(dataDir,eventFiles(iRun).name), 'FileType', 'text');
-    
+   
     % Concatenate events across runs
     if iRun == 1 
         events = eventsTable;
