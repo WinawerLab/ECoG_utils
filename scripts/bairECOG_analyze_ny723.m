@@ -6,7 +6,7 @@
 % Dataset specs
 projectName = 'visual';
 sub_label   = 'som723'; 
-ses_label   = {'nyuecog01'};
+ses_label   = {'nyuecog01','nyuecog02'};
 
 % Input paths specs
 dataPth     = '/Volumes/server/Projects/BAIR/Data/BIDS/';
@@ -32,8 +32,8 @@ specs.plotlabel     = 'yes';
 visualelectrodes    = electrode_to_nearest_node(specs, dataDir);
 
 %% Plot responses for visual electrodes
-trials = all{1}.trials;
-blanks = all{1}.blank_trials;
+trials = all{2}.trials;
+blanks = all{2}.blank_trials;
 % FROM GIO/DORA: Electrodes on seizure are OC12, OC13, OC21, OC22.
 %ElecsToExclude  = trials.channels.name(contains(trials.channels.status, 'bad'));
 
@@ -46,20 +46,21 @@ elInx = trials.channels.name(contains(trials.channels.status, 'good'));
 %whichTrials = {'CRF-1','CRF-2', 'CRF-3','CRF-4', 'CRF-5'};
 %whichTrials = {'ONEPULSE-1','ONEPULSE-2', 'ONEPULSE-3','ONEPULSE-4', 'ONEPULSE-5', 'ONEPULSE-6'};
 %whichTrials = {'TWOPULSE-1','TWOPULSE-2', 'TWOPULSE-3','TWOPULSE-4', 'TWOPULSE-5', 'TWOPULSE-6'};
-%whichTrials = {'HOUSES','FACES', 'LETTERS'};
+whichTrials = {'HOUSES','FACES', 'LETTERS'};
 %whichTrials = {'GRATING', 'PLAID','CIRCULAR'};
 %whichTrials = {'CRF', 'SPARSITY','ONEPULSE','GRATING', 'PLAID','CIRCULAR'};
 %whichTrials = {'SPARSITY-1','SPARSITY-2', 'SPARSITY-3','SPARSITY-4'};
 %whichTrials = {'CRF','ONEPULSE', 'TWOPULSE'}; 
-whichTrials = {'DIAGONAL'};
+%whichTrials = {'DIAGONAL'};
 %whichTrials = {'SPARSITY'};
+%whichTrials = {'HRF'};
 
 % PLOT time course for each condition
 specs = [];
 specs.dataTypes          = {'broadband'};
 specs.smoothingLevelInMs = [];
 specs.collapseTrialTypes = 'no';
-specs.baselineType       = 'all';%'selectedtrials';
+specs.baselineType       = 'selectedtrials';
 specs.plot.colorMap      = 'parula';
 specs.plot.nSubPlots     = [];
 specs.plot.addEccToTitle = 'no';
