@@ -10,14 +10,6 @@ function bidsconvert_writerunfiles(dataWriteDir, stimWriteDir, sub_label, ses_la
 %   - ieeg.json 
 %   - channels.tsv
 
-
-%% Define temporal parameters
-
-% USE THIS IF the data have task onset and offset triggers.
-prescan   = 0; % Segment each run with this amount before the first stimulus onset (seconds)
-postscan  = 0; % Segment each run with this amount after the last stimulus onset (seconds)
-nDecimals = 4; % Specify temporal precision of time stamps in events files
-
 %% Big loop across runs
 
 % This loop:
@@ -41,7 +33,8 @@ end
 % Initialize trigger count
 num_triggers_total = 0;
 nRuns = length(run_label);
-segmentOnFlips = 1;
+segmentOnFlips = 1;% Make this an input variable?
+nDecimals = 4; % Specify temporal precision of time stamps in events files
 
 for ii = 1:nRuns
     

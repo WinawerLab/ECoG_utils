@@ -24,8 +24,10 @@ end
 % Get visual elec indices
 [viselec] = unique([viselec_wang viselec_benson])';
 name = cell(size(viselec));
-wang = cell(size(viselec));
-benson = cell(size(viselec));
+wang = repmat({'none'},(size(viselec))); 
+% need to out something because empty cells cause trouble with searching
+% for specific areas later
+benson = repmat({'none'},(size(viselec)));
 elInx = []; 
 for ii = 1:length(viselec)
     elInx(ii) = ecog_matchChannels(viselec{ii}, trials)';
