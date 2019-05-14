@@ -33,7 +33,7 @@ end
 % Initialize trigger count
 num_triggers_total = 0;
 nRuns = length(run_label);
-segmentOnFlips = 1;% Make this an input variable?
+segmentOnFlips = 0;% Make this an input variable?
 nDecimals = 4; % Specify temporal precision of time stamps in events files
 
 for ii = 1:nRuns
@@ -67,7 +67,7 @@ for ii = 1:nRuns
     
     % Fix some problems in older stimulus files 
     if contains(task_label{ii}, 'hrf')   
-        if length(find(stimData(ii).stimulus.trigSeq)) ~=32
+        if length(find(stimData(ii).stimulus.trigSeq)) ~=32 && max(stimData(ii).stimulus.trigSeq) ~= 256
             % There are additional triggers that we should not use
             fprintf('[%s] Warning: hrf stimulus file has incorrect number of triggers \n', mfilename)
             fprintf('[%s] Removing directly adjacent triggers from stimfile \n', mfilename)
@@ -77,7 +77,7 @@ for ii = 1:nRuns
         end
     end
     if contains(task_label{ii}, 'prf')
-        if length(find(stimData(ii).stimulus.trigSeq)) ~=224
+        if length(find(stimData(ii).stimulus.trigSeq)) ~=224 && max(stimData(ii).stimulus.trigSeq) ~= 256
             % Old prf stim files had too many triggers + missing triggers
             fprintf('[%s] Warning: prf stimulus file has incorrect number of triggers \n', mfilename)
             [newTrigSeq] = bidsconvert_fixprftrigseq(stimData(ii).stimulus);

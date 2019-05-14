@@ -1,0 +1,22 @@
+./fsnative_to_fsaverage.py /Volumes/server/Freesurfer_subjects/som723/ /Volumes/server/Projects/BAIR/Data/Raw/ECoG/723/NY723_040519_coor_T1_2019-04-08.txt /Volumes/server/Projects/BAIR/Data/BIDS/visual/derivatives/preprocessed/sub-som723/som723_fsaverage_electrode_coordinates.tsv
+
+./fsnative_to_fsaverage.py /Volumes/server/Freesurfer_subjects/som718/ /Volumes/server/Projects/BAIR/Data/Raw/ECoG/718/NY718_030819_coor_T1_2019-03-13.txt /Volumes/server/Projects/BAIR/Data/BIDS/visual/derivatives/preprocessed/sub-som718/som718_fsaverage_electrode_coordinates.tsv
+
+./fsnative_to_fsaverage.py /Volumes/server/Freesurfer_subjects/som7	09/ /Volumes/server/Projects/BAIR/Data/Raw/ECoG/709/NY709_021519_coor_T1_2019-02-19.txt /Volumes/server/Projects/BAIR/Data/BIDS/visual/derivatives/preprocessed/sub-som709/som709_fsaverage_electrode_coordinates.tsv
+
+./fsnative_to_fsaverage.py /Volumes/server/Freesurfer_subjects/som708/ /Volumes/server/Projects/BAIR/Data/Raw/ECoG/708/NY708_021319_coor_T1_2019-02-15.txt /Volumes/server/Projects/BAIR/Data/BIDS/visual/derivatives/preprocessed/sub-som708/som708_fsaverage_electrode_coordinates.tsv
+
+./fsnative_to_fsaverage.py /Volumes/server/Freesurfer_subjects/som692/ /Volumes/server/Projects/BAIR/Data/Raw/ECoG/692/NY692_092818_coor_T1_2018-09-28.txt /Volumes/server/Projects/BAIR/Data/BIDS/visual/derivatives/preprocessed/sub-som692/som692_fsaverage_electrode_coordinates.tsv
+
+./fsnative_to_fsaverage.py /Volumes/server/Freesurfer_subjects/som682/ /Volumes/server/Projects/BAIR/Data/Raw/ECoG/682/NY682_071418_coor_T1_2018-07-20.txt /Volumes/server/Projects/BAIR/Data/BIDS/visual/derivatives/preprocessed/sub-som682/som682_fsaverage_electrode_coordinates.tsv
+
+./fsnative_to_fsaverage.py /Volumes/server/Freesurfer_subjects/som674/ /Volumes/server/Projects/BAIR/Data/Raw/ECoG/674/NY674_051108_coor_T1_2018-05-18.txt /Volumes/server/Projects/BAIR/Data/BIDS/visual/derivatives/preprocessed/sub-som674/som674_fsaverage_electrode_coordinates.tsv
+
+./fsnative_to_fsaverage.py /Volumes/server/Freesurfer_subjects/som668/ /Volumes/server/Projects/BAIR/Data/Raw/ECoG/668/NY668_041218_coor_T1_2018-04-13.txt /Volumes/server/Projects/BAIR/Data/BIDS/visual/derivatives/preprocessed/sub-som668/som668_fsaverage_electrode_coordinates.tsv
+
+./fsnative_to_fsaverage.py /Volumes/server/Freesurfer_subjects/som661/ /Volumes/server/Projects/BAIR/Data/Raw/ECoG/661/NY661_MPR_011918_coor_T1_2018-03-02.txt /Volumes/server/Projects/BAIR/Data/BIDS/visual/derivatives/preprocessed/sub-som661/som661_fsaverage_electrode_coordinates.tsv
+
+./fsnative_to_fsaverage.py /Volumes/server/Freesurfer_subjects/som648/ /Volumes/server/Projects/BAIR/Data/Raw/ECoG/648/NY648_MRP_042517_coor_T1_2017-11-10.txt /Volumes/server/Projects/BAIR/Data/BIDS/visual/derivatives/preprocessed/sub-som648/som648_fsaverage_electrode_coordinates.tsv
+
+
+

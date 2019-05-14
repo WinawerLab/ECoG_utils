@@ -23,7 +23,7 @@ plotmesh  = specs.plotmesh;
 disp(['running patient ' num2str(pID)]);
 
 % Read electrode coordinate file from BAIR/ECOG directory
-%elec_file = specs.elecFile;
+elec_file = specs.elecFile;
 
 switch specs.patientPool
     case 'BAIR'
@@ -31,10 +31,11 @@ switch specs.patientPool
 
             % Prefer to use readtable for tsv files because it doesn't require
             % knowing the order of the columns beforehand (as textscan does). 
+            disp(['reading ' elec_file]); % if there are multiple coor_T1 files for separate hemisphere, D(1) will always be the full list
             E = readtable(elec_file, 'FileType', 'text');
-            elec_labels = E.name;
+            %elec_labels = E.name;
             if iscell(E.x)
-                for ii = 1:length(elec_labels)
+                for ii = 1:height(E)
                     elec_xyz(ii,1) = str2double(E.x{ii});
                     elec_xyz(ii,2) = str2double(E.y{ii});
                     elec_xyz(ii,3) = str2double(E.z{ii});    

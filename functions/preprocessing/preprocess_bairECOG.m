@@ -36,6 +36,16 @@ if  max(contains(events.Properties.VariableNames, 'trial_name')) == 0
     events = bair_addTrialNamesToEventsTable(events);
 end
 
+% Resample the UMCU data to lower temporal resolution to match NYU data
+if contains(sub_label, 'umcu')
+    cfg = [];
+    cfg.resamplefs      = 512;%frequency at which the data will be resampled (default = 256 Hz)
+    cfg.detrend         = 'no';%'no' or 'yes', detrend the data prior to resampling (no default specified, see below)
+    %cfg.feedback        = 'no', 'text', 'textbar', 'gui' (default = 'text')
+    [ftdata] = ft_resampledata(cfg, ftdata);
+    ftdata.hdr.Fs = ftdata.fsample;
+end
+
 %% [1] Remove non-relevant channels
 
 % % Remove redundant channels (e.g. DC channels, channels without coordinates)
@@ -90,8 +100,7 @@ switch specs.make_plots
         title(ftdata.label(channel_plot));
 
         subplot(1,2,2),hold on
-        %[pxx,freqs] = pwelch(ftdata.trial{1}(contains(lower(channels.type),{'ecog','seeg'}),:)',ftdata.fsample,0,ftdata.fsample,ftdata.fsample);
-        [pxx,freqs] = pwelch(ftdata.trial{1}(contains(lower(channels.status),'good'),:)',ftdata.fsample,0,ftdata.fsample,ftdata.fsample);
+        [pxx,freqs] = pwelch(ftdata.trial{1}(good_channels,:)',ftdata.fsample,0,ftdata.fsample,ftdata.fsample);
         [pxx2,~] = pwelch(signal',ftdata.fsample,0,ftdata.fsample,ftdata.fsample);
         plot(freqs,pxx(:,channel_plot),'k')
         plot(freqs,pxx2(:,channel_plot),'g'); 

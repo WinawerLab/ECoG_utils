@@ -1,4 +1,4 @@
-function ecog_plotSingleTimeCourse(t, timecourse, CI, lineColor, plotTitle, yLabel, yLim)
+function ecog_plotSingleTimeCourse(t, timecourse, CI, lineSpec, plotTitle, yLabel, yLim)
 
 % timecourse time x trials
 % CI = timecourse * 2 [llim ulim]
@@ -15,8 +15,8 @@ if nargin < 5 || isempty(plotTitle)
     plotTitle= ' ';
 end
 
-if nargin < 4 || isempty(lineColor)
-    lineColor = 'k';
+if nargin < 4 || isempty(lineSpec)
+    lineSpec = 'k:';
 end
 
 if nargin < 3 || isempty(CI)
@@ -25,19 +25,28 @@ end
 
  % Plot standard errors
 if ~isempty(CI)
-    h = ciplot(CI(:,1),CI(:,2),t,lineColor, 0.25);
+    h = ciplot(CI(:,1),CI(:,2),t,lineSpec, 0.25);
     h.Annotation.LegendInformation.IconDisplayStyle = 'off';
 end
 
 hold on;
+
 % Plot means
-plot(t, timecourse, lineColor, 'LineWidth',2);
+if ischar(lineSpec)
+    plot(t, timecourse, lineSpec, 'LineWidth',2);
+else
+    plot(t, timecourse, 'Color', lineSpec, 'LineWidth',2);
+end
+
+box off
+axis tight
 
 if isempty(yLim)
     yLim = get(gca, 'YLim');
 else
     ylim(yLim);
 end
+
 % Add stim onset and zero lines
 l1 = line([0 0], yLim,'LineStyle', ':', 'Color', 'k');
 set(get(get(l1,'Annotation'),'LegendInformation'),'IconDisplayStyle','off'); 
@@ -49,7 +58,8 @@ xlabel('Time (s)');
 ylabel(yLabel);
 title(plotTitle);
 
-axis tight 
-box off
+set(gca, 'fontsize', 16);
+ 
+
 
 end

@@ -10,13 +10,15 @@
 % Dataset specs
 project_name = 'visual';
 
-%sub_label   = 'som723'; 
-%ses_label   = {'nyuecog01'};
+sub_label   = 'som708'; 
+ses_label   = {'nyuecog01'};
 %ses_label   = {'nyuecog01','nyuecog02'};
 
-sub_label   = 'umcuchaam'; 
-ses_label   = {'UMCUECOGday03'};
+%sub_label   = 'umcuchaam'; 
+%ses_label   = {'UMCUECOGday03'};
 
+%sub_label   = 'umcubeilen'; 
+%ses_label   = {'UMCUECOGday03', 'UMCUECOGday06'};
 
 % PREPROCESSING SPECS
 
@@ -30,9 +32,6 @@ specs.bb_method    = 6;
 %specs.epoch        = [-0.5 1.5]; % seconds
 specs.epoch         = [-0.2 1.2];
 % baseline correction
-
-% spectra
-specs.reg_erp      = 0; % regress out erp for spectra?
 
 % general
 specs.make_plots   = 'yes'; % 'yes', 'no'

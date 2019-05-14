@@ -25,7 +25,20 @@ for iRun = 1:length(dataFiles)
       
     % Read in events for this run
     eventsTable = readtable(fullfile(dataDir,eventFiles(iRun).name), 'FileType', 'text');
-   
+    if isfield(eventsTable, 'trial_name')
+        if ~iscell(eventsTable.trial_name)
+            if contains(eventFiles(iRun).name, 'prf')
+                eventsTable.trial_name = repmat({'PRF'}, [height(eventsTable) 1]);
+            elseif contains(eventFiles(iRun).name, 'hrf')
+                eventsTable.trial_name = repmat({'HRF'}, [height(eventsTable) 1]);
+            end
+        end
+    end
+    
+    if ~isfield(eventsTable, 'ISI')
+        eventsTable.ISI = zeros(height(eventsTable),1);
+    end
+        
     % Concatenate events across runs
     if iRun == 1 
         events = eventsTable;
