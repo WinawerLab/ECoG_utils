@@ -36,14 +36,22 @@ if  max(contains(events.Properties.VariableNames, 'trial_name')) == 0
     events = bair_addTrialNamesToEventsTable(events);
 end
 
-% Resample the UMCU data to lower temporal resolution to match NYU data
+% Resample and shift the UMCU data 
 if contains(sub_label, 'umcu')
+    
+    % Resample
     cfg = [];
-    cfg.resamplefs      = 512;%frequency at which the data will be resampled (default = 256 Hz)
+    cfg.resamplefs      = 512; %frequency at which the data will be resampled (default = 256 Hz)
     cfg.detrend         = 'no';%'no' or 'yes', detrend the data prior to resampling (no default specified, see below)
     %cfg.feedback        = 'no', 'text', 'textbar', 'gui' (default = 'text')
     [ftdata] = ft_resampledata(cfg, ftdata);
     ftdata.hdr.Fs = ftdata.fsample;
+    
+    % Shift 
+    shiftInSeconds = 0.062; % 62 ms
+	shiftInSamples = round(shiftInSeconds/(1/512)); % assuming sample rate of 512
+    events.onset = events.onset + shiftInSeconds;
+    %events.event_sample = events.event_sample + shiftInSamples; 
 end
 
 %% [1] Remove non-relevant channels

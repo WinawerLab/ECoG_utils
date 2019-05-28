@@ -5,6 +5,10 @@ function [out] = electrode_to_nearest_node_fsaverage(specs)
 % thresh = maximal distance electrode to nearest node, in mm
 % plotmesh = 'yes' or 'no'
 
+if ~isfield(specs, 'atlasNames') || isempty(specs.atlasNames)
+    specs.atlasNames = {'wang2015_atlas','wang15_mplbl', 'benson14_varea', 'benson14_eccen', 'benson14_angle', 'benson14_sigma', 'template_areas'};
+end
+
 pID    = specs.pID;
 thresh = specs.thresh;
 
@@ -23,7 +27,7 @@ plotmesh  = specs.plotmesh;
 disp(['running patient ' num2str(pID)]);
 
 % Read electrode coordinate file from BAIR/ECOG directory
-elec_file = specs.elecFile;
+%elec_file = specs.elecFile;
 
 switch specs.patientPool
     case 'BAIR'
@@ -79,8 +83,8 @@ switch specs.patientPool
 end
 
 % Read surface reconstructions from Freesurfer_subjects directory
-surf_file_rh = ['/Volumes/server/Freesurfer_subjects/fsaverage_sym/surf/rh.pial'];
-surf_file_lh = ['/Volumes/server/Freesurfer_subjects/fsaverage_sym/surf/lh.pial'];
+surf_file_rh = ['/Applications/freesurfer/subjects/fsaverage/surf/rh.pial'];
+surf_file_lh = ['/Applications/freesurfer/subjects/fsaverage/surf/lh.pial'];
 
 %surf_file_rh = fullfile(specs.fsDir, sprintf('som%s', specs.pID), 'surf', 'rh.pial');
 %surf_file_lh = fullfile(specs.fsDir, sprintf('som%s', specs.pID), 'surf', 'lh.pial');
@@ -104,37 +108,112 @@ indices = indices(keep_idx);
 elec_xyz = elec_xyz(keep_idx,:);
 
 % node indices to atlases
-atlasNames = {'wang2015_atlas'};%;,'template_areas', 'template_angle', 'template_eccen'};
+%atlasNames = {'wang2015_atlas'};%;,'template_areas', 'template_angle', 'template_eccen'};
 
-for a = 1:length(atlasNames)
-	
-    currentAtlas = atlasNames{a};
+for a = 1:length(specs.atlasNames)
+    
+    currentAtlas = specs.atlasNames{a};
+    
+    atlas_version = 'v4_0';
+    
+    % Get names / colormaps associated with each atlas
+    switch currentAtlas
 
-    % get atlas label names
-    if a == 1 % Wang atlas
-        % Labels from: '/Volumes/server/Projects/Kastner2015Atlas/ProbAtlas_v4/ROIfiles_Labeling.txt';
-        area_labels =  {'V1v','V1d','V2v','V2d','V3v','V3d','hV4', ...
-                        'VO1','VO2','PHC1','PHC2','MST','hMT','LO2','LO1', ...
-                        'V3b','V3a','IPS0','IPS1','IPS2','IPS3','IPS4','IPS5', 'SPL1','FEF'};                  
-    elseif a == 2 % Noah template
-        area_labels = {'V1', 'V2', 'V3'}; 
-    elseif a == 3 % polar angle
-        area_labels = num2cell(0:180);
-    elseif a == 4 % eccentricity
-        area_labels = num2cell(0:90);
+        case {'wang2015_atlas', 'wang15_mplbl'} % Wang atlas
+
+            % Labels come from: '/Volumes/server/Projects/Kastner2015Atlas/ProbAtlas_v4/ROIfiles_Labeling.txt';
+            area_labels =  {'V1v','V1d', ...
+                            'V2v','V2d', ...
+                            'V3v','V3d', ...
+                            'hV4', ...
+                            'VO1','VO2', ...
+                            'PHC1','PHC2', ...
+                            'TO2','TO1', ...
+                            'LO2','LO1', ...
+                            'V3b','V3a', ...
+                            'IPS0','IPS1','IPS2','IPS3','IPS4','IPS5', ...
+                            'SPL1','FEF'}; 
+            area_cmap   = [102  51   0; 255   0   0; 
+                           102   0  51; 255 128   0;
+                            51   0 102; 255 255   0;
+                             0 128 255;
+                             0 102  51; 153 153   0;
+                           204 102   0; 204   0   0;
+                             0  76 153; 153  76   0;
+                           255  51 153; 102   0 204;
+                             0 255 255;   0 255   0;
+                           255 153 153; 255 204 153; 255 255 153; 153 255 153; 153 255 255; 153 153 255; 
+                           255 153 255; 255 178 102]./255;
+            out.(currentAtlas).area_names   = area_labels;
+            atlas_version = 'v1_0';
+            
+        case 'benson14_varea' % Noah template: areas 
+
+            % Labels come from Noah email:  values in order from 1-12: V1 V2 V3 hV4 VO1 VO2 LO1 LO2 TO1 TO2 V3b V3a
+            area_labels = {'V1', ...
+                           'V2', ...
+                           'V3', ...
+                           'hV4', ...
+                           'VO1', 'VO2', ...
+                           'LO1', 'LO2', ...
+                           'TO1', 'TO2', ...
+                           'V3b', 'V3a'}; 
+            area_cmap   = [255   0   0; 
+                           255 128   0; 
+                           255 255   0; 
+                             0 128 255;
+                             0  76 153; 153  76   0;
+                             0 102  51; 153 153   0;  
+                           255  51 153; 102   0 204;
+                             0 255 255;   0 255   0]./255;
+            out.(currentAtlas).area_names   = area_labels;
+
+        case 'template_areas' % old Noah templates
+
+            area_labels = {'V1', 'V2', 'V3'}; 
+            area_cmap   = [255 255 0; 0 255 255; 0 0 255]./255;
+            out.(currentAtlas).area_names   = area_labels;
+
+        otherwise
+
+            switch specs.plotmesh
+                case {'both', 'left', 'right'}
+
+                    fprintf('[%s] Loading colormap_%s \n',mfilename, currentAtlas);
+                    A = load(['colormap_' currentAtlas]);
+
+                    switch currentAtlas
+                        case 'benson14_eccen'
+                            area_cmap = A.cmap(15:end-200,2:4);
+                        otherwise
+                            area_cmap = A.cmap(:,2:4); 
+                            % actually different colormaps should be
+                            % used for left and right polar angle, but
+                            % not possible to implement for 'both
+                            % hemisphere ' plot
+                    end
+
+                    %atlas_range = range(atlas);
+                    %cmap_index = round(linspace(1,length(area_cmap),atlas_range));
+                    %area_cmap = area_cmap(cmap_index,:);   
+            end
     end
 
+    
+    atlasDir = '/Users/winawerlab/Library/Python/2.7/lib/python/site-packages/neuropythy/lib/data/fsaverage/surf/';
+    
 %     % get atlases for this subject
-%     atlas_file_rh = fullfile(specs.fsDir, sprintf('som%s', specs.pID), 'surf', sprintf('rh.%s.mgz', currentAtlas));
-%     atlas_file_lh = fullfile(specs.fsDir, sprintf('som%s', specs.pID), 'surf', sprintf('lh.%s.mgz', currentAtlas));
-%     if exist(atlas_file_rh, 'file') && exist(atlas_file_lh, 'file')
-%         [atlas_rh] = load_mgh(atlas_file_rh);
-%         [atlas_lh] = load_mgh(atlas_file_lh);
-%     else
-%         disp('no atlas annotations found - exiting');
-%         out = [];
-%         return
-%     end
+    atlas_file_rh = fullfile(atlasDir,  sprintf('rh.%s.%s.mgz', currentAtlas, atlas_version));
+	atlas_file_lh = fullfile(atlasDir,  sprintf('lh.%s.%s.mgz', currentAtlas, atlas_version));
+
+    if exist(atlas_file_rh, 'file') && exist(atlas_file_lh, 'file')
+        [atlas_rh] = load_mgh(atlas_file_rh);
+        [atlas_lh] = load_mgh(atlas_file_lh);
+    else
+        fprintf('[%s] No annotations found for %s \n',mfilename, currentAtlas);
+        out.(currentAtlas) = [];
+        continue % move on to the next atlas
+    end
     
 %     % match nearest nodes to atlas labels
 %     atlas = [squeeze(atlas_rh);squeeze(atlas_lh)]; % concatenate hemis   
@@ -166,15 +245,15 @@ for a = 1:length(atlasNames)
                     
                     %figure(1)%,'Name', ['fsaverage ' atlasNames{a}]); hold on;
                     figure('Name', 'fsaverage '); hold on;
-                    t_r = trimesh(faces_r+1, vertices_r(:,1), vertices_r(:,2), vertices_r(:,3), 'FaceColor', 'flat');
+                    t_r = trimesh(faces_r+1, vertices_r(:,1), vertices_r(:,2), vertices_r(:,3), atlas_rh, 'FaceColor', 'flat');
                     t_r.LineStyle = 'none';
                     axis equal; hold on;
-                    t_l = trimesh(faces_l+1, vertices_l(:,1), vertices_l(:,2), vertices_l(:,3), 'FaceColor', 'flat');
+                    t_l = trimesh(faces_l+1, vertices_l(:,1), vertices_l(:,2), vertices_l(:,3), atlas_lh, 'FaceColor', 'flat');
                     t_l.LineStyle = 'none';
-                    %cmap = [[1 1 1]*.7; colormap(flipud(jet(length(area_labels))))];
-                    cmap = [1 1 1]*.7;
+                    cmap = [[1 1 1]*.7; colormap(flipud(jet(length(area_labels))))];
+                    %cmap = [1 1 1]*.7;
                     colormap(cmap);
-                    %caxis([0 max(atlas_rh)]);
+                    caxis([0 max(atlas_rh)]);
                     
                     plot_electrodes(elec_xyz, [1 1 1]*0.2,2);
                     %plot_electrodes(elec_xyz(elec_indices,:), [0 0 0],2);

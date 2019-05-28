@@ -43,7 +43,7 @@ task_label  = {'hrfpattern', ...
 run_label = {'01','01','02','01','02','01','02','01','02','03','04','03','04','03','04', '02'};
 
 % Make plots?
-makePlot = 1;
+makePlot = 0;
 
 % NOTE: first hrfpattern session was run with faulty calibration; should
 % probably be excluded from data analysis.

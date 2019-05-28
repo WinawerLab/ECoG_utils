@@ -10,6 +10,8 @@ function bidsconvert_writerunfiles(dataWriteDir, stimWriteDir, sub_label, ses_la
 %   - ieeg.json 
 %   - channels.tsv
 
+segmentOnFlips = 1;% Make this an input variable?
+
 %% Big loop across runs
 
 % This loop:
@@ -33,7 +35,6 @@ end
 % Initialize trigger count
 num_triggers_total = 0;
 nRuns = length(run_label);
-segmentOnFlips = 0;% Make this an input variable?
 nDecimals = 4; % Specify temporal precision of time stamps in events files
 
 for ii = 1:nRuns

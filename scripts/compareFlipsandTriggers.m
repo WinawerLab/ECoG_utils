@@ -2,8 +2,11 @@
 %a{1} = load('/Volumes/server/Projects/BAIR/Data/BIDS/visual/derivatives/preprocessed/sub-som648/ses-nyuecog01/sub-som648_ses-nyuecog01_epoched.mat');
 %a{2} = load('/Volumes/server/Projects/BAIR/Data/BIDS/visual/derivatives/preprocessed/sub-som648/ses-nyuecog01/sub-som648_ses-nyuecog01_epoched_20190514T122825.mat');
 
-a{1} = load('/Volumes/server/Projects/BAIR/Data/BIDS/visual/derivatives/preprocessed/sub-som708/ses-nyuecog01/sub-som708_ses-nyuecog01_epoched.mat');
-a{2} = load('/Volumes/server/Projects/BAIR/Data/BIDS/visual/derivatives/preprocessed/sub-som708/ses-nyuecog01/sub-som708_ses-nyuecog01_epoched_20190514T131703.mat');
+%a{1} = load('/Volumes/server/Projects/BAIR/Data/BIDS/visual/derivatives/preprocessed/sub-som708/ses-nyuecog01/sub-som708_ses-nyuecog01_epoched.mat');
+%a{2} = load('/Volumes/server/Projects/BAIR/Data/BIDS/visual/derivatives/preprocessed/sub-som708/ses-nyuecog01/sub-som708_ses-nyuecog01_epoched_20190514T131703.mat');
+
+a{1} = load('/Volumes/server/Projects/BAIR/Data/BIDS/visual/derivatives/preprocessed/sub-som692/ses-nyuecog01/sub-som692_ses-nyuecog01_epoched.mat');
+a{2} = load('/Volumes/server/Projects/BAIR/Data/BIDS/visual/derivatives/preprocessed/sub-som692/ses-nyuecog01/sub-som692_ses-nyuecog01_epoched_20190514T134833.mat');
 
 %% baselinecorrect
 
@@ -37,12 +40,14 @@ fsample = a{1}.trials.fsample;
 figure;hist(differences)
 title('flip - triggers'); xlabel('samples');
 figure;hist(differences * (1/fsample))
-title('flip - triggers'); xlabel('time (s)'); xlim([-0.02 0.02])
+title('flip - triggers'); xlabel('time (s)'); xlim([-0.2 0.2])
 
 
 stimNm = {'PULSE'};
-%taskNm = 'prf';
-chan = 'O02';
+taskNm = 'prf';
+%chan = 'O02';
+%chan = 'MO01';
+chan = 'BO01';
 
 versiontitles = {'flips', 'triggers'};
 
@@ -51,6 +56,6 @@ for k = 1:2
     %test = squeeze(ev{k}(ecog_matchChannels(chan, a{k}.trials),:,find(contains(a{k}.trials.events.task_name, taskNm))));
     figure;plot(t, test); title(versiontitles{k});
     hold on; plot(t,mean(test,2), 'k', 'LineWidth', 2);
-    set(gca, 'xlim', [0 0.2]);
+    %set(gca, 'xlim', [0 0.2]);
 end
 

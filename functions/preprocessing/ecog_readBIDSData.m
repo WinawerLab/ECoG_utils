@@ -25,7 +25,7 @@ for iRun = 1:length(dataFiles)
       
     % Read in events for this run
     eventsTable = readtable(fullfile(dataDir,eventFiles(iRun).name), 'FileType', 'text');
-    if isfield(eventsTable, 'trial_name')
+    if isfield(summary(eventsTable), 'trial_name')
         if ~iscell(eventsTable.trial_name)
             if contains(eventFiles(iRun).name, 'prf')
                 eventsTable.trial_name = repmat({'PRF'}, [height(eventsTable) 1]);

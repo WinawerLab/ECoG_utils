@@ -412,17 +412,17 @@ for ii = 1:nRuns
     % Collect info for events.tsv file 
     
     % % Determine trial onset based on the triggers:
-    event_sample = (onset_indices - run_start_inx);
+    %event_sample = (onset_indices - run_start_inx);
     
     % Determine trial onset based on the flips:   
     % Get the fliptimes for the requested triggers
-	%flips        = stimData(ii).response.flip(stimData(ii).stimulus.trigSeq>0); % in seconds
+	flips        = stimData(ii).response.flip(stimData(ii).stimulus.trigSeq>0); % in seconds
     % Align to the flip for the first stimulus. This is assumed to be same
     % as the first stimulus trigger on the basis of which the run is
     % segmented (minus prescan period).
-    %flips        = flips-(flips(1)-prescan); % in seconds
-    %flip_indices = round(flips*hdr.Fs); % need to round because flip times do not always exactly align with sample rate
-    %event_sample = flip_indices';
+    flips        = flips-(flips(1)-prescan); % in seconds
+    flip_indices = round(flips*hdr.Fs); % need to round because flip times do not always exactly align with sample rate
+    event_sample = flip_indices';
     
     % Get remaining columns: 
     onset        = strtrim(cellstr(num2str(event_sample/hdr.Fs,['%.' num2str(nDecimals) 'f']))); 

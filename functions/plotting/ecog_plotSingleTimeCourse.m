@@ -16,13 +16,16 @@ if nargin < 5 || isempty(plotTitle)
 end
 
 if nargin < 4 || isempty(lineSpec)
-    lineSpec = 'k:';
+    lineSpec = 'k';
 end
 
 if nargin < 3 || isempty(CI)
     CI = [];
 end
 
+if size(CI,2) ~= 2
+    CI = CI';
+end
  % Plot standard errors
 if ~isempty(CI)
     h = ciplot(CI(:,1),CI(:,2),t,lineSpec, 0.25);
@@ -58,7 +61,7 @@ xlabel('Time (s)');
 ylabel(yLabel);
 title(plotTitle);
 
-set(gca, 'fontsize', 16);
+set(gca, 'fontsize', 12);
  
 
 
