@@ -1,4 +1,4 @@
-function [out] = electrode_to_nearest_node(specs, varargin)
+function [out] = electrode_to_nearest_node_fsaverage(specs, varargin)
 
 % This function matches a list of electrode locations in an ECoG patient to
 % the nearest node in their T1s freesurfer pial surface reconstruction,
@@ -183,9 +183,27 @@ if BIDSformatted
             end
             if contains(specs.pID,'umcuchaam')
                 % subtract effect of cropping by freesurfer
-                elec_xyz(:,1) = elec_xyz(:,1)-3.4490;
-                elec_xyz(:,2) = elec_xyz(:,2)-34.6040;
-                elec_xyz(:,3) = elec_xyz(:,3)+6.2660;
+%                 elec_xyz(:,1) = elec_xyz(:,1)-3.4490;
+%                 elec_xyz(:,2) = elec_xyz(:,2)-34.6040;
+%                 elec_xyz(:,3) = elec_xyz(:,3)+6.2660;
+                elec_xyz(:,4) = ones(size(elec_xyz,1),1);
+                
+                % from '/Volumes/server/Freesurfer_subjects/umcuchaam/mri/transforms/talairach.xfm';
+                transformationMatrix = [1.233505 -0.017401 -0.014772 -5.187088;
+                                         0.025402 1.253578 0.099671 -53.515144;
+                                         -0.003843 -0.224799 1.192910 -25.940079];
+                elec_xyz = elec_xyz * transformationMatrix'; 
+                
+            end
+            if contains(specs.pID,'umcubeilen')
+               % transform to MNI using freesurfer transform
+                elec_xyz(:,4) = ones(size(elec_xyz,1),1);
+                
+                % from '/Volumes/server/Freesurfer_subjects/umcubeilen/mri/transforms/talairach.xfm';
+                transformationMatrix = [1.148114 0.036708 0.006442 -2.237747;
+                                         -0.072384 1.005045 0.278077 -21.537842;
+                                         0.019095 -0.261547 1.067850 -23.967133];
+                elec_xyz = elec_xyz * transformationMatrix'; 
             end
         end
     end
@@ -205,7 +223,7 @@ else
     end
 
     % Read electrode coordinate file from Raw/SoM directory
-    D = dir(fullfile(patientDir, '/*coor_T1*.txt'));
+    D = dir(fullfile(patientDir, '/*coor_MNI*.txt'));
     if ~isempty(D)
         elec_file = D(1).name;% if there are multiple coor_T1 files for separate hemisphere, D(1) will always be the full list
         elec_folder = D(1).folder;
@@ -226,8 +244,14 @@ else
 end
 
 % Read surface reconstructions from Freesurfer_subjects directory
-surf_file_rh = fullfile(specs.fsDir, specs.pID, 'surf', 'rh.pial');
-surf_file_lh = fullfile(specs.fsDir, specs.pID, 'surf', 'lh.pial');
+%surf_file_rh = ['/Applications/freesurfer/subjects/fsaverage/surf/rh.pial'];
+%surf_file_lh = ['/Applications/freesurfer/subjects/fsaverage/surf/lh.pial'];
+surf_file_rh = fullfile(specs.fsDir, 'fsaverage', 'surf', 'rh.pial');
+surf_file_lh = fullfile(specs.fsDir, 'fsaverage', 'surf', 'lh.pial');
+
+% Read surface reconstructions from Freesurfer_subjects directory
+%surf_file_rh = fullfile(specs.fsDir, specs.pID, 'surf', 'rh.pial');
+%surf_file_lh = fullfile(specs.fsDir, specs.pID, 'surf', 'lh.pial');
 if exist(surf_file_rh, 'file') && exist(surf_file_lh, 'file')
     fprintf('[%s] Reading Freesurfer pial surface file %s ...\n',mfilename, surf_file_rh);
     [vertices_r, faces_r] = read_surf(surf_file_rh);
@@ -253,86 +277,12 @@ out.patientID = specs.pID;
 
 % Generate figures
 
-% First, plot electrodes on brain without any atlases
-fig = figure('Name', specs.pID); hold on;
-
-% Plot pial surface as mesh
-switch plotmesh
-    case 'both'                                                 
-        plot_mesh(faces_l, vertices_l, ones([1 1 size(vertices_l,1)]), []);
-        plot_mesh(faces_r, vertices_r, ones([1 1 size(vertices_r,1)]), []);
-    case 'left'
-        plot_mesh(faces_l, vertices_l, ones([1 1 size(vertices_l,1)]), []);
-    case 'right'
-        plot_mesh(faces_r, vertices_r, ones([1 1 size(vertices_r,1)]), []);   
-end
-
-% Add the electrodes
-switch plotelecs        
-    case 'yes'            
-        if ~exist('fig','var')
-            fig = figure('Name', [num2str(specs.pID) ' ' currentAtlas]); hold on;
-        end
-        
-        [elec_indices] = find(indices);
-
-        switch plotmesh
-            case 'left'
-                electoplot = find(elec_xyz(:,1) <= 10);
-                elec_indices = intersect(elec_indices,electoplot);
-                elec_plotindex = electoplot;
-            case 'right'
-                electoplot = find(elec_xyz(:,1) >= -10);
-                elec_indices = intersect(elec_indices,electoplot);
-                elec_plotindex = electoplot;
-            otherwise
-                elec_plotindex = 1:size(elec_xyz,1);
-        end
-
-        % Plot electrodes
-        plot_electrodes(elec_xyz(elec_plotindex,:), [1 1 1]*0.2,2);
-        plot_electrodes(elec_xyz(elec_indices,:), [0 0 0],2);
-        
-        % Add electrode labels
-        switch plotlabel
-            case 'yes'
-                for i = 1:size(elec_xyz(elec_plotindex,:),1)
-                    [x, y, z] = adjust_elec_label(elec_xyz(elec_plotindex(i),:),2);
-                    text('Position',[x y z],'String',elec_labels(elec_plotindex(i),:),'Color','w','VerticalAlignment','top');
-                end
-        end
-end
-
-% Set view parameters
-if exist('fig','var')
-    set_view(gcf)
-end
-
 % Then, match electrodes with each atlas; make figure if requested
 for a = 1:length(specs.atlasNames)
     
     currentAtlas = specs.atlasNames{a};
-    
-    % Get atlases for this subject
-    fullfile(specs.fsDir, specs.pID, 'surf', 'rh.pial');
-    atlas_file_rh = fullfile(specs.fsDir, specs.pID, 'surf', sprintf('rh.%s.mgz', currentAtlas));
-    atlas_file_lh = fullfile(specs.fsDir, specs.pID, 'surf', sprintf('lh.%s.mgz', currentAtlas));
-    if exist(atlas_file_rh, 'file') && exist(atlas_file_lh, 'file')
-        [atlas_rh] = load_mgh(atlas_file_rh);
-        [atlas_lh] = load_mgh(atlas_file_lh);
-    else
-        fprintf('[%s] No annotations found for %s \n',mfilename, currentAtlas);
-        out.(currentAtlas) = [];
-        continue % move on to the next atlas
-    end
-    
-    % Match nearest nodes to atlas labels
-    atlas = [squeeze(atlas_rh);squeeze(atlas_lh)]; % concatenate hemis   
-    atlas_elec = atlas(indices);
-    [elec_indices] = find(atlas_elec);
-    elec_labels_found = elec_labels(elec_indices);
-    node_indices = indices(elec_indices);
-    
+	atlas_version = 'v4_0';
+  
     % Get names / colormaps associated with each atlas
     switch currentAtlas
 
@@ -362,6 +312,8 @@ for a = 1:length(specs.atlasNames)
                            255 153 153; 255 204 153; 255 255 153; 153 255 153; 153 255 255; 153 153 255; 
                            255 153 255; 255 178 102]./255;
             out.(currentAtlas).area_names   = area_labels;
+            atlas_version = 'v1_0';
+            atlasUnits = 'visual area';
 
         case 'benson14_varea' % Noah template: areas 
 
@@ -383,14 +335,18 @@ for a = 1:length(specs.atlasNames)
                            255  51 153; 102   0 204;
                              0 255 255;   0 255   0]./255;
             out.(currentAtlas).area_names   = area_labels;
+            atlasUnits = 'visual area';
 
         case 'template_areas' % old Noah templates
 
             area_labels = {'V1', 'V2', 'V3'}; 
             area_cmap   = [255 255 0; 0 255 255; 0 0 255]./255;
             out.(currentAtlas).area_names   = area_labels;
+            atlasUnits = 'visual area';
 
         otherwise
+            
+            atlasUnits = 'degrees';
 
             switch specs.plotmesh
                 case {'both', 'left', 'right'}
@@ -414,35 +370,21 @@ for a = 1:length(specs.atlasNames)
                     %area_cmap = area_cmap(cmap_index,:);   
             end
     end
-        
-    % Get area labels and specs for matched nodes
-    switch currentAtlas
-        case {'wang2015_atlas', 'wang15_mplbl', 'benson14_varea', 'template_areas'}
+    
+    atlasDir = '/Users/winawerlab/Library/Python/2.7/lib/python/site-packages/neuropythy/lib/data/fsaverage/surf/';
 
-            area_count = zeros(1,length(area_labels));
-            for i = 1:length(elec_labels_found)
-                area_count(atlas_elec(elec_indices(i))) = area_count(atlas_elec(elec_indices(i))) + 1;
-            end
-            area_labels_found = area_labels(round(atlas_elec(elec_indices)));
+    % get atlases for this subject
+    atlas_file_rh = fullfile(atlasDir,  sprintf('rh.%s.%s.mgz', currentAtlas, atlas_version));
+	atlas_file_lh = fullfile(atlasDir,  sprintf('lh.%s.%s.mgz', currentAtlas, atlas_version));
 
-            out.(currentAtlas).area_count   = area_count;
-            out.(currentAtlas).elec_labels  = elec_labels_found';
-            out.(currentAtlas).area_labels  = area_labels_found;
-            out.(currentAtlas).node_indices = node_indices;
-            atlasUnits = 'visual area';
-
-        case 'benson14_eccen'
-            out.benson14_varea.node_eccen = round(atlas(out.benson14_varea.node_indices),2)';
-            atlasUnits = 'degrees';
-
-        case 'benson14_angle' 
-            out.benson14_varea.node_angle = round(atlas(out.benson14_varea.node_indices),2)';
-            atlasUnits = 'degrees';
-            % atlas(atlas>6) = 6.00;
-
-        case 'benson14_sigma'
-            out.benson14_varea.node_sigma = round(atlas(out.benson14_varea.node_indices),2)';
-            atlasUnits = 'degrees';
+    if exist(atlas_file_rh, 'file') && exist(atlas_file_lh, 'file')
+        [atlas_rh] = load_mgh(atlas_file_rh);
+        [atlas_lh] = load_mgh(atlas_file_lh);
+        atlas = [squeeze(atlas_rh);squeeze(atlas_lh)]; % concatenate hemis   
+    else
+        fprintf('[%s] No annotations found for %s \n',mfilename, currentAtlas);
+        out.(currentAtlas) = [];
+        continue % move on to the next atlas
     end
   
     % Plot
@@ -454,7 +396,7 @@ for a = 1:length(specs.atlasNames)
         otherwise
             
             % Plot mesh
-            fig = figure('Name', [num2str(specs.pID) ' ' currentAtlas]); hold on;
+            %fig = figure('Name', [num2str(specs.pID) ' ' currentAtlas]); hold on;
             
             switch plotmesh
                 case 'both'                                                 
@@ -490,80 +432,44 @@ for a = 1:length(specs.atlasNames)
                             cb.TickLabels = ['none', area_labels];
                     end   
             end
+        % Set view parameters
+        set_view(gcf)
+
     end
     
     switch plotelecs
         
-        case 'yes'            
-            if ~exist('fig','var')
-                fig = figure('Name', [num2str(specs.pID) ' ' currentAtlas]); hold on;
-            end
+       %case 'yes'            
+%             if ~exist('fig','var')
+%                 fig = figure('Name', [num2str(specs.pID) ' ' currentAtlas]); hold on;
+%             end
 
-            switch plotmesh
-                case 'left'
-                    electoplot = find(elec_xyz(:,1) <= 10);
-                    elec_indices = intersect(elec_indices,electoplot);
-                    elec_plotindex = electoplot;
-                case 'right'
-                    electoplot = find(elec_xyz(:,1) >= -10);
-                    elec_indices = intersect(elec_indices,electoplot);
-                    elec_plotindex = electoplot;
-                otherwise
-                    elec_plotindex = 1:size(elec_xyz,1);
-            end
+            %switch plotmesh
+            case 'left'
+                electoplot = find(elec_xyz(:,1) <= 10);
+                %elec_indices = intersect(elec_indices,electoplot);
+                elec_plotindex = electoplot;
+            case 'right'
+                electoplot = find(elec_xyz(:,1) >= -10);
+                %elec_indices = intersect(elec_indices,electoplot);
+                elec_plotindex = electoplot;
+            otherwise
+                elec_plotindex = 1:size(elec_xyz,1);
+	end
             
-            % Plot electrodes
-            plot_electrodes(elec_xyz(elec_plotindex,:), [1 1 1]*0.2,2);
-            plot_electrodes(elec_xyz(elec_indices,:), [0 0 0],2);
+    % Plot electrodes
+    plot_electrodes(elec_xyz(elec_plotindex,:), [1 1 1]*0.2,2);
+    %plot_electrodes(elec_xyz(elec_indices,:), [0 0 0],2);
 
-            switch plotlabel
-                case 'yes'
-                    for i = 1:size(elec_xyz(elec_plotindex,:),1)
-                        [x, y, z] = adjust_elec_label(elec_xyz(elec_plotindex(i),:),2);
-                        text('Position',[x y z],'String',elec_labels(elec_plotindex(i),:),'Color','w','VerticalAlignment','top');
-                    end
+    switch plotlabel
+        case 'yes'
+            for i = 1:size(elec_xyz(elec_plotindex,:),1)
+                [x, y, z] = adjust_elec_label(elec_xyz(elec_plotindex(i),:),2);
+                text('Position',[x y z],'String',elec_labels(elec_plotindex(i),:),'Color','w','VerticalAlignment','top');
             end
     end
+
            
-    if exist('fig','var')
-        % Set view parameters
-        set_view(gcf)
-    end
-end
-
-% Print to window how many maps were found, and make a count per area (across hemispheres)
-
-% Check which of these atlases we ran
-atlasNames = intersect({'wang2015_atlas','wang15_mplbl', 'benson14_varea', 'template_areas'}, specs.atlasNames);
-
-% In case not all benson maps were run, fill fields to prevent error below
-if max(contains(atlasNames, 'benson14_varea')) &&  ~isempty(out.benson14_varea)
-    if ~isfield(out.benson14_varea, 'node_eccen'); out.benson14_varea.node_eccen = nan(1,length(out.benson14_varea.node_indices));end
-    if ~isfield(out.benson14_varea, 'node_angle'); out.benson14_varea.node_angle = nan(1,length(out.benson14_varea.node_indices));end
-    if ~isfield(out.benson14_varea, 'node_sigma'); out.benson14_varea.node_sigma = nan(1,length(out.benson14_varea.node_indices));end
-end      
-    
-for a = 1:length(atlasNames)
-    currentAtlas = atlasNames{a};
-    
-    if ~isempty(out.(currentAtlas)) && ~isempty(out.(currentAtlas).elec_labels)
-        
-        fprintf('[%s] Found %d electrodes in %s :\n' ,mfilename, length(out.(currentAtlas).elec_labels), currentAtlas);
-            
-        for i = 1:length(out.(currentAtlas).elec_labels)            
-            switch currentAtlas
-                case {'wang2015_atlas', 'template_areas', 'wang15_mplbl'}
-                    fprintf('[%s] %s in area %s\n', mfilename, out.(currentAtlas).elec_labels{i}, out.(currentAtlas).area_labels{i})
-                    %disp([out.(currentAtlas).elec_labels{i} ' in area ' out.(currentAtlas).area_labels{i}]);
-                case 'benson14_varea'
-                    fprintf('[%s] %s in area %s with eccen = %4.2f, angle = %4.2f, sigma = %4.2f\n', ...
-                        mfilename, out.(currentAtlas).elec_labels{i}, out.(currentAtlas).area_labels{i}, ...
-                        out.benson14_varea.node_eccen(i), out.benson14_varea.node_angle(i), out.benson14_varea.node_sigma(i));
-                    %disp([out.(currentAtlas).elec_labels{i} ' in area ' out.(currentAtlas).area_labels{i} ...
-                        %' with eccen = ' num2str(out.benson14_varea.node_eccen(i)) ', angle = ' num2str(out.benson14_varea.node_angle(i)) ', sigma = ' num2str(out.benson14_varea.node_sigma(i))]);
-            end
-        end
-    end
 end
 
 %%% SUBFUNCTIONS %%%%

@@ -57,11 +57,11 @@ l2 = line([t(1) t(end)], [0 0],'LineStyle', ':', 'Color', 'k');
 set(get(get(l2,'Annotation'),'LegendInformation'),'IconDisplayStyle','off'); 
 
 % Add labels
-xlabel('Time (s)'); 
-ylabel(yLabel);
+%xlabel('Time (s)'); 
+%ylabel(yLabel);
 title(plotTitle);
 
-set(gca, 'fontsize', 12);
+set(gca, 'fontsize', 18);
  
 
 

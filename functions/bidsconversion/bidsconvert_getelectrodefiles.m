@@ -13,6 +13,19 @@ if length(ElecFile) < 1
     fprintf('[%s] Warning: no coordinate file found!\n', mfilename) 
     elec_labels = hdr.label; chanNames = elec_labels;
     elec_types = hdr.chantype; chanTypes = elec_types;
+    
+    if length(contains(elec_types, 'unknown')) > 0.9 * length(elec_types)
+        % heuristic for chanTypes if no recon available and ft labels nearly all channels as unknowns:
+        chanTypes(:) = {'ecog'};
+        for ii = 1:length(chanTypes)
+            chanNameLengths(ii) = numel(hdr.label{ii});
+        end
+        ind = contains(hdr.label, 'D'); chanTypes(ind) = {'seeg'};
+        ind = contains(hdr.label, {'SG', 'Pleth', 'PR', 'OSAT', 'TRIG'}); chanTypes(ind) = {'other'};
+        ind = contains(hdr.label, {'DC'})' & chanNameLengths == 3; chanTypes(ind) = {'other'};
+        ind = contains(hdr.label, {'ECG', 'EKG'}); chanTypes(ind) = {'ecg'};
+    end
+
     chanUnits = hdr.chanunit;
     elec_xyz = nan(length(elec_labels),3);
     elecInx = 1:length(elec_labels);

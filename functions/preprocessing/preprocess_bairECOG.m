@@ -174,7 +174,9 @@ switch specs.make_plots
         eltomatch = data.channels.name(1);
         if exist('visualelectrodes', 'var') && ~ isempty(visualelectrodes)% % e.g.
             if ~isempty(visualelectrodes.benson14_varea)
-                eltomatch = visualelectrodes.benson14_varea.elec_labels(1); %MO01-04
+                if ~isempty(visualelectrodes.benson14_varea.elec_labels)
+                    eltomatch = visualelectrodes.benson14_varea.elec_labels(1); %MO01-04
+                end
             end
         end
          
