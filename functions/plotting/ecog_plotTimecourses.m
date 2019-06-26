@@ -36,6 +36,7 @@ if ~isfield(specs.plot, 'addEccToTitle') || isempty(specs.plot.addEccToTitle), s
 if ~isfield(specs.plot, 'showMax') || isempty(specs.plot.showMax), specs.plot.showMax = 'no'; end
 if ~isfield(specs.plot, 'fontSize') || isempty(specs.plot.fontSize), specs.plot.fontSize = 12; end
 if ~isfield(specs.plot, 'XLim') || isempty(specs.plot.XLim), specs.plot.XLim = [-0.2 1];end
+if ~isfield(specs.plot, 'YLim'), specs.plot.YLim = [];end
 
 % Find electrodes in data
 el_index = ecog_matchChannels(whichElectrodes, trials);
@@ -210,7 +211,7 @@ for d = 1:length(specs.dataTypes)
                     if any(viselec)
                         %viselec_name = [viselec_name atlas{:}(1:8) ':' trials.viselec.(atlas{:}).area_labels{viselec} ' '];
                         atlasstr = strsplit(atlas{:},'_');
-                        viselec_name = [viselec_name atlasstr{1} ':' trials.viselec.(atlas{:}).area_labels{viselec} ' '];
+                        viselec_name = [viselec_name atlasstr{1}(1) ':' trials.viselec.(atlas{:}).area_labels{viselec} ' '];
                         switch atlas{:}
                             case 'benson14_varea'
                                 switch specs.plot.addEccToTitle
@@ -230,9 +231,12 @@ for d = 1:length(specs.dataTypes)
         title(plotTitle);
 
         % Set y-axis limits
-        lim = [min(mnToPlot(:)) max(mnToPlot(:))];
-        ylim = [lim(1)-(0.2*lim(1)*sign(lim(1))) lim(2)+(0.2*lim(2)*sign(lim(2)))];
-        %ylim = [-0.5 30];
+        if isempty(specs.plot.YLim)
+            lim = [min(mnToPlot(:)) max(mnToPlot(:))];
+            ylim = [lim(1)-(0.2*lim(1)*sign(lim(1))) lim(2)+(0.2*lim(2)*sign(lim(2)))];
+        else
+            ylim = specs.plot.YLim;
+        end
         set(gca, 'YLim', ylim);
         
         % Add legend
