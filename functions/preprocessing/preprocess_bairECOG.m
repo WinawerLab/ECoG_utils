@@ -6,7 +6,9 @@ function preprocess_bairECOG(dataPth, sub_label, ses_label, specs)
 %
 % [1] Reading in data, events and channel info
 % [2] Computing matches with visual atlases (wang and benson)
-% [3] Common average reference (regression based - uses 'good' channels)
+% [3] Common average reference (regression based - uses 'good' channels);
+%     performed separately for depth, grids, and other surface elecs, 
+%     and if there are multiple grids, separately for separate grids
 % [4] Broadband computation
 % [5] Segmentation (epoching) (includes definition of blank 'trials')
 % [6] Save out epoched data to 'derivatives/preprocessed' BIDS folder
@@ -16,8 +18,6 @@ function preprocess_bairECOG(dataPth, sub_label, ses_label, specs)
 % - trials: struct with evoked, broadband, spectra for each trial. 
 % 
 % TO DO: 
-% - Allow for independent CAR for subsets of electrodes (e.g. HD grid)
-% - ALlow for different CAR for depth elecs (e.g. bipolar cf D. Gupta)
 % - Implement the following(?): Baseline correction, spectra computation?
 
 %% [0] Path specifications
@@ -25,9 +25,11 @@ function preprocess_bairECOG(dataPth, sub_label, ses_label, specs)
 % Output paths specs
 dataDir = fullfile(dataPth, sprintf('sub-%s', sub_label), sprintf('ses-%s', ses_label), 'ieeg');
 saveDir = fullfile(dataPth, 'derivatives', 'preprocessed', sprintf('sub-%s', sub_label), sprintf('ses-%s', ses_label));
+figSaveDir = fullfile(dataPth, 'derivatives', 'preprocessed', sprintf('sub-%s', sub_label), sprintf('ses-%s', ses_label), 'figures', 'preprocessing');
 
 % Check whether we have write directories
 if ~exist(saveDir, 'dir'); mkdir(saveDir);end
+if ~exist(figSaveDir, 'dir'); mkdir(figSaveDir);end
 
 %% [1] Read in ECoG data
 
@@ -76,7 +78,6 @@ end
 
 E2NSpecs = [];
 E2NSpecs.pID           = sub_label; % patient ID number
-E2NSpecs.patientPool   = 'BAIR';
 switch specs.make_plots
     case 'yes'
         E2NSpecs.plotmesh      = 'both';
@@ -89,39 +90,66 @@ visualelectrodes       = electrode_to_nearest_node(E2NSpecs, dataDir);
 
 %% [3] Do a common average reference using the good channels
 
-% NYU preprocessed BIDS data contain a status column, but umcu BIDS data 
-% does not; in that case, use all channels as reference... 
-if max(contains(channels.Properties.VariableNames, 'status'))>0
-    good_channels = find(contains(channels.status, 'good'));
-else
-    good_channels = find(contains(lower(channels.type),{'ecog','seeg'}));
+% If there is no status column, add one assuming all channels are good.
+if ~isfield(summary(channels), 'status') 
+    channels.status = repmat({'good'}, [height(channels) 1]);
 end
-signal = ecog_carRegress(ftdata.trial{1}, good_channels);
 
-%% [3] DIAGNOSTICS: Look at the effect of CAR
+% Perform CAR separately for surface and depth electrodes; If there is a HD
+% grid or separate clinical grids, perform CAR separately for those
 
-switch specs.make_plots
-    case 'yes'
+signal = ftdata.trial{1};
+
+% Define subsets of channels to perform CAR within
+INX = [];
+% DEPTH electrodes:
+INX{1} = find(contains(lower(channels.type), 'seeg'));
+% GRID electrodes:
+INX{2} = find(contains(lower(channels.type), 'ecog') & strncmp('GA', channels.name, 2));
+INX{3} = find(contains(lower(channels.type), 'ecog') & strncmp('GB', channels.name, 2));
+% ALL OTHER SURFACE electrodes
+INX{4} = find(contains(lower(channels.type), 'ecog') & ~strncmp('GA', channels.name, 2) & ~strncmp('GB', channels.name, 2));
+%INX{4} = find(contains(lower(channels.type), 'ecog') & ~contains(channels.name, {'GB', 'GA'}));
+
+for ii = 1:length(INX)
+    chan_index = INX{ii};
+    
+    if ~isempty(chan_index)
         
-        figure('Name', 'car regress');
-        subplot(1,2,1); hold on
-        channel_plot = good_channels(1);
-        plot(ftdata.time{1},ftdata.trial{1}(channel_plot,:),'k')
-        plot(ftdata.time{1},signal(channel_plot,:),'g')
-        legend({'before CAR','after CAR'})
-        xlabel('Time (s)'); ylabel('Voltage');
-        title(ftdata.label(channel_plot));
+        good_channels = find(contains(channels(chan_index,:).status, 'good'));
+        signal_reref = ecog_carRegress(ftdata.trial{1}(chan_index,:), good_channels);    
+        signal(chan_index,:) = signal_reref;
 
-        subplot(1,2,2),hold on
-        [pxx,freqs] = pwelch(ftdata.trial{1}(good_channels,:)',ftdata.fsample,0,ftdata.fsample,ftdata.fsample);
-        [pxx2,~] = pwelch(signal',ftdata.fsample,0,ftdata.fsample,ftdata.fsample);
-        plot(freqs,pxx(:,channel_plot),'k')
-        plot(freqs,pxx2(:,channel_plot),'g'); 
-        set(gca, 'YScale', 'log')
-        xlabel('Frequency (Hz)'); ylabel('Log power');
-        title(ftdata.label(channel_plot));
-        
-        % save
+        % DIAGNOSTICS: Look at the effect of CAR
+        switch specs.make_plots
+            case 'yes'
+
+            figure('Name', 'car regress');
+            channel_plot = chan_index(good_channels(1));
+
+            % Plot the time courses before and after CAR
+            subplot(1,2,1); hold on
+            plot(ftdata.time{1},ftdata.trial{1}(channel_plot,:),'k')
+            plot(ftdata.time{1},signal(channel_plot,:),'g')
+            legend({'before CAR','after CAR'})
+            xlabel('Time (s)'); ylabel('Voltage');set(gca, 'FontSize', 16);
+            title(ftdata.label(channel_plot));
+
+            % Plot the spectra before and after CAR
+            subplot(1,2,2),hold on
+            [pxx,freqs] = pwelch(ftdata.trial{1}(channel_plot,:)',ftdata.fsample,0,ftdata.fsample,ftdata.fsample);
+            [pxx2,~] = pwelch(signal(channel_plot,:)',ftdata.fsample,0,ftdata.fsample,ftdata.fsample);
+            plot(freqs,pxx,'k')
+            plot(freqs,pxx2,'g'); 
+            set(gca, 'YScale', 'log')
+            xlabel('Frequency (Hz)'); ylabel('Log power');set(gca, 'FontSize', 16);
+            title(ftdata.label(channel_plot));
+            
+            set(gcf, 'Position',[1000 700 1100 600]); 
+            saveas(gcf, fullfile(figSaveDir, sprintf('%s-%s-CAR-%d',sub_label, ses_label,ii)), 'epsc');
+
+        end
+    end
 end
 
 %% [4] Compute time-varying broadband 
@@ -168,6 +196,8 @@ switch specs.make_plots
         end
         
         % save plot
+        saveas(gcf, fullfile(figSaveDir, sprintf('%s-%s-triggerchannel',sub_label, ses_label)), 'epsc');
+
 end
 
 % % Pick one or more of the electrodes with coverage in visual areas: 
@@ -193,6 +223,8 @@ switch specs.make_plots
         ecog_plotFullTimeCourse(data,'broadband', el); % no smoothing
         % ecog_plotFullTimeCourse(data,'broadband', el, data.hdr.Fs/2); % with smoothing
         set(gcf, 'Name', 'example broadband time course');
+        saveas(gcf, fullfile(figSaveDir, sprintf('%s-%s-examplechannel',sub_label, ses_label)), 'epsc');
+
 end
 
 %% [5] Segment the data (all channels, all tasks)
