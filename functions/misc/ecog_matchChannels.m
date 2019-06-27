@@ -4,6 +4,8 @@ function elInx = ecog_matchChannels(eltomatch, data)
 % 
 % matches an input string to the field data.labels (fieldtrip format),
 % returns indices into data label
+% if the data is not in fieldtrip format, it assumes it is a cell with a
+% list of channel names
 
 
 if ~iscell(eltomatch)
@@ -22,7 +24,7 @@ for ii = 1:length(eltomatch)
     elseif isfield(data, 'channels')
         chanList = data.channels.name;
     else
-        fprintf('[%s] could not locate channel info in data!\n',mfilename);
+        chanList = data;
     end
         
     x = find(strncmp(stringtomatch,chanList,length(stringtomatch)));
@@ -39,8 +41,10 @@ for ii = 1:length(eltomatch)
            if length(newx) == 1
                fprintf('[%s] warning: checked name length and found a single match for %s - continuing\n',mfilename,stringtomatch)
                elInx(ii) = newx;
+           elseif length(newx) == 0
+               fprintf('[%s] warning: checked name length and found no match for %s - continuing\n',mfilename,stringtomatch)
            else
-               fprintf('[%s] warning: checked name length and still found multiple matched for %s, pls check channel names!\n',mfilename,stringtomatch)
+               fprintf('[%s] warning: checked name length and still found multiple matches for %s, pls check channel names!\n',mfilename,stringtomatch)
                elInx(ii) = x(1);
            end
         else

@@ -9,12 +9,16 @@ function preprocess_bairECOG(dataPth, sub_label, ses_label, specs)
 % [3] Common average reference (regression based - uses 'good' channels)
 % [4] Broadband computation
 % [5] Segmentation (epoching) (includes definition of blank 'trials')
-% [6] Baseline correction (optional)
-% [7] Computation of spectra
+% [6] Save out epoched data to 'derivatives/preprocessed' BIDS folder
 % 
 % OUTPUT:
 % - data: struct with entire raw and broadband time courses. 
 % - trials: struct with evoked, broadband, spectra for each trial. 
+% 
+% TO DO: 
+% - Allow for independent CAR for subsets of electrodes (e.g. HD grid)
+% - ALlow for different CAR for depth elecs (e.g. bipolar cf D. Gupta)
+% - Implement the following(?): Baseline correction, spectra computation?
 
 %% [0] Path specifications
 
@@ -36,14 +40,13 @@ if  max(contains(events.Properties.VariableNames, 'trial_name')) == 0
     events = bair_addTrialNamesToEventsTable(events);
 end
 
-% Resample and shift the UMCU data 
+% Resample and SHIFT the UMCU data 
 if contains(sub_label, 'umcu')
     
     % Resample
     cfg = [];
-    cfg.resamplefs      = 512; %frequency at which the data will be resampled (default = 256 Hz)
-    cfg.detrend         = 'no';%'no' or 'yes', detrend the data prior to resampling (no default specified, see below)
-    %cfg.feedback        = 'no', 'text', 'textbar', 'gui' (default = 'text')
+    cfg.resamplefs      = 512;  % frequency at which the data will be resampled 
+    cfg.detrend         = 'no'; %'no' or 'yes', detrend the data prior to resampling (no default specified, see below)
     [ftdata] = ft_resampledata(cfg, ftdata);
     ftdata.hdr.Fs = ftdata.fsample;
     
@@ -51,7 +54,9 @@ if contains(sub_label, 'umcu')
     shiftInSeconds = 0.062; % 62 ms
 	shiftInSamples = round(shiftInSeconds/(1/512)); % assuming sample rate of 512
     events.onset = events.onset + shiftInSeconds;
-    %events.event_sample = events.event_sample + shiftInSamples; 
+    if isfield(summary(events), 'event_sample')
+        events.event_sample = events.event_sample + shiftInSamples; 
+    end
 end
 
 %% [1] Remove non-relevant channels
@@ -216,39 +221,16 @@ end
 
 % Epoch the baseline 'trials'
 blank_trials = ecog_epochData(mockdata, blank_epoch);
-blank_trials.events.trial_name = repmat('BLANK', [height(blank_trials.events) 1]);
+blank_trials.events.trial_name = repmat({'BLANK'}, [height(blank_trials.events) 1]);
 blank_trials.events.onset = blank_trials.events.onset-blank_epoch(1);
 blank_trials.events.duration = repmat(blank_epoch(2)-blank_epoch(1),[height(blank_trials.events) 1]); 
-if isfield(summary(trials.events), 'ISI'), blank_trials.events.ISI=[]; end
+if isfield(summary(trials.events), 'ISI'), blank_trials.events.ISI= zeros([height(blank_trials.events) 1]); end
 if isfield(summary(trials.events), 'event_sample')
     blank_trials.events.event_sample = blank_trials.events.event_sample - round(blank_epoch(2)-blank_epoch(1)*data.hdr.Fs);
 end
 
-% %% [6] Compute spectra per trial
-% 
-% epochs = zeros(size(trials.evoked,1), size(trials.evoked,3), size(trials.evoked,2));
-% 
-% for ii = 1:size(trials.evoked,3)
-%     epochs(:,ii,:) = trials.evoked(:,:,ii);
-% end
-% 
-% % dora settings
-% fft_w = window(@hann,200); % window width
-% fft_ov = 100; % overlap
-% % do not regress ERP here, because regressing out average evoked response with only a few trials can hurt 
-% reg_erp = 0; 
-% fft_t = trials.time>0 & trials.time<=.5; % time segment for spectrum
-% 
-% [f,spectra] = ecog_spectra(epochs,stims,fft_w,fft_t,fft_ov,trials.fsample,reg_erp);
-
-%% Save preprocessed and epoched data for further analysis
+%% [6] Save epoched data for further analysis
  
-% fprintf('[%s] Saving preprocessed continuous data...\n',mfilename);
-% %saveName = fullfile(saveDir, sprintf('sub-%s_ses-%s_preproc_bbmethod%d_bandwidth%d', sub_label, ses_label, bbmethod, bands(1,2)-bands(1,1)));
-% saveName = fullfile(saveDir, sprintf('sub-%s_ses-%s_preproc.mat', sub_label, ses_label));
-% save(saveName, 'data'); 
-
-%saveName = fullfile(saveDir, sprintf('sub-%s_ses-%s_epoched_bbmethod%d_bandwidth%d', sub_label, ses_label, bbmethod, bands(1,2)-bands(1,1)));
 saveName = fullfile(saveDir, sprintf('sub-%s_ses-%s_epoched.mat', sub_label, ses_label));
 
 fprintf('[%s] Saving preprocessed epoched data...\n',mfilename);
