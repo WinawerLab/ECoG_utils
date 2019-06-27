@@ -98,8 +98,8 @@ else
             % this is an ECG channel
             chanNames{ii} = chanName;
             chanTypes{ii} = 'ecg';
-        elseif contains(chanName, {'DC', 'TRIG', 'Pleth', 'PR', 'OSAT'})
-            % this is a DC channel
+        elseif strcmp(chanName, 'DC') | strcmp(chanName, 'TRIG') | strcmp(chanName, 'Pleth') | strcmp(chanName, 'PR') | strcmp(chanName, 'OSAT')
+            % this is a DC or other status channel
             chanNames{ii} = chanName;
             chanTypes{ii} = 'other';
         else
@@ -120,13 +120,12 @@ end
 
 for ii = 1:length(elecInx)
     if ~isnan(elecInx(ii))
-        switch elecTypes{elecInx(ii)}
-            case 'depth'
-                chanTypes{ii} = 'seeg';
-            case 'surface'
-                chanTypes{ii} = 'ecog';
-            otherwise
-                chanTypes{ii} = 'other';
+        if contains(elecTypes{elecInx(ii)}, 'depth')
+            chanTypes{ii} = 'seeg';
+        elseif contains(elecTypes{elecInx(ii)}, 'surface')
+            chanTypes{ii} = 'ecog';
+        else
+            chanTypes{ii} = 'other';
         end
     end
 end
