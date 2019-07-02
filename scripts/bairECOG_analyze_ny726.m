@@ -83,10 +83,10 @@ specs.plot.XLim          = [-0.2 1];
 specs.plot.YLim          = []%[-0.5 20];
 
 % % Plot a subset of electrodes
-% whichElectrodes = {'GB102', 'GB118', 'GB103', 'GB119'};
-% [out] = ecog_plotTimecourses(trials, whichElectrodes, whichTrials, specs);
+whichElectrodes = {'GB102', 'GB118', 'GB103', 'GB119'};
+[out] = ecog_plotTimecourses(trials, whichElectrodes, whichTrials, specs);
 
-% Plot the entire HD grid
+%% Plot the entire HD grid
 
 % Which electrodes to plot? (Each electrode gets a subplot)
 whichElectrodes = trials.channels.name(contains(trials.channels.name, 'GB'));
