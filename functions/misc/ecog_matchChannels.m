@@ -27,8 +27,8 @@ for ii = 1:length(eltomatch)
         chanList = data;
     end
         
-    x = find(strncmp(stringtomatch,chanList,length(stringtomatch)));
-    %x = find(strcmp(stringtomatch,chanList));
+    %x = find(strncmp(stringtomatch,chanList,length(stringtomatch)));
+    x = find(strcmp(stringtomatch,chanList));
     if ~isempty(x)
         if length(x) > 1
            fprintf('[%s] warning: found multiple matches for electrode %s!\n',mfilename,stringtomatch);

@@ -2,6 +2,7 @@
 function [out] = ecog_plotTimecourses(trials, whichElectrodes, trialType, specs)
 
 %function [out] = ecog_plotTimecourses(trials, whichElectrodes, trialType, collapseTrialTypes, smoothingLevelInMs, baselineType)
+% description
 
 if nargin < 4
     specs = [];
@@ -75,6 +76,7 @@ colors = cmap(1:round((length(cmap)/length(trial_index))):length(cmap),:);
 
 out = struct;
 out.elecs = whichElectrodes;
+out.titles = cell(size(out.elecs));
 
 % Decide how many subplots are needed
 if ~isempty(specs.plot.nSubPlots)
