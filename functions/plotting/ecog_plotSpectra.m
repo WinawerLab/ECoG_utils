@@ -1,0 +1,168 @@
+
+function [out] = ecog_plotSpectra(spectra, whichElectrodes, trialType, taskType, specs)
+
+
+if ~isfield(specs, 'plot') || isempty(specs.plot)
+    specs.plot = [];
+end
+
+if ~isfield(specs.plot, 'colorMap') || isempty(specs.plot.colorMap), specs.plot.colorMap = 'copper'; end
+if ~isfield(specs.plot, 'nSubPlots') || isempty(specs.plot.nSubPlots), specs.plot.nSubPlots = []; end
+if ~isfield(specs.plot, 'addEccToTitle') || isempty(specs.plot.addEccToTitle), specs.plot.addEccToTitle = 'no'; end
+if ~isfield(specs.plot, 'fontSize') || isempty(specs.plot.fontSize), specs.plot.fontSize = 12; end
+if ~isfield(specs.plot, 'XLim') || isempty(specs.plot.XLim), specs.plot.XLim = [1 200];end
+if ~isfield(specs.plot, 'YLim'), specs.plot.YLim = [];end
+
+% Find electrodes in data
+elInx = ecog_matchChannels(whichElectrodes, spectra);
+
+% Find trials in data
+trial_index = [];
+if isempty(trialType)
+    disp('Please specify a trial type')
+    return
+else
+    if ~isempty(taskType)
+        for ii = 1:length(trialType)
+            trial_index{ii} = find(contains(spectra.events.trial_name, trialType{ii}) & contains(spectra.events.task_name, taskType));
+        end
+    else
+        for ii = 1:length(trialType)
+            trial_index{ii} = find(contains(spectra.events.trial_name, trialType{ii}));
+        end
+    end
+end
+
+% Plot settings
+cmap = eval(specs.plot.colorMap);
+if max(contains(trialType, 'BLANK') >0)
+    nCond = length(trial_index)-1; 
+else
+    nCond = length(trial_index); 
+end
+colors = cmap(1:round((length(cmap)/nCond)):length(cmap),:);
+%colors = sortrows(colors,'descend');
+
+out = struct;
+out.elecs = whichElectrodes;
+out.titles = cell(size(out.elecs));
+
+% Decide how many subplots are needed
+if ~isempty(specs.plot.nSubPlots)
+    nRow = specs.plot.nSubPlots(1);
+    nCol = specs.plot.nSubPlots(2);
+else
+    nPlot = length(elInx);
+    nRow = ceil(sqrt(nPlot));
+    nCol = ceil(sqrt(nPlot));
+    if nPlot <= (nRow*nCol)-nCol
+        nRow = nRow-1;
+    end
+end
+
+%figureName = strsplit(trialType{1},'-');
+%figure('Name', [figureName{1} ' ' thisDataType]); 
+
+figure('Name', [trialType{~contains(trialType, 'BLANK')}]); 
+
+hasLegend = 0;
+for ee = 1:length(elInx)
+    subplot(nRow,nCol,ee); hold on;
+    if elInx(ee) > 0
+        colorInx = 1;
+        for ii = 1:length(trial_index)
+            toplot = squeeze(mean(spectra.pwrspct(elInx(ee),trial_index{ii},:),2));
+            if strcmp(trialType{ii}, 'BLANK')
+                colortoplot = [0 0 0];
+            else
+                colortoplot = colors(colorInx,:); colorInx = colorInx + 1;
+            end
+            plot(spectra.f,toplot,'Color',colortoplot, 'LineWidth',2);
+        end
+              
+        % Check if these electrodes have matches with visual atlases, if so, add
+        % that to the plot title
+        if iscell(whichElectrodes)
+            electrodeName = whichElectrodes{ee};
+        else
+            electrodeName = whichElectrodes;
+        end
+        viselec_name = [];
+        for atlas = {'wang2015_atlas','benson14_varea', 'wang15_mplbl'}
+            if ~isempty(spectra.viselec)
+                if ~isempty(spectra.viselec.(atlas{:}))
+                    viselec = find(strcmp(electrodeName,spectra.viselec.(atlas{:}).elec_labels));
+                    if any(viselec)
+                        atlasstr = strsplit(atlas{:},'_');
+                        viselec_name = [viselec_name atlasstr{1}(1) ':' spectra.viselec.(atlas{:}).area_labels{viselec} ' '];
+                        switch atlas{:}
+                            case 'benson14_varea'
+                                switch specs.plot.addEccToTitle
+                                    case 'yes'
+                                        viselec_name = [viselec_name sprintf('[ecc = %0.1f] ', spectra.viselec.benson14_varea.node_eccen(viselec))];
+                                 end
+                        end                         
+                    end
+                end
+            end
+        end
+        
+        % Set plot title
+        plotTitle = [electrodeName ' ' viselec_name];
+        out.titles{ii} = plotTitle;
+        title(plotTitle);
+        
+        % Set font size
+        set(gca, 'FontSize', specs.plot.fontSize);
+    
+        % Set y-axis limits
+        if isempty(specs.plot.YLim)
+            lim = [min(toplot(:)) max(toplot(:))];
+            ylim = [lim(1)-(0.2*lim(1)*sign(lim(1))) lim(2)+(0.2*lim(2)*sign(lim(2)))];
+        else
+            ylim = specs.plot.YLim;
+        end
+        set(gca, 'Yscale', 'log','YLim', ylim);
+        
+        % Set x-axis limits
+        set(gca, 'XLim', specs.plot.XLim);
+        
+        % Add legend
+        if hasLegend == 0
+            legend(trialType);
+            xlabel('frequency');
+            ylabel('power');
+            hasLegend = 1;
+        end    
+    end
+
+end
+set(gcf, 'Position', [150 100 2000 1250]);
+
+% % Select subset of trials to plot
+% for jj = 1:length(trial_index)
+%     % Compute mean and standard error of the mean
+%     mnToPlot(:,jj) = median(elData(:,trial_index{jj}),2);
+%     Llim(:,jj) = mnToPlot(:,jj)-(std(elData(:,trial_index{jj}),0,2)/sqrt(size(elData(:,trial_index{jj}),2)));
+%     Ulim(:,jj) = mnToPlot(:,jj)+(std(elData(:,trial_index{jj}),0,2)/sqrt(size(elData(:,trial_index{jj}),2)));                
+% end
+% 
+% % Smooth the data?
+% if specs.smoothLevel > 0
+%     temp = smooth(mnToPlot, specs.smoothLevel); mnToPlot = reshape(temp, size(mnToPlot));
+%     temp = smooth(Llim, specs.smoothLevel); Llim = reshape(temp, size(Llim));
+%     temp = smooth(Ulim, specs.smoothLevel); Ulim = reshape(temp, size(Ulim));
+% end
+% 
+% % Plot standard errors
+% for jj = 1:length(trial_index)
+%     h = ciplot(Llim(:,jj),Ulim(:,jj),trials.time,colors(jj,:), 0.25);
+%     h.Annotation.LegendInformation.IconDisplayStyle = 'off';
+% end
+% 
+% % Plot means
+% for jj = 1:length(trial_index)
+%     plot(trials.time, mnToPlot(:,jj),'Color', colors(jj,:), 'LineWidth',2);
+% end
+
+end
