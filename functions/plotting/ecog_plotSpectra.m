@@ -67,17 +67,53 @@ figure('Name', [trialType{~contains(trialType, 'BLANK')}]);
 
 hasLegend = 0;
 for ee = 1:length(elInx)
+    
     subplot(nRow,nCol,ee); hold on;
+    
+    % Set font size
+    set(gca, 'FontSize', specs.plot.fontSize);
+    
     if elInx(ee) > 0
+        
+        elData = squeeze(spectra.pwrspct(elInx(ee),:,:))';
+
+        % Select subset of trials to plot
+        clear mnToPlot Llim Ulim
+        for jj = 1:length(trial_index)
+            % Compute mean and standard error of the mean
+            mnToPlot(:,jj) = squeeze(mean(elData(:,trial_index{jj}),2));
+            Llim(:,jj) = mnToPlot(:,jj)-(std(elData(:,trial_index{jj}),0,2)/sqrt(length(trial_index{jj})));
+            Ulim(:,jj) = mnToPlot(:,jj)+(std(elData(:,trial_index{jj}),0,2)/sqrt(length(trial_index{jj})));        
+        end
+
+%         % Smooth the data?
+%         if specs.smoothLevel > 0
+%             temp = smooth(mnToPlot, specs.smoothLevel); mnToPlot = reshape(temp, size(mnToPlot));
+%             temp = smooth(Llim, specs.smoothLevel); Llim = reshape(temp, size(Llim));
+%             temp = smooth(Ulim, specs.smoothLevel); Ulim = reshape(temp, size(Ulim));
+%         end
+        
+        % Plot standard errors
         colorInx = 1;
-        for ii = 1:length(trial_index)
-            toplot = squeeze(mean(spectra.pwrspct(elInx(ee),trial_index{ii},:),2));
-            if strcmp(trialType{ii}, 'BLANK')
+        for jj = 1:length(trial_index)
+            if strcmp(trialType{jj}, 'BLANK')
                 colortoplot = [0 0 0];
             else
                 colortoplot = colors(colorInx,:); colorInx = colorInx + 1;
             end
-            plot(spectra.f,toplot,'Color',colortoplot, 'LineWidth',2);
+            h = ciplot(Llim(:,jj),Ulim(:,jj),spectra.f,colortoplot, 0.25);
+            h.Annotation.LegendInformation.IconDisplayStyle = 'off';
+        end
+        
+        % Plot means
+        colorInx = 1;
+        for jj = 1:length(trial_index)
+            if strcmp(trialType{jj}, 'BLANK')
+                colortoplot = [0 0 0];
+            else
+                colortoplot = colors(colorInx,:); colorInx = colorInx + 1;
+            end
+            plot(spectra.f, mnToPlot(:,jj),'Color', colortoplot, 'LineWidth',2);
         end
               
         % Check if these electrodes have matches with visual atlases, if so, add
@@ -112,9 +148,6 @@ for ee = 1:length(elInx)
         out.titles{ii} = plotTitle;
         title(plotTitle);
         
-        % Set font size
-        set(gca, 'FontSize', specs.plot.fontSize);
-    
         % Set y-axis limits
         if isempty(specs.plot.YLim)
             lim = [min(toplot(:)) max(toplot(:))];
@@ -123,7 +156,7 @@ for ee = 1:length(elInx)
             ylim = specs.plot.YLim;
         end
         set(gca, 'Yscale', 'log','YLim', ylim);
-        
+        %set(gca,'YLim', ylim);
         % Set x-axis limits
         set(gca, 'XLim', specs.plot.XLim);
         
@@ -139,13 +172,13 @@ for ee = 1:length(elInx)
 end
 set(gcf, 'Position', [150 100 2000 1250]);
 
-% % Select subset of trials to plot
-% for jj = 1:length(trial_index)
-%     % Compute mean and standard error of the mean
-%     mnToPlot(:,jj) = median(elData(:,trial_index{jj}),2);
-%     Llim(:,jj) = mnToPlot(:,jj)-(std(elData(:,trial_index{jj}),0,2)/sqrt(size(elData(:,trial_index{jj}),2)));
-%     Ulim(:,jj) = mnToPlot(:,jj)+(std(elData(:,trial_index{jj}),0,2)/sqrt(size(elData(:,trial_index{jj}),2)));                
-% end
+% Select subset of trials to plot
+for jj = 1:length(trial_index)
+    % Compute mean and standard error of the mean
+    mnToPlot(:,jj) = median(elData(:,trial_index{jj}),2);
+    Llim(:,jj) = mnToPlot(:,jj)-(std(elData(:,trial_index{jj}),0,2)/sqrt(size(elData(:,trial_index{jj}),2)));
+    Ulim(:,jj) = mnToPlot(:,jj)+(std(elData(:,trial_index{jj}),0,2)/sqrt(size(elData(:,trial_index{jj}),2)));                
+end
 % 
 % % Smooth the data?
 % if specs.smoothLevel > 0

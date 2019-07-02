@@ -150,9 +150,9 @@ for d = 1:length(specs.dataTypes)
         % Select subset of trials to plot
         for jj = 1:length(trial_index)
             % Compute mean and standard error of the mean
-            mnToPlot(:,jj) = median(elData(:,trial_index{jj}),2);
-            Llim(:,jj) = mnToPlot(:,jj)-(std(elData(:,trial_index{jj}),0,2)/sqrt(size(elData(:,trial_index{jj}),2)));
-            Ulim(:,jj) = mnToPlot(:,jj)+(std(elData(:,trial_index{jj}),0,2)/sqrt(size(elData(:,trial_index{jj}),2)));                
+            mnToPlot(:,jj) = mean(elData(:,trial_index{jj}),2);
+            Llim(:,jj) = mnToPlot(:,jj)-(std(elData(:,trial_index{jj}),0,2)/sqrt(length(trial_index{jj})));
+            Ulim(:,jj) = mnToPlot(:,jj)+(std(elData(:,trial_index{jj}),0,2)/sqrt(length(trial_index{jj})));  
         end
 
         % Smooth the data?
