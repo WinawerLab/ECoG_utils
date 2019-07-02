@@ -75,7 +75,7 @@ for ee = 1:length(elInx)
     
     if elInx(ee) > 0
         
-        elData = squeeze(spectra.pwrspct(elInx(ee),:,:))';
+        elData = squeeze(spectra.pwrspctrm(elInx(ee),:,:))';
 
         % Select subset of trials to plot
         clear mnToPlot Llim Ulim
@@ -145,7 +145,7 @@ for ee = 1:length(elInx)
         
         % Set plot title
         plotTitle = [electrodeName ' ' viselec_name];
-        out.titles{ii} = plotTitle;
+        out.titles{ee} = plotTitle;
         title(plotTitle);
         
         % Set y-axis limits
@@ -168,34 +168,15 @@ for ee = 1:length(elInx)
             hasLegend = 1;
         end    
     end
+    
+    out.pwrspctrm.(whichElectrodes{ee}).mn = double(mnToPlot');
+    out.pwrspctrm.(whichElectrodes{ee}).se = double((Ulim-mnToPlot)');
 
 end
 set(gcf, 'Position', [150 100 2000 1250]);
 
-% Select subset of trials to plot
-for jj = 1:length(trial_index)
-    % Compute mean and standard error of the mean
-    mnToPlot(:,jj) = median(elData(:,trial_index{jj}),2);
-    Llim(:,jj) = mnToPlot(:,jj)-(std(elData(:,trial_index{jj}),0,2)/sqrt(size(elData(:,trial_index{jj}),2)));
-    Ulim(:,jj) = mnToPlot(:,jj)+(std(elData(:,trial_index{jj}),0,2)/sqrt(size(elData(:,trial_index{jj}),2)));                
-end
-% 
-% % Smooth the data?
-% if specs.smoothLevel > 0
-%     temp = smooth(mnToPlot, specs.smoothLevel); mnToPlot = reshape(temp, size(mnToPlot));
-%     temp = smooth(Llim, specs.smoothLevel); Llim = reshape(temp, size(Llim));
-%     temp = smooth(Ulim, specs.smoothLevel); Ulim = reshape(temp, size(Ulim));
-% end
-% 
-% % Plot standard errors
-% for jj = 1:length(trial_index)
-%     h = ciplot(Llim(:,jj),Ulim(:,jj),trials.time,colors(jj,:), 0.25);
-%     h.Annotation.LegendInformation.IconDisplayStyle = 'off';
-% end
-% 
-% % Plot means
-% for jj = 1:length(trial_index)
-%     plot(trials.time, mnToPlot(:,jj),'Color', colors(jj,:), 'LineWidth',2);
-% end
+out.f           = spectra.f;
+out.colors      = colors;
+out.subplotdim  = [nRow nCol];   
 
 end

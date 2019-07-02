@@ -30,7 +30,7 @@ srate = trials.fsample;
 out.channels    = trials.channels;
 out.events      = trials.events;
 out.f           = f;
-out.pwrspct     = spectra;
+out.pwrspctrm   = spectra;
 out.dims        = 'channels x events x freqs';
 out.viselec     = trials.viselec;
 

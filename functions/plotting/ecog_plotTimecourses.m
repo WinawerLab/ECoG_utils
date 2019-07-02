@@ -275,11 +275,3 @@ for d = 1:length(specs.dataTypes)
     out.subplotdim = [nRow nCol];   
 end
 
-% For broadband, add figure with sum across time:
-
-% define time window to sum over: 0-1sec?
-
-% figure('Name', thisDataType); 
-%     for ii = 1:length(el_index)
-%     end
-    
