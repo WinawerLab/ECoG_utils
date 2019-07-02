@@ -1,4 +1,4 @@
-function [f,trials_spectra] = ecog_computeTrialSpectra(trials, specs)
+function [out] = ecog_computeTrialSpectra(trials, specs)
 
 % Calculate powerspectrum for all trials and channels in 'trials' struct
 % using Dora's script which uses Matlab's pwelch function.
@@ -25,6 +25,13 @@ fft_t = trials.time > specs.t(1) & trials.time < specs.t(2);
 srate = trials.fsample;
 
 % COMPUTE
-[f,trials_spectra] = ecog_spectra(data_epoch,stims,fft_w,fft_t,fft_ov,srate,reg_erp);
+[f,spectra] = ecog_spectra(data_epoch,stims,fft_w,fft_t,fft_ov,srate,reg_erp);
+
+out.channels    = trials.channels;
+out.events      = trials.events;
+out.f           = f;
+out.pwrspct     = spectra;
+out.dims        = 'channels x events x freqs';
+out.viselec     = trials.viselec;
 
 end
