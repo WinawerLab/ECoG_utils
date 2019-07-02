@@ -25,7 +25,7 @@ end
 [viselec] = unique([viselec_wang viselec_benson])';
 name = cell(size(viselec));
 wang = repmat({'none'},(size(viselec))); 
-% need to out something because empty cells cause trouble with searching
+% need to put something because empty cells cause trouble with searching
 % for specific areas later
 benson = repmat({'none'},(size(viselec)));
 elInx = []; 
