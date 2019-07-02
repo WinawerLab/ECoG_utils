@@ -88,6 +88,9 @@ switch specs.make_plots
 end
 visualelectrodes       = electrode_to_nearest_node(E2NSpecs, dataDir);
 
+% Add visual area names (W and B) ecc, angle, sigma to channels table
+[channels] = bair_addVisualAtlasNamesToChannelTable(channels,visualelectrodes);
+
 %% [3] Do a common average reference using the good channels
 
 % If there is no status column, add one assuming all channels are good.
