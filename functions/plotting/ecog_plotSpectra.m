@@ -17,7 +17,7 @@ out = struct;
 
 % Find electrodes in data
 elInx = ecog_matchChannels(whichElectrodes, spectra);
-if isempty(el_index)
+if isempty(elInx)
     fprintf('[%s] Did not find any matching channels, not plotting \n', mfilename);  
     return
 end
