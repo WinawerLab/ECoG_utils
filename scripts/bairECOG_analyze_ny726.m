@@ -196,14 +196,11 @@ for ee = 1:length(inx)
    end
 end
 
-
-
-
 %% compare eccentricity with face/house selectivity
 
 whichElectrodes = trials.channels.name(contains(trials.channels.name, 'GB'));
 timeInd         = [0.05 0.55]; 
-trialNames      = {'FACES', 'HOUSES'}%, 'LETTERS'};
+trialNames      = {'FACES', 'HOUSES'};%, 'LETTERS'};
 
 % Compute baseline
 baseline_index = find(~contains(trials.events.task_name, {'spatialobject'}));
@@ -228,7 +225,7 @@ for ee = 1:length(whichElectrodes)
     
     % Compute sum over timeInd
     temp = sum(BB(trials.time>timeInd(1) & trials.time<timeInd(2),:));
-    if any(temp>10)
+    if any(temp>0)
         BB_SUM(ee,:) = temp;
     else
         BB_SUM(ee,:) = nan([1 length(trialNames)]);
