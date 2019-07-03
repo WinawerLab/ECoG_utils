@@ -70,26 +70,26 @@ set(gcf, 'Position', [60 300 2000 1000]);
 % tbUse ECoG_prfanalysis
 
 
-%% Compute an analogous measure from the spectra?
-
-specs = [];
-specs.window    = 100;%200;
-specs.ov        = 50; %100
-specs.reg_erp   = 0;
-
-% trials
-specs.t         = [0.05 0.55]; 
-[spectra_trials] = ecog_computeTrialSpectra(trials, specs);
-
-% blanks
-specs.t         = [-1 -0.5]; 
-[spectra_blanks] = ecog_computeTrialSpectra(blank_trials, specs);
-
-% concatenate trials and blanks
-spectra           = spectra_trials;
-spectra.events    = [spectra_trials.events;spectra_blanks.events];
-spectra.pwrspctrm = cat(2,spectra_trials.pwrspctrm, spectra_blanks.pwrspctrm);
-
-% extract spectra
-PRFspectra = spectra.pwrspctrm(elecIndex,trialIndex,:);
-
+% %% Compute an analogous measure from the spectra?
+% 
+% specs = [];
+% specs.window    = 100;%200;
+% specs.ov        = 50; %100
+% specs.reg_erp   = 0;
+% 
+% % trials
+% specs.t         = [0.05 0.55]; 
+% [spectra_trials] = ecog_computeTrialSpectra(trials, specs);
+% 
+% % blanks
+% specs.t         = [-1 -0.5]; 
+% [spectra_blanks] = ecog_computeTrialSpectra(blank_trials, specs);
+% 
+% % concatenate trials and blanks
+% spectra           = spectra_trials;
+% spectra.events    = [spectra_trials.events;spectra_blanks.events];
+% spectra.pwrspctrm = cat(2,spectra_trials.pwrspctrm, spectra_blanks.pwrspctrm);
+% 
+% % extract spectra
+% PRFspectra = spectra.pwrspctrm(elecIndex,trialIndex,:);
+% 
