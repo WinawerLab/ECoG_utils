@@ -39,9 +39,14 @@ if ~isfield(specs.plot, 'fontSize') || isempty(specs.plot.fontSize), specs.plot.
 if ~isfield(specs.plot, 'XLim') || isempty(specs.plot.XLim), specs.plot.XLim = [-0.2 1];end
 if ~isfield(specs.plot, 'YLim'), specs.plot.YLim = [];end
 
+out = struct;
+
 % Find electrodes in data
 el_index = ecog_matchChannels(whichElectrodes, trials);
-
+if isempty(el_index)
+    fprintf('[%s] Did not find any matching channels, not plotting \n', mfilename); 
+    return
+end
 % Find trials in data
 trial_index = [];
 if isempty(trialType)
@@ -74,7 +79,6 @@ cmap = eval(specs.plot.colorMap);
 colors = cmap(1:round((length(cmap)/length(trial_index))):length(cmap),:);
 %colors = sortrows(colors,'descend');
 
-out = struct;
 out.elecs = whichElectrodes;
 out.titles = cell(size(out.elecs));
 
