@@ -130,16 +130,16 @@ end
 
 saveFigure   = 0;
 
-whichTask = {'temporalpattern'};
+whichTask = {'prf'};
 
 %whichTrials = {'BLANK','HRF'};
 %whichTrials = {'BLANK', 'HOUSES','FACES','LETTERS'};
 %whichTrials = {'BLANK','GRATING', 'PLAID','CIRCULAR'};
 %whichTrials = {'BLANK','CRF','ONEPULSE', 'TWOPULSE'}; 
-%whichTrials = {'DIAGONAL'};
+whichTrials = {'BLANK','DIAGONAL', 'HORIZONTAL', 'VERTICAL'};
 
 %whichTrials = {'BLANK','CRF-1','CRF-2', 'CRF-3','CRF-4', 'CRF-5'};
-whichTrials = {'BLANK','ONEPULSE-1','ONEPULSE-2', 'ONEPULSE-3','ONEPULSE-4', 'ONEPULSE-5', 'ONEPULSE-6'};
+%whichTrials = {'BLANK','ONEPULSE-1','ONEPULSE-2', 'ONEPULSE-3','ONEPULSE-4', 'ONEPULSE-5', 'ONEPULSE-6'};
 %whichTrials = {'BLANK','TWOPULSE-1','TWOPULSE-2', 'TWOPULSE-3','TWOPULSE-4', 'TWOPULSE-5', 'TWOPULSE-6'};
 %whichTrials = {'SPARSITY-1','SPARSITY-2', 'CRF-5', 'SPARSITY-3','SPARSITY-4'};
 
@@ -150,11 +150,11 @@ specs.plot.addEccToTitle = 'yes';
 specs.plot.XLim          = [];
 specs.plot.YLim          = [10^-3 10^3];%[];
 
-% Plot a subset of electrodes
-whichElectrodes = {'GB118'};
-[spectra_out] = ecog_plotSpectra(spectra, whichElectrodes, whichTrials, whichTask, specs);
+% % Plot a subset of electrodes
+% whichElectrodes = {'GB118'};
+% [spectra_out] = ecog_plotSpectra(spectra, whichElectrodes, whichTrials, whichTask, specs);
 
-%% Plot the entire HD grid
+% Plot the entire HD grid
 
 % Which electrodes to plot? (Each electrode gets a subplot)
 whichElectrodes = trials.channels.name(contains(trials.channels.name, 'GB'));
@@ -203,7 +203,7 @@ timeInd         = [0.05 0.55];
 trialNames      = {'FACES', 'HOUSES'};%, 'LETTERS'};
 
 % Compute baseline
-baseline_index = find(~contains(trials.events.task_name, {'spatialobject'}));
+baseline_index = find(contains(trials.events.task_name, {'spatialobject'}));
 baseline = mean(mean(trials.broadband(:,trials.time<0,baseline_index),2),3);
 
 % Extract summed broadband response for each electrode and stimulus
@@ -248,7 +248,7 @@ diffBB_SUM(:,2) = BB_SUM(:,2) - BB_SUM(:,1); % [HOUSES - FACES]
 
 % Bin the eccentricity values
 edges = [0:2:10 32];
-edges = [0 1 2 3 4 6 8 10 32];
+%edges = [0 1 2 3 4 6 8 10 32];
 Y = discretize(ecc,edges);
 
 xnames = [];
