@@ -26,8 +26,11 @@ for ii = 1:length(INX)
     chan_index = INX{ii};
     fprintf('[%s] Referencing electrodes of type %s...\n',mfilename, INXNames{ii});
 
-    if ~isempty(chan_index)        
+    if ~isempty(chan_index)
+        % include only good_channels in the common average:
         good_channels = find(contains(channels(chan_index,:).status, 'good'));
+        % the mean of the good channels is regressed out of all channels
+        % (i.e. including the bad ones)
         temp = ecog_carRegress(signal(chan_index,:), good_channels);    
         signal_reref(chan_index,:) = temp;
     end
