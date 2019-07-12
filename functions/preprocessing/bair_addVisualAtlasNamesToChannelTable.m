@@ -3,12 +3,12 @@ function [channels] = bair_addVisualAtlasNamesToChannelTable(channels,visualelec
 hasVisualElecs = 0;
 
 % Create empty arrays to be added as columns to the channel table
-wang         = repmat({' '},[height(channels) 1]); 
-benson       = repmat({' '},[height(channels) 1]); 
-benson_eccen = repmat({' '},[height(channels) 1]); 
-benson_angle = repmat({' '},[height(channels) 1]); 
-benson_sigma = repmat({' '},[height(channels) 1]); 
-matched_node = repmat({' '},[height(channels) 1]); 
+wang         = repmat({'none'},[height(channels) 1]); 
+benson       = repmat({'none'},[height(channels) 1]); 
+benson_eccen = nan([height(channels) 1]); 
+benson_angle = nan([height(channels) 1]); 
+benson_sigma = nan([height(channels) 1]);  
+matched_node = nan([height(channels) 1]); 
 
 % Check if there are any matched visual electrodes:
 for atlas = {'wang2015_atlas','benson14_varea', 'wang15_mplbl'}
@@ -46,18 +46,20 @@ if hasVisualElecs
         wangInx = strmatch(viselec{ii}, viselec_wang, 'exact');
         if ~isempty(wangInx)
             wang{elInx} = visarea_wang{wangInx};
-            matched_node{elInx} = matchednodes_wang(wangInx);           
+            matched_node(elInx) = matchednodes_wang(wangInx);           
         end
         bensonInx = strmatch(viselec{ii}, viselec_benson, 'exact');
         if ~isempty(bensonInx)
             benson{elInx} = visualelectrodes.benson14_varea.area_labels{bensonInx};
-            benson_eccen{elInx} = visualelectrodes.benson14_varea.node_eccen(bensonInx);
-            benson_angle{elInx} = visualelectrodes.benson14_varea.node_angle(bensonInx);
-            benson_sigma{elInx} = visualelectrodes.benson14_varea.node_sigma(bensonInx);
-            matched_node{elInx} = visualelectrodes.benson14_varea.node_indices(bensonInx);
+            benson_eccen(elInx) = visualelectrodes.benson14_varea.node_eccen(bensonInx);
+            benson_angle(elInx) = visualelectrodes.benson14_varea.node_angle(bensonInx);
+            benson_sigma(elInx) = visualelectrodes.benson14_varea.node_sigma(bensonInx);
+            matched_node(elInx) = visualelectrodes.benson14_varea.node_indices(bensonInx);
         end
     end
 end
+
+fprintf('[%s] Adding visual matches to channel table...\n',mfilename);
 
 % Add area matches to channel table
 channels.wangarea    = wang;

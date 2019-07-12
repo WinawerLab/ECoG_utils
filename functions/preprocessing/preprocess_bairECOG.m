@@ -36,6 +36,8 @@ if ~exist(figSaveDir, 'dir'); mkdir(figSaveDir);end
 fprintf('[%s] Reading data for sub-%s, ses-%s...\n',mfilename, sub_label, ses_label);
 [ftdata, events, channels]  = ecog_readBIDSData(dataDir, sub_label, ses_label);
 
+fprintf('[%s] Checking for trial names...\n',mfilename);
+
 % Check if there are trial_names, if not, add them
 if  max(contains(events.Properties.VariableNames, 'trial_name')) == 0
     fprintf('[%s] Events file lacks trial names - adding them now .\n',mfilename);
@@ -44,7 +46,7 @@ end
 
 % Resample and SHIFT the UMCU data 
 if contains(sub_label, 'umcu')
-    
+    fprintf('[%s] This is a umcu patient: resampling and shifting the data\n',mfilename);
     % Resample
     cfg = [];
     cfg.resamplefs      = 512;  % frequency at which the data will be resampled 
@@ -61,25 +63,13 @@ if contains(sub_label, 'umcu')
     end
 end
 
-%% [1] Remove non-relevant channels
-
-% % Remove redundant channels (e.g. DC channels, channels without coordinates)
-% relevant_channels = find(contains(lower(channels.type), {'ecog', 'seeg','ecg','trig'}));
-% 
-% ftdata.trial{1} = ftdata.trial{1}(relevant_channels,:);
-% ftdata.label = ftdata.label(relevant_channels);
-% ftdata.hdr.label = ftdata.hdr.label(relevant_channels);
-% ftdata.hdr.chantype = ftdata.hdr.chantype(relevant_channels);
-% ftdata.hdr.chanunit = ftdata.hdr.chanunit(relevant_channels);
-% 
-% channels = channels(relevant_channels,:);
-
 %% [2] Compute matches with visual regions
-
+fprintf('[%s] Computing matches with visual atlases...\n',mfilename);
 E2NSpecs = [];
 E2NSpecs.pID           = sub_label; % patient ID number
 switch specs.make_plots
     case 'yes'
+        close all;
         E2NSpecs.plotmesh      = 'both';
         E2NSpecs.plotelecs     = 'yes';
     case 'no'
@@ -91,45 +81,47 @@ visualelectrodes       = electrode_to_nearest_node(E2NSpecs, dataDir);
 % Add visual area names (W and B) ecc, angle, sigma to channels table
 [channels] = bair_addVisualAtlasNamesToChannelTable(channels,visualelectrodes);
 
-%% [3] Do a common average reference using the good channels
+switch specs.make_plots
+    case 'yes'
+        fprintf('[%s] Saving pial mesh figures...\n',mfilename);
 
-% If there is no status column, add one assuming all channels are good.
-if ~isfield(summary(channels), 'status') 
-    channels.status = repmat({'good'}, [height(channels) 1]);
+        nPlots = get(gcf,'Number');
+        for ii = 1:nPlots
+            atlasName = get(ii,'Name');
+            atlasName = strsplit(atlasName);
+            if length(atlasName) == 1
+                atlasName = 'none';
+            else
+                atlasName = atlasName{2};
+            end
+            plotName = sprintf('pialmesh_atlas-%s',atlasName);
+            saveas(ii, fullfile(figSaveDir, sprintf('%s-%s-%s',sub_label, ses_label,plotName)), 'epsc');
+        end
 end
 
-% Perform CAR separately for surface and depth electrodes; If there is a HD
-% grid or separate clinical grids, perform CAR separately for those
+%% [3] Do a common average reference using the good channels
 
-signal = ftdata.trial{1};
+fprintf('[%s] Performing Common Average reference...\n',mfilename);
 
-% Define subsets of channels to perform CAR within
-INX = [];
-% DEPTH electrodes:
-INX{1} = find(contains(lower(channels.type), 'seeg'));
-% GRID electrodes:
-INX{2} = find(contains(lower(channels.type), 'ecog') & strncmp('GA', channels.name, 2));
-INX{3} = find(contains(lower(channels.type), 'ecog') & strncmp('GB', channels.name, 2));
-% ALL OTHER SURFACE electrodes
-INX{4} = find(contains(lower(channels.type), 'ecog') & ~strncmp('GA', channels.name, 2) & ~strncmp('GB', channels.name, 2));
-%INX{4} = find(contains(lower(channels.type), 'ecog') & ~contains(channels.name, {'GB', 'GA'}));
+[signal, INX, INXNames] = ecog_performCAR(ftdata.trial{1}, channels);
 
-for ii = 1:length(INX)
-    chan_index = INX{ii};
+% DIAGNOSTICS: Look at the effect of CAR
+switch specs.make_plots
+    case 'yes'
+
+    fprintf('[%s] Saving CAR figures...\n',mfilename);
+
+    for ii = 1:length(INX)
     
-    if ~isempty(chan_index)
+        chan_index = INX{ii};
+    
+        if ~isempty(chan_index)
         
-        good_channels = find(contains(channels(chan_index,:).status, 'good'));
-        signal_reref = ecog_carRegress(ftdata.trial{1}(chan_index,:), good_channels);    
-        signal(chan_index,:) = signal_reref;
-
-        % DIAGNOSTICS: Look at the effect of CAR
-        switch specs.make_plots
-            case 'yes'
-
-            figure('Name', 'car regress');
+            good_channels = find(contains(channels(chan_index,:).status, 'good'));
             channel_plot = chan_index(good_channels(1));
 
+            figure('Name', sprintf('car regress %s', INXNames{ii}));
+            
             % Plot the time courses before and after CAR
             subplot(1,2,1); hold on
             plot(ftdata.time{1},ftdata.trial{1}(channel_plot,:),'k')
@@ -149,7 +141,7 @@ for ii = 1:length(INX)
             title(ftdata.label(channel_plot));
             
             set(gcf, 'Position',[1000 700 1100 600]); 
-            saveas(gcf, fullfile(figSaveDir, sprintf('%s-%s-CAR-%d',sub_label, ses_label,ii)), 'epsc');
+            saveas(gcf, fullfile(figSaveDir, sprintf('%s-%s-CAR-%s',sub_label, ses_label,INXNames{ii})), 'epsc');
 
         end
     end
@@ -183,6 +175,7 @@ data.cfg        = ftdata.cfg;
 switch specs.make_plots
     case 'yes'
         
+        fprintf('[%s] Plotting the trigger channel...\n',mfilename);
         % check for a trigger channel
         if max(contains(data.channels.type,'trig'))
             eltomatch = data.channels.name{find(contains(data.channels.type,'trig'))};
@@ -208,6 +201,7 @@ end
 
 switch specs.make_plots
      case 'yes'
+        fprintf('[%s] Plotting a data channel...\n',mfilename);
 
         eltomatch = data.channels.name(1);
         if exist('visualelectrodes', 'var') && ~ isempty(visualelectrodes)% % e.g.

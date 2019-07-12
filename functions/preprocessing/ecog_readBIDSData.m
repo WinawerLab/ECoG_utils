@@ -63,6 +63,7 @@ for iRun = 1:length(dataFiles)
     fprintf('[%s] Length of run %d is %s seconds, cumulative length of data is %s seconds \n', mfilename,iRun, num2str(runLengthInSeconds), num2str(samplesToAdd/hdr.Fs));
 end
 
+fprintf('[%s] Reading in the data using FieldTrip:\n',mfilename);
 % Read in the data files (all runs)
 data    = ft_preprocessing(cfg);
 
