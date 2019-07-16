@@ -314,7 +314,7 @@ for a = 1:length(specs.atlasNames)
     currentAtlas = specs.atlasNames{a};
     
     % Get atlases for this subject
-    fullfile(specs.fsDir, specs.pID, 'surf', 'rh.pial');
+    %fullfile(specs.fsDir, specs.pID, 'surf', 'rh.pial');
     atlas_file_rh = fullfile(specs.fsDir, specs.pID, 'surf', sprintf('rh.%s.mgz', currentAtlas));
     atlas_file_lh = fullfile(specs.fsDir, specs.pID, 'surf', sprintf('lh.%s.mgz', currentAtlas));
     if exist(atlas_file_rh, 'file') && exist(atlas_file_lh, 'file')
@@ -513,13 +513,13 @@ for a = 1:length(specs.atlasNames)
             end
             
             % Plot electrodes
-            plot_electrodes(elec_xyz(elec_plotindex,:), [1 1 1]*0.2,2);
-            plot_electrodes(elec_xyz(elec_indices,:), [0 0 0],2);
+            plot_electrodes(elec_xyz(elec_plotindex,:), [1 1 1]*0.2,1);
+            plot_electrodes(elec_xyz(elec_indices,:), [0 0 0],1);
 
             switch plotlabel
                 case 'yes'
                     for i = 1:size(elec_xyz(elec_plotindex,:),1)
-                        [x, y, z] = adjust_elec_label(elec_xyz(elec_plotindex(i),:),2);
+                        [x, y, z] = adjust_elec_label(elec_xyz(elec_plotindex(i),:),1);
                         text('Position',[x y z],'String',elec_labels(elec_plotindex(i),:),'Color','w','VerticalAlignment','top');
                     end
             end

@@ -7,7 +7,7 @@ end
 
 specs = [];
 
-specs.pID           = '718'; % patient ID 
+specs.pID           = '726'; % patient ID 
 specs.atlasNames    = [];%{'wang2015_atlas','wang15_mplbl','benson14_varea', 'benson14_eccen'}; 
                         % defaultclose al is all of these maps: 
                         % {'wang2015_atlas', ...
@@ -18,7 +18,7 @@ specs.atlasNames    = [];%{'wang2015_atlas','wang15_mplbl','benson14_varea', 'be
                         % 'template_areas'};
                         % NOTE: including benson14_varea is required to
                         % be able to obtain benson14_eccen, angle and sigma
-specs.plotmesh      = 'both';
+specs.plotmesh      = 'right';
 specs.plotelecs     = 'yes';
 specs.plotlabel     = 'yes';
 

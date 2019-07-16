@@ -95,10 +95,10 @@ whichTask = {'soc'};
 %whichTrials = {'BLANK','CRF','ONEPULSE', 'TWOPULSE'}; 
 %whichTrials = {'BLANK','PRF'};
 
-whichTrials = {'BLANK','CRF-1','CRF-2', 'CRF-3','CRF-4', 'CRF-5'};
+%whichTrials = {'BLANK','CRF-1','CRF-2', 'CRF-3','CRF-4', 'CRF-5'};
 %whichTrials = {'BLANK','ONEPULSE-1','ONEPULSE-2', 'ONEPULSE-3','ONEPULSE-4', 'ONEPULSE-5', 'ONEPULSE-6'};
 %whichTrials = {'BLANK','TWOPULSE-1','TWOPULSE-2', 'TWOPULSE-3','TWOPULSE-4', 'TWOPULSE-5', 'TWOPULSE-6'};
-%whichTrials = {'SPARSITY-1','SPARSITY-2', 'CRF-5', 'SPARSITY-3','SPARSITY-4'};
+whichTrials = {'BLANK','SPARSITY-1','SPARSITY-2', 'CRF-5', 'SPARSITY-3','SPARSITY-4'};
 
 specs = [];
 specs.plot.colorMap      = 'parula';

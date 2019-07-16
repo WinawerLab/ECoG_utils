@@ -6,7 +6,7 @@
 % Dataset specs
 projectName = 'visual';
 sub_label   = 'som726'; 
-ses_label   = {'nyuecog02','nyuecog03'};
+ses_label   = {'nyuecog01','nyuecog02','nyuecog03'};
 
 % Input paths 
 projectDir  = '/Volumes/server/Projects/BAIR/';
@@ -26,7 +26,7 @@ end
 
 %% Which session are we analyzing?
 
-whichSession = 1;
+whichSession = 2;
 trials = all{whichSession}.trials;
 blanks = all{whichSession}.blank_trials;
 
@@ -42,7 +42,7 @@ specs.t         = [0.05 0.55];
 [spectra_trials] = ecog_computeTrialSpectra(trials, specs);
 
 % blanks
-specs.t         = [-1 -0.5]; 
+specs.t         = [-1.5 -1]; 
 [spectra_blanks] = ecog_computeTrialSpectra(blanks, specs);
 
 % concatenate trials and blanks
@@ -57,9 +57,9 @@ saveFigure = 0;
 % Which stimulus conditions to plot? 
 
 %whichTrials = {'HRF'};
-whichTrials = {'HOUSES','FACES','LETTERS'};
-%whichTrials = {'GRATING', 'PLAID','CIRCULAR'};
-%whichTrials = {'CRF','ONEPULSE', 'TWOPULSE'}; 
+%whichTrials = {'HOUSES','FACES','LETTERS'};
+whichTrials = {'GRATING', 'PLAID','CIRCULAR'};
+whichTrials = {'CRF','ONEPULSE', 'TWOPULSE'}; 
 %whichTrials = {'DIAGONAL'};
 
 %whichTrials = {'CRF-1','CRF-2', 'CRF-3','CRF-4', 'CRF-5'};
@@ -231,7 +231,7 @@ for ee = 1:length(whichElectrodes)
         BB_SUM(ee,:) = nan([1 length(trialNames)]);
     end
     
-    ecc(ee) = trials.channels.bensoneccen{elInx,:};
+    ecc(ee) = trials.channels.bensoneccen(elInx);
 end
 
 % diffBB_SUM = [];
@@ -252,7 +252,7 @@ edges = [0:2:10 32];
 Y = discretize(ecc,edges);
 
 xnames = [];
-for ii = 1:length(unique(Y))
+for ii = 1:length(unique(Y(~isnan(Y))))
     xnames{ii} = sprintf('%d - %d', edges(ii),edges(ii+1));
 end
 

@@ -171,12 +171,11 @@ for ee = 1:length(elInx)
             xlabel('frequency');
             ylabel('power');
             hasLegend = 1;
-        end    
+        end  
+        
+        out.pwrspctrm.(whichElectrodes{ee}).mn = double(mnToPlot');
+        out.pwrspctrm.(whichElectrodes{ee}).se = double((Ulim-mnToPlot)');
     end
-    
-    out.pwrspctrm.(whichElectrodes{ee}).mn = double(mnToPlot');
-    out.pwrspctrm.(whichElectrodes{ee}).se = double((Ulim-mnToPlot)');
-
 end
 set(gcf, 'Position', [150 100 2000 1250]);
 

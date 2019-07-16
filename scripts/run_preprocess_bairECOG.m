@@ -10,9 +10,11 @@
 % Dataset specs
 project_name = 'visual';
 
-sub_label   = 'som726'; 
+%sub_label    = 'som661';
 %ses_label   = {'nyuecog01'};
-ses_label   = {'nyuecog02','nyuecog03'};
+
+sub_label   = 'som726'; 
+ses_label   = {'nyuecog01','nyuecog02','nyuecog03'};
 
 %sub_label   = 'umcuchaam'; 
 %ses_label   = {'UMCUECOGday03'};
@@ -30,12 +32,11 @@ specs.bb_method    = 6;
 
 % epochs
 %specs.epoch        = [-0.5 1.5]; % seconds
-specs.epoch         = [-0.2 1.2];
-% baseline correction
+ specs.epoch      = [-1 1.5]; % Kenichi
 
 % general
 specs.make_plots   = 'yes'; % 'yes', 'no'
-specs.overwrite    = 'no'; % 'yes', 'no'
+specs.overwrite    = 'yes'; % 'yes', 'no'
 
 %% Run!
 
