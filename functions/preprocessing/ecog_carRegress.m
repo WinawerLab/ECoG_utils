@@ -1,5 +1,5 @@
 function [signal] = ecog_carRegress_dora(signal, chans2incl)
-% common average referencing flunction with regressing out the mean, rather
+% common average referencing function with regressing out the mean, rather
 % than subtracting out the mean
 %
 % dh - Oct 2010
