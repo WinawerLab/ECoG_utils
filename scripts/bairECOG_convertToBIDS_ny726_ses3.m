@@ -43,7 +43,7 @@ run_label = {'01','02','01','02','01','02','01','02','03','04','03','04','03','0
 % NOTE: task and run labels should be noted in the order they were run!
 
 % Make plots?
-makePlot = 0;
+makePlot = 1;
 % NOTE: Figures will be saved into
 % derivatives/preprocessed/sub-label/ses-label/figures/bidsconversion
 
@@ -54,9 +54,40 @@ makePlot = 0;
     BIDSDataDir, projectName, sub_label, ses_label, ses_labelt1);
 
 % Read ECoG data
-[data, hdr] = bidsconvert_readecogdata(dataReadDir, ses_label);
+[rawdata, hdr] = bidsconvert_readecogdata(dataReadDir, ses_label);
 
-%% START OF MANUAL SECTION %%
+%% %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%% START OF MANUAL SECTION %%%%%%%%%%%%%%% %%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+% Run the cells below, manually altering several inputs
+
+%% DATA TRIM (PATIENT-SPECIFIC)
+
+% The data recordings start with triggers of a broken off prf run, and
+% there is a lot of data post-task that we don't need. So, trim the data:
+
+% Define the trigger channel name (probably a 'DC' channel, see hdr.label)
+triggerChannelName = 'DC1';
+triggerChannel = find(strcmp(triggerChannelName,hdr.label));
+% Plot the trigger channel
+figure;plot(rawdata(triggerChannel,:)); 
+title([num2str(triggerChannel) ': ' hdr.label{triggerChannel}]);
+        
+run_start = 180000; % manually determined from plot of triggerchannel (DC1)
+run_end   = 1020000; 
+
+% overwrite
+data = rawdata(:,run_start:run_end);
+hdr.nSamples = size(data,2);
+
+% check
+figure;plot(data(triggerChannel,:)); 
+title([num2str(triggerChannel) ': ' hdr.label{triggerChannel}]);
+
+%% BAD CHANNEL IDENTIFICATION
 
 % Manually click through each channel to identify to trigger channel, as
 % well as bad channels (specify in next cell)
@@ -64,10 +95,10 @@ makePlot = 0;
 % Define time axis (in seconds). First time point = 0 (this is assumed by
 % the function we used to detect triggers b    elow, and also in fieldtrip).
 t = ((0:hdr.nSamples-1)/hdr.Fs); 
-                                      
+
 % Plot the raw voltage time course of each channel
 if makePlot
-    for cChan = 1:1:size(data,1) 
+    for cChan = 135:1:size(data,1) 
         figure;plot(t,data(cChan,:)); 
         title([num2str(cChan) ': ' hdr.label{cChan}]);
         xlabel('Time (s)'); ylabel('Raw amplitude (microV)'); set(gca,'fontsize',16); 
@@ -76,47 +107,44 @@ if makePlot
 end
 
 %% WRITE DOWN THE FOLLOWING
-                
+
 % Trigger channel name (probably a 'DC' channel, see hdr.label)
 triggerChannelName = 'DC1';
 
-% EXAMPLE
-% BADCHANNELS_MANUALTABLE = {...
-%     1 , 'spikes';
-%     2, 'epileptictissue';
-%     3, 'lowfreqdrift';
-%     4, 'excessivenoise';
-%     };
+% This is a list of to be excluded channels that are NOT from the HD grid
+exclude_inx = [1 6 69 70 79 80 84 90 95 97 98 104 106 108 109 110 113 116 119 120 123 127 255 256];
 
-% If you want to exclude many consecutive channels for same reason, use:
-exclude_inx = [1 6 59 69 70 79 80 84 90 97 98 104 106 108 109 110 113 116 119 120 123 127 129 130 131 132 133 134 135 147 163 195 209 227 255 256]; % list of consecutive elec numbers
+% Electrodes 135:254 are the HD grid electrodes
+% Exclude only those channels that look deviant from the others
+exclude_inxHD = [147 163 195 209 227]; 
+
+% Concatenate
+exclude_inx = [exclude_inx exclude_inxHD];
+
 BADCHANNELS_MANUALTABLE = [num2cell(exclude_inx)' repmat({'spikes'}, [length(exclude_inx) 1])];
 
 %% CHECK THE CHANNEL SELECTIONS
 
-% Compare selection above with excluding NO channels (comment/uncomment):
-%BADCHANNELS_MANUALTABLE  = {[],[]};
-
-triggerChannel = find(strcmp(triggerChannelName,hdr.label));
-badChannels = cell2mat(BADCHANNELS_MANUALTABLE(:,1));
-badChannelsDescriptions = BADCHANNELS_MANUALTABLE(:,2);
+%% [1] Look at spectra without excluding ANY channels:
+badChannels = [];
 
 % Generate spectral plot; check command window output for outliers; 
 if makePlot 
     inx_notEEGchans = [find(contains(hdr.chantype, 'ecg')); find(contains(hdr.label, {'DC', 'SG', 'Pleth', 'PR', 'OSAT', 'TRIG'}))];
     chansToPlot = setdiff(1:length(hdr.label),[inx_notEEGchans; badChannels]);
-    [outliers] = ecog_plotChannelSpectra(data, chansToPlot, hdr); title('channel spectra');
-    saveas(gcf, fullfile(preprocDir, 'figures', 'bidsconversion', sprintf('%s-%s-goodchannels_spectra',sub_label, ses_label)), 'epsc');
+    [outliers] = ecog_plotChannelSpectra(data, chansToPlot, hdr); title('All channels spectra');
+    set(gcf, 'Name', 'Good channels spectra');
+    saveas(gcf, fullfile(preprocDir, 'figures', 'bidsconversion', sprintf('%s-%s-spectra_allchannels',sub_label, ses_label)), 'epsc');
 end
 
-% Check the timeseries of all the good channels, no noisy moments?
+% Plot the timeseries of all channels
 if makePlot 
-    figure('Name', 'Good channels time course');
-    plot(t,data(chansToPlot,:)); xlabel('Time (s)'); ylabel('Raw amplitude (microV)'); title('all good channels'); set(gca,'fontsize',16); 
+    figure('Name', 'All channels time course');
+    plot(t,data(chansToPlot,:)); xlabel('Time (s)'); ylabel('Raw amplitude (microV)'); title('All channels timecourse'); set(gca,'fontsize',16); 
     % Get trigger time points from data file
     [trigger_onsets] = bidsconvert_findtriggers(data, hdr, triggerChannel, 0);
     hold on; plot(trigger_onsets, ones(length(trigger_onsets),1),'k.','MarkerSize', 25, 'LineStyle','none');
-    saveas(gcf, fullfile(preprocDir, 'figures', 'bidsconversion', sprintf('%s-%s-goodchannels_timecourse',sub_label, ses_label)), 'epsc');
+    saveas(gcf, fullfile(preprocDir, 'figures', 'bidsconversion', sprintf('%s-%s-timecourse-allchannels',sub_label, ses_label)), 'epsc');
 end
 
 % NOTE: Outliers (identified as channels with mean power that is more that
@@ -136,11 +164,54 @@ if makePlot
     end 
 end
 
-%% END OF MANUAL SECTION %
+%% [2] Look at spectra with bad channels excluded:
+badChannels = cell2mat(BADCHANNELS_MANUALTABLE(:,1));
+badChannelsDescriptions = BADCHANNELS_MANUALTABLE(:,2);
+
+% Generate spectral plot; check command window output for outliers; 
+if makePlot 
+    inx_notEEGchans = [find(contains(hdr.chantype, 'ecg')); find(contains(hdr.label, {'DC', 'SG', 'Pleth', 'PR', 'OSAT', 'TRIG'}))];
+    chansToPlot = setdiff(1:length(hdr.label),[inx_notEEGchans; badChannels]);
+    [outliers] = ecog_plotChannelSpectra(data, chansToPlot, hdr); title('Good channels spectra');
+    saveas(gcf, fullfile(preprocDir, 'figures', 'bidsconversion', sprintf('%s-%s-spectra_goodchannels',sub_label, ses_label)), 'epsc');
+end
+
+% Plot the timeseries of all the good channels, are all noisy moments gone?
+if makePlot 
+    figure('Name', 'Good channels time course');
+    plot(t,data(chansToPlot,:)); xlabel('Time (s)'); ylabel('Raw amplitude (microV)'); title('all good channels'); set(gca,'fontsize',16); 
+    % Get trigger time points from data file
+    [trigger_onsets] = bidsconvert_findtriggers(data, hdr, triggerChannel, 0);
+    hold on; plot(trigger_onsets, ones(length(trigger_onsets),1),'k.','MarkerSize', 25, 'LineStyle','none');
+    saveas(gcf, fullfile(preprocDir, 'figures', 'bidsconversion', sprintf('%s-%s-timecourse-goodchannels',sub_label, ses_label)), 'epsc');
+end
+
+% NOTE: Outliers (identified as channels with mean power that is more that
+% two standard deviations above or below the average across channels) should
+% not be used to automatically identify bad channels, because channels with
+% strong activation can have higher power on average! Instead, look at
+% the time courses of those channels again to see what makes them stand
+% out, and if you think more or less channels need to be excluded, adapt
+% the previous cell and run this one again, until satisfied with selection.
+
+if makePlot 
+    for cChan = 1:length(outliers)
+        figure('Name', sprintf('Outlier %d', cChan)); 
+        plot(t, data(outliers(cChan),:)); 
+        title([num2str(outliers(cChan)) ': ' hdr.label{outliers(cChan)}]); 
+        xlabel('Time (s)'); ylabel('Raw amplitude (microV)'); set(gca,'fontsize',16); 
+    end 
+end
+
+%% %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%% END OF MANUAL SECTION %%%%%%%%%%%%%%% %%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 % From here on, everything should run automatically:
 
-% AUTOMATED EXTRACTION %%
+%% AUTOMATED EXTRACTION %%
 
 % Get trigger time points from data file
 [trigger_onsets] = bidsconvert_findtriggers(data, hdr, triggerChannel, makePlot);
