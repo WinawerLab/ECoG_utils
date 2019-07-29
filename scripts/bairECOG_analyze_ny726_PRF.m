@@ -51,10 +51,10 @@ m_base     = squeeze(median(mean(PRFbb(:, base_range, :), 2), 3));
 PRFbb      = PRFbb./m_base-1;
     
 % Define a time window over which to average the broadband timecourse
-timeIndex  = [0.05 0.55];
+time_win  = [0.05 0.55];
 
 % Compute average broadband response in time window
-PRFbb_mean = squeeze(mean(PRFbb(:,trials.time>timeIndex(1) & trials.time<timeIndex(2),:),2)); 
+PRFbb_mean = squeeze(mean(PRFbb(:,trials.time>time_win(1) & trials.time<time_win(2),:),2)); 
 
 % Reshape to separate the two runs
 PRFbb_mean = reshape(PRFbb_mean,[size(PRFbb,1) size(PRFbb,3)/2 2]);
@@ -71,12 +71,12 @@ plot(PRFbb_mean(chanIndex,:,1), 'b', 'LineWidth', 2); % first run
 plot(PRFbb_mean(chanIndex,:,2), 'r', 'LineWidth', 2); % second run
 
 % Add title, axes labels, legends etc
-set(gca, 'XTick', 1:1:size(PRFbb_mean,2), 'XTickLabel', events.trial_name([1:size(PRFbb_mean,2)]), 'XTickLabelRotation', 90, 'FontSize',8);
-title(sprintf('%s w:%s b:%s [ecc = %0.1f]', channels.name{chanIndex}, channels.wangarea{chanIndex}, channels.bensonarea{chanIndex}, channels.bensoneccen{chanIndex}),'FontSize',18);
-set(gca, 'XLim', [0 size(PRFbb_mean,2)+1])
-xlabel('PRF stimulus',  'FontSize',14);
-ylabel('broadband power','FontSize',14);
-legend({'PRF run 1', 'PRF run 2'}, 'FontSize',14);
+%set(gca, 'XTick', 1:1:size(PRFbb_mean,2), 'XTickLabel', events.trial_name(1:size(PRFbb_mean,2)), 'XTickLabelRotation', 90, 'FontSize',8);
+title(sprintf('%s w:%s b:%s [ecc = %0.1f]', channels.name{chanIndex}, channels.wangarea{chanIndex}, channels.bensonarea{chanIndex}, channels.bensoneccen(chanIndex)),'FontSize',28);
+set(gca, 'XLim', [0 size(PRFbb_mean,2)+1], 'FontSize', 18)
+xlabel('PRF stimulus',  'FontSize',28);
+ylabel('broadband power','FontSize',28);
+legend({'PRF run 1', 'PRF run 2'}, 'FontSize',28);
 set(gcf, 'Position', [60 300 2000 1000]);
 
 
@@ -96,79 +96,13 @@ opt.maxpolydeg = 0;
 % Run analyzePRF
 results = analyzePRF(stimulus,data,tr,opt);
 
-%% Plot
-ecc = []; ind = [];
-for cc = 1:120
-    tmp = channels.bensoneccen{cc};
-    if ~ischar(tmp)
-        ecc(cc) = tmp;
-    else
-        ecc(cc) = nan;
-    end
-    
-end
-
-% % height from center of screen to top of somMacbook
-% screen_height = 1280;
-% viewing_distance = 50;
-% radius_in_cm  = screen_height/2; % radius in cm
-% radius_in_deg = rad2deg(atan(radius_in_cm./viewing_distance)); % radius in degrees
-% 
-% numpix  = 100;%;ones(size(subj))*101; % number of pixels in stimulus description (one side) as input to fitprf
-% pix2deg = radius_in_deg*2./numpix;
-% xC      = (numpix+1)/2; % center location in pixels
-% yC      = xC;            
-% 
-% prf_ecc = pix2deg.*results.ecc;
-% % % convert pixels to degrees
-% % x =  pix2deg.*(x0-xC);
-% % y = -pix2deg.*(y0-yC);
-% % s =  pix2deg.*s0;
+%% %% KK example code: Visualize the location of each voxel's pRF
 
 % The stimulus is 100 pixels (in both height and weight), and this corresponds to
 % 16 degrees of visual angle.  To convert from pixels to degreees, we multiply
-% by 10/100.
-cfactor =16.6/100;
-prf_ecc = results.ecc*cfactor;
+% by 16/100.
+cfactor = 16.6/100;
 
-ind = results.R2>25 & results.ecc < 20;
-corr(prf_ecc(ind), ecc(ind)','rows','complete')
-figure;scatter(ecc(ind),prf_ecc(ind));
-ylabel('eccentricity from prf fit');
-xlabel('eccentricity from benson template');
-
-ang = [];
-for cc = 1:120
-    tmp = channels.bensonangle{cc};
-    if ~ischar(tmp)
-        ang(cc) = tmp;
-    else
-        ang(cc) = nan;
-    end
-end
-ang = ang + 90;%ang = mod(90-(-ang),360);
-ind = results.R2>30 &results.ecc < 50;
-corr(results.ang(ind), ang(ind)','rows','complete')
-figure;scatter(ang(ind),results.ang(ind));
-ylabel('angle from prf fit');
-xlabel('angle from benson template');
-axis([0 360 0 360])
-
-idx = results.R2 > 30;
-figure, 
-subplot(1,2,1);polarplot(deg2rad(results.ang), prf_ecc, 'x')
-hold on, polarplot(deg2rad(results.ang(idx)), prf_ecc(idx), 'x'); title('analyzePRF');
-rlim([0 25])
-subplot(1,2,2); polarplot(deg2rad(ang), ecc, 'x')
-hold on, polarplot(deg2rad(ang(idx)), ecc(idx), 'x'); title('benson14');
-rlim([0 25])
-
-figure, scatter(squeeze(results.params(1,2,:)), squeeze(results.params(1,1,:)),'x')
-hold on, scatter(squeeze(results.params(1,2,idx)), squeeze(results.params(1,1,idx)),'x')
-axis([0 100 0 100])
-xlabel('x'), ylabel('y');
-
-%% Visualize the location of each voxel's pRF
 figure; hold on;
 set(gcf,'Units','points','Position',[100 100 400 400]);
 cmap = jet(size(results.ang,1));
@@ -192,7 +126,7 @@ set(gca,'XTick',-10:2:10,'YTick',-10:2:10);
 xlabel('X-position (deg)');
 ylabel('Y-position (deg)');
 
-%%
+%% KK example code: plot time courses with fit
 % Define some variables
 res = [100 100];                    % row x column resolution of the stimuli
 resmx = 100;                        % maximum resolution (along any dimension)
@@ -223,12 +157,9 @@ modelfun = @(pp,dd) conv2run(posrect(pp(4)) * (dd*[vflatten(placematrix(zeros(re
 polymatrix = {};
 for p=1:length(degs)
   polymatrix{p} = projectionmatrix(constructpolynomialmatrix(size(data{p},2),0:degs(p)));
-  %polymatrix{p} = projectionmatrix([]);
 end
 
-
-%%
-% Which voxel should we inspect?  Let's inspect the second voxel.
+% Pick a channel to inspect:
 vx = chanIndex;
 
 % For each run, collect the data and the model fit.  We project out polynomials
@@ -241,19 +172,69 @@ for p=1:length(data)
   modelts{p} = polymatrix{p}*modelfun(results.params(1,:,vx),stimulusPP{p});
 end
 
+% IRIS: do not project out polynomials:
+for p=1:length(data)
+    datats{p} = data{p}(vx,:)';
+    modelts{p} = modelfun(results.params(1,:,vx),stimulusPP{p});
+end
+
 % Visualize the results
 figure; hold on;
 set(gcf,'Units','points','Position',[100 100 1000 100]);
-plot(cat(1,datats{:}),'r-');
-plot(cat(1,modelts{:}),'b-');
+plot(cat(1,datats{:}),'k-', 'LineWidth', 2);
+plot(cat(1,modelts{:}),'r-','LineWidth', 2);
 straightline(224*(1:2)+.5,'v','g-');
-xlabel('PRF stimulus');
-ylabel('Broadband response');
+xlabel('PRF stimulus','FontSize', 28);
+ylabel('Broadband response','FontSize', 28);
 ax = axis;
 %axis([.5 1200+.5 ax(3:4)]);
-title('Data and model fit');
+title('Data and model fit', 'FontSize', 28);
+legend('data', 'model prediction');
+
+set(gcf, 'Position', [60 300 2000 1000]);
+set(gca, 'FontSize', 18)
+%% Plot
+
+% The stimulus is 100 pixels (in both height and weight), and this corresponds to
+% 16 degrees of visual angle.  To convert from pixels to degreees, we multiply
+% by 10/100.
+cfactor =16.6/100;
+prf_ecc = results.ecc*cfactor;
+
+ind = results.R2>30; %& results.ecc < 20;
+corr(prf_ecc(ind), channels.bensoneccen(ind),'rows','complete')
+figure;scatter(channels.bensoneccen(ind),prf_ecc(ind), 100, 'filled');
+ylabel('eccentricity from analyzePRF');
+xlabel('eccentricity from benson template');
+set(gca, 'FontSize', 18)
+
+%ang = ang + 90;%ang = mod(90-(-ang),360);
+ind = results.R2>30; %&results.ecc < 50;
+corr(results.ang(ind), channels.bensonangle(ind)+90,'rows','complete')
+figure;scatter(channels.bensonangle(ind)+90,results.ang(ind),100,'filled');
+ylabel('angle from analyzePRF');
+xlabel('angle from benson template');
+axis([0 360 0 360])
+set(gca, 'FontSize', 18)
 
 %%
+idx = results.R2 > 30;
+figure, 
+subplot(1,2,1);polarplot(deg2rad(results.ang), prf_ecc, 'x')
+hold on, polarplot(deg2rad(results.ang(idx)), prf_ecc(idx), 'x'); title('analyzePRF');
+rlim([0 25]);
+set(gca, 'FontSize', 18)
+
+subplot(1,2,2); polarplot(deg2rad(channels.bensonangle+90), channels.bensoneccen, 'x')
+hold on, polarplot(deg2rad(channels.bensonangle(idx)+90), channels.bensoneccen(idx), 'x'); title('benson14');
+rlim([0 25])
+set(gca, 'FontSize', 18)
+
+figure, scatter(squeeze(results.params(1,2,:)), squeeze(results.params(1,1,:)),'x')
+hold on, scatter(squeeze(results.params(1,2,idx)), squeeze(results.params(1,1,idx)),'x')
+axis([0 100 0 100])
+xlabel('x', 'FontSize', 28), ylabel('y', 'FontSize', 28);
+set(gca, 'FontSize', 18)
 
 % %% Compute an analogous measure from the spectra?
 % 
