@@ -101,6 +101,7 @@ if ~isfield(specs, 'plotelecs') || isempty(specs.plotelecs)
     switch specs.plotmesh
         case 'none'
             specs.plotelecs = 'no';
+            specs.plotcbar = 'no';
         otherwise
             specs.plotelecs = 'yes';
     end
@@ -254,7 +255,12 @@ out.patientID = specs.pID;
 % Generate figures
 
 % First, plot electrodes on brain without any atlases
-fig = figure('Name', specs.pID); hold on;
+switch plotmesh
+    case 'none'
+        % do nothing
+    otherwise
+        fig = figure('Name', specs.pID); hold on;
+end
 
 % Plot pial surface as mesh
 switch plotmesh

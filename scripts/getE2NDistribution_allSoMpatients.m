@@ -1,14 +1,13 @@
 %% loop matching script across patients (plotmesh off to prevent many figures):
 
 % list of patient IDs to loop over
-pIDs  = [648 645 661 668 674 682 692 694]; % BAIR patients
+pIDs  = [648 645 661 668 674 682 692 704 708 709 718 723]; % BAIR patients excl high density
 
 pIDs2 = [439 496 503 507 516 523 559 560 561 562 563 ...
         564 567 568 569 578 584 590 591 595 596 598 ...
         605 607 608 609 610 615 617 625 626 628 630 ...
         632 633 634 637 638 639 640 646 647 651 652 ...
-        653 660 662 663 664 665 671 673 679]; % SOM patients
-
+        653 660 662 663 664 665 671 673 679 684 694]; % SOM patients
 
 pIDs = [pIDs pIDs2];
 
@@ -17,7 +16,7 @@ specs = [];
 out_all = cell(length(pIDs),1);
 for i = 1:length(pIDs)
     
-    specs.pID         = num2str(pIDs(i));
+    specs.pID       = num2str(pIDs(i));
     specs.plotmesh  = 'none'; % plot meshes with atlases for each subject: yes or no
   
     out_all{i} = electrode_to_nearest_node(specs);
@@ -37,6 +36,16 @@ for a = 1:length(atlasNames)
             count_total = count_total+count;
             area_names = out_all{i}.(atlasNames{a}).area_names;
             patient_count(a,1) = patient_count(a,1)+1;
+        end
+    end
+    if a == 1 % wang
+        for i = 1:length(out_all)
+            if ~isempty(out_all{i}) && ~isempty(out_all{i}.wang15_mplbl)
+                count = out_all{i}.wang15_mplbl.area_count;
+                count_total = count_total+count;
+                area_names = out_all{i}.wang15_mplbl.area_names;
+                patient_count(a,1) = patient_count(a,1)+1;
+            end
         end
     end
     figure('Name', atlasNames{a});hold on;
