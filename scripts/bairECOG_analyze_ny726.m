@@ -57,9 +57,9 @@ saveFigure = 0;
 % Which stimulus conditions to plot? 
 
 %whichTrials = {'HRF'};
-%whichTrials = {'HOUSES','FACES','LETTERS'};
-whichTrials = {'GRATING', 'PLAID','CIRCULAR'};
-whichTrials = {'CRF','ONEPULSE', 'TWOPULSE'}; 
+whichTrials = {'HOUSES','FACES','LETTERS'};
+%whichTrials = {'GRATING', 'PLAID','CIRCULAR'};
+%whichTrials = {'CRF','ONEPULSE', 'TWOPULSE'}; 
 %whichTrials = {'DIAGONAL'};
 
 %whichTrials = {'CRF-1','CRF-2', 'CRF-3','CRF-4', 'CRF-5'};
@@ -78,11 +78,12 @@ specs.plot.nSubPlots     = [];
 specs.plot.addEccToTitle = 'yes';
 specs.plot.showMax       = 'no';
 specs.plot.XLim          = [-0.2 1];
-specs.plot.YLim          = [];%[-0.5 20];
+specs.plot.YLim          = [-0.5 20];
 
 % % Plot a subset of electrodes
-% whichElectrodes = {'GB102', 'GB118', 'GB103', 'GB119'};
-% [trials_out] = ecog_plotTimecourses(trials, whichElectrodes, whichTrials, specs);
+%whichElectrodes = {'GB102', 'GB118', 'GB103', 'GB119'};
+%whichElectrodes = {'GB89'};
+%ecog_plotTimecourses(trials, whichElectrodes, whichTrials, specs);
 
 % % Plot the entire HD grid
 
@@ -130,13 +131,13 @@ end
 
 saveFigure   = 0;
 
-whichTask = {'prf'};
+whichTask = {'spatialobject'};
 
 %whichTrials = {'BLANK','HRF'};
-%whichTrials = {'BLANK', 'HOUSES','FACES','LETTERS'};
+whichTrials = {'BLANK', 'HOUSES','FACES','LETTERS'};
 %whichTrials = {'BLANK','GRATING', 'PLAID','CIRCULAR'};
 %whichTrials = {'BLANK','CRF','ONEPULSE', 'TWOPULSE'}; 
-whichTrials = {'BLANK','DIAGONAL', 'HORIZONTAL', 'VERTICAL'};
+%whichTrials = {'BLANK','DIAGONAL', 'HORIZONTAL', 'VERTICAL'};
 
 %whichTrials = {'BLANK','CRF-1','CRF-2', 'CRF-3','CRF-4', 'CRF-5'};
 %whichTrials = {'BLANK','ONEPULSE-1','ONEPULSE-2', 'ONEPULSE-3','ONEPULSE-4', 'ONEPULSE-5', 'ONEPULSE-6'};
@@ -151,10 +152,10 @@ specs.plot.XLim          = [];
 specs.plot.YLim          = [10^-3 10^3];%[];
 
 % % Plot a subset of electrodes
-% whichElectrodes = {'GB118'};
-% [spectra_out] = ecog_plotSpectra(spectra, whichElectrodes, whichTrials, whichTask, specs);
+whichElectrodes = {'GB89'};
+[spectra_out] = ecog_plotSpectra(spectra, whichElectrodes, whichTrials, whichTask, specs);
 
-% Plot the entire HD grid
+%% Plot the entire HD grid
 
 % Which electrodes to plot? (Each electrode gets a subplot)
 whichElectrodes = trials.channels.name(contains(trials.channels.name, 'GB'));
