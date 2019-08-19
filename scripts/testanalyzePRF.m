@@ -25,9 +25,8 @@ end
 trials = all{1}.trials;
 trials.events = [all{1}.trials.events; all{2}.trials.events];
 trials.broadband = cat(3,all{1}.trials.broadband, all{2}.trials.broadband);
-trials.evoked = cat(3,all{1}.trials.evoked, all{2}.trials.evoked);
 
-%% Pick a channel to test
+%% Select data from a single channel
 
 % Select a subset of electrodes to analyze
 elecIndex  = contains(trials.channels.name, 'GB119'); % electrode with good signal
@@ -93,8 +92,8 @@ data1 = {data1(:,:,1),data1(:,:,2),data1(:,:,3),data1(:,:,4)}; % without baselin
 data2 = {data2(:,:,1),data2(:,:,2),data2(:,:,3),data2(:,:,4)}; % with baseline correction
 
 % Run analyzePRF
-results1 = analyzePRF(stimulus,data1,tr,opt);
-results2 = analyzePRF(stimulus,data2,tr,opt);
+results1 = analyzePRF(stimulus,data1,tr,opt); % WITHOUT baseline correction
+results2 = analyzePRF(stimulus,data2,tr,opt); % WITH baseline correction
 
 %% KK example code: plot time courses with fit
 
@@ -155,7 +154,6 @@ plot(cat(1,modelts2{:}), 'b', 'LineWidth', 2)
 corr(cat(1,modelts1{:}), cat(1,modelts2{:}))
 legend('without baseline correction', 'with baseline correction');
 title('model prediction');
-
 
 % % Visualize the results
 % figure; hold on;
