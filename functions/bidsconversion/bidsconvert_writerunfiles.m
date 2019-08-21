@@ -62,9 +62,10 @@ for ii = 1:nRuns
         ieeg_json.TaskDescription = 'Visual textures presented for variable durations and inter-stimulus intervals';      
 	elseif contains(task_label{ii}, 'spatialobject')       
         ieeg_json.TaskName = 'bair_spatialobject';
-        ieeg_json.TaskDescription = 'Houses faces and letter images presented brief, fixed durations';         
+        ieeg_json.TaskDescription = 'Houses, faces and letter images presented for brief, fixed durations';         
     end   
     ieeg_json.Instructions = 'Detect color change (red/green) at fixation';
+    % TO DO ADD MOTOR TASKS
     
     % Fix some problems in older stimulus files 
     if contains(task_label{ii}, 'hrf')   

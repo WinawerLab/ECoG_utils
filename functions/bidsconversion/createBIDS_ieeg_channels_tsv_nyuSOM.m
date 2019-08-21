@@ -20,7 +20,7 @@ name = repmat('unknown', n, 1); % Label of the channel, only contains letters an
 
 type = repmat('unknown', n, 1); % Type of channel, see section 3.3.2 of iEEG BIDS spec.
 
-units = repmat('microV', n, 1); % Physical unit of the value represented in this channel,
+units = repmat({'microV'}, n, 1); % Physical unit of the value represented in this channel,
 % e.g. V for Volt, specified according to the SI unit symbol and possibly 
 % prefix (e.g. milliV, microV), see BIDS spec for Units and Prefixes.
 

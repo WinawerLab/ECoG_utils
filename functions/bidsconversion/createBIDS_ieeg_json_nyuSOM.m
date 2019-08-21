@@ -37,15 +37,10 @@ ieeg_json.SoftwareFilters = 'n/a'; % List of temporal software filters applied o
 
 %ieeg_json.HardwareFilters = 'HighPass:0.16,LowPass:500';% List of hardware (amplifier) filters applied with 
 % key:value pairs of filter parameters and their values.
-ieeg_json.HardwareFilters =  sprintf('{"HighPass": {"cutoff":0.16},"LowPass": {"cutoff":500}}');
+%ieeg_json.HardwareFilters =  sprintf('{"HighPass": {"cutoff":0.16},"LowPass": {"cutoff":500}}');
+ieeg_json.HardwareFilters.HighPass.cutoff = 0.16;
+ieeg_json.HardwareFilters.LowPass.cutoff = 500;
 
-% "HardwareFilters": {
-%         "Highpass RC filter": {
-%             "Half amplitude cutoff (Hz)": 0.0159,
-%             "Roll-off": "6dB/Octave"
-%         }
-%     },
-%     "SoftwareFilters": "n/a"
 ieeg_json.Manufacturer = 'Natus'; % Manufacturer of the amplifier system  (e.g. "TDT, blackrock")
 
 ieeg_json.ManufacturersModelName = 'Natus Quantum PK1171'; % Manufacturer's designation of the 

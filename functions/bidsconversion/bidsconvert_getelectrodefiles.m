@@ -62,7 +62,14 @@ electrode_table.type = elec_types(elecInx);
 [channel_table] = createBIDS_ieeg_channels_tsv_nyuSOM(length(chanNames));
 channel_table.name  = chanNames;
 channel_table.type  = chanTypes;
-if ~isempty(chanUnits), channel_table.units = chanUnits; end
+
+% Check the units against the hdr info: use default 'microV' for ieeg
+% channels, use the info from the header for other channels; if no
+% information in header, put 'unknown'
+for ii = 1:length(chanUnits)
+    if ~isempty(chanUnits{ii}) && ~strcmp(chanUnits{ii}, 'uV'), channel_table.units{ii} = chanUnits{ii}; end
+    if isempty(chanUnits{ii}), channel_table.units{ii} = 'unknown'; end
+end
 channel_table.sampling_frequency = repmat(hdr.Fs,size(channel_table,1),1);
 
 % Indicate which channel is the trigger channel in channels.tsv
