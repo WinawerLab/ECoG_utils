@@ -220,8 +220,8 @@ channel_table.sampling_frequency = repmat(hdr.Fs,size(channel_table,1),1);
 channel_table.type{triggerChannel} = 'trig';
 
 % Indicate channel statuses
-channel_table.status = cell(height(channel_table),1);
-channel_table.status_description = cell(height(channel_table),1);
+%channel_table.status = cell(height(channel_table),1);
+%channel_table.status_description = cell(height(channel_table),1);
 ecogChannels = find(contains(channel_table.type,{'seeg', 'ecog'}));
 for ii = 1:length(ecogChannels)
     channel_table.status{ecogChannels(ii)} = 'good';
@@ -426,7 +426,7 @@ for ii = 1:nRuns
     
     % Get remaining columns: 
     onset        = strtrim(cellstr(num2str(event_sample/hdr.Fs,['%.' num2str(nDecimals) 'f']))); 
-    stim_file    = repmat(fname, num_trials, 1);
+    stim_file    = repmat([fname '.mat'], num_trials, 1);
     duration     = strtrim(cellstr(num2str(duration,['%.' num2str(nDecimals) 'f'])));
     ISI          = strtrim(cellstr(num2str(ISI,['%.' num2str(nDecimals) 'f'])));
     
