@@ -14,32 +14,18 @@ end
 %% Define paths and BIDS specs %%
 
 % Input paths specs
-patientID   = []; % Specify patient's raw folder name here
+patientID   = 705; % Specify patient's raw folder name here
 RawDataDir  = '/Volumes/server/Projects/BAIR/Data/Raw/ECoG/';
 BIDSDataDir = '/Volumes/server/Projects/BAIR/Data/BIDS/';
 
 % BIDS specs: assuming defaults for a first session, full visual set:
-projectName = 'visual';
+projectName = 'motor';
 sub_label   = ['som' num2str(patientID)]; 
-ses_label   = 'nyuecog01';
+ses_label   = 'nyuecog02';
 ses_labelt1 = 'som3t01';
-task_label  = {'hrfpattern', ...
-               'prf',...
-               'prf', ...
-               'spatialpattern', ...
-               'spatialpattern', ...
-               'spatialobject', ...
-               'spatialobject', ...
-               'temporalpattern', ...            
-               'temporalpattern', ... 
-               'spatialpattern', ...
-               'spatialpattern', ...
-               'spatialobject', ...
-               'spatialobject', ...
-               'temporalpattern', ...            
-               'temporalpattern'             
-              };              
-run_label = {'01','01','02','01','02','01','02','01','02','03','04','03','04','03','04'};
+task_label  = {'boldhand'
+               }; %   
+run_label = {'01'}; 
 % NOTE: task and run labels should be noted in the order they were run!
 
 % Make plots?
@@ -71,9 +57,11 @@ triggerChannelName = 'DC1';
 triggerChannel = find(strcmp(triggerChannelName,hdr.label));
 figure;plot(rawdata(triggerChannel,:)); 
 title([num2str(triggerChannel) ': ' hdr.label{triggerChannel}]);
-        
-run_start = []; % Manually determined from plot of triggerchannel 
-run_end   = []; 
+
+% We trim the data to get rid of an extra trigger at the beginning of the
+% data segment, plus a large artifact at the end:
+run_start = 85000; % Manually determined from plot of triggerchannel 
+run_end   = 370000; 
 
 % Clip the data
 data = rawdata(:,run_start:run_end);
@@ -92,6 +80,10 @@ title([num2str(triggerChannel) ': ' hdr.label{triggerChannel}]);
 % the function we used to detect triggers below, and also in fieldtrip).
 t = ((0:hdr.nSamples-1)/hdr.Fs); 
 
+% Define the trigger channel name (probably a 'DC' channel, see hdr.label).
+triggerChannelName = 'DC1';
+triggerChannel = find(strcmp(triggerChannelName,hdr.label));
+
 % Plot the raw voltage time course of each channel
 if makePlot
     for cChan = 1:1:size(data,1) 
@@ -104,9 +96,8 @@ end
 
 %% WRITE DOWN THE FOLLOWING
 
-% This is a list of to be excluded channels from CAR; will be labeled as
-% 'bad' in the channels tsv file
-exclude_inx = []; % e.g. 6 12 13 87
+% This is a list of to be excluded channels from CAR
+exclude_inx = [1 33 83 84 85 88 89 90 92 93 95 114 119 122 175 191 212]; 
 
 % Specify reasons for marked as bad, e.g. spikes, elipeptic,
 % outlierspectrum, lowfreqdrift
@@ -200,11 +191,12 @@ end
 % From here on, everything should run automatically:
 
 % AUTOMATED EXTRACTION %%
-
+   
 % Get trigger time points from data file
 [trigger_onsets] = bidsconvert_findtriggers(data, hdr, triggerChannel, makePlot);
+
 if makePlot
-    saveas(gcf, fullfile(preprocDir, 'figures', 'bidsconversion', sprintf('%s-%s-triggers_found',sub_label, ses_label)), 'epsc');
+    saveas(gcf, fullfile(preprocDir, 'figures', 'bidsconversion', sprintf('%s-%s-triggers_found_all',sub_label, ses_label)), 'epsc');
 end
 
 % Generate electrode files
