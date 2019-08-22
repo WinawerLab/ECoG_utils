@@ -21,7 +21,7 @@ for ii = 1:length(ses_label)
     all{ii} = load(dataName);
 end
 
-% Concatenate the sessions
+%% Concatenate the sessions
 trials = all{1}.trials;
 trials.events = [all{1}.trials.events; all{2}.trials.events];
 trials.broadband = cat(3,all{1}.trials.broadband, all{2}.trials.broadband);
@@ -29,8 +29,8 @@ trials.broadband = cat(3,all{1}.trials.broadband, all{2}.trials.broadband);
 %% Select data from a single channel
 
 % Select a subset of electrodes to analyze
-elecIndex  = contains(trials.channels.name, 'GB119'); % electrode with good signal
-channel   = trials.channels(elecIndex,:);
+elecIndex  = contains(trials.channels.name, 'GB'); % electrode with good signal
+channels   = trials.channels(elecIndex,:);
 
 % Select the prf events
 trialIndex = contains(trials.events.task_name, 'prf');
@@ -41,6 +41,9 @@ bb         = trials.broadband(elecIndex,:,trialIndex);
 
 %% Perform baseline correction
 
+% First, separate the data into individual runs
+bb_temp = reshape(bb,[size(bb,1) size(bb,2) size(bb,3)/4 4]); 
+
 % % From ZHOU et al 2019: To convert the unit of the time-varying broadband
 % to percent signal change in each electrode, we first averaged each
 % broadband time series across epochs. We defined the first 200 ms prior to
@@ -49,9 +52,15 @@ bb         = trials.broadband(elecIndex,:,trialIndex);
 % time course point-wise by the average of the baseline. To equalize the
 % baseline across electrodes, we subtracted the baseline average from the
 % entire time-course so each electrode has trial-averaged baseline 0.
+bb_corrected = nan(size(bb_temp));
 base_range = (trials.time >= -0.2 & trials.time < 0);
-m_base     = squeeze(median(mean(bb(:, base_range, :), 2), 3));
-bbWBC      = bb./m_base-1;
+for ii = 1:size(bb_temp,4)
+    m_base                      = squeeze(median(mean(bb_temp(:, base_range,:,ii), 2), 3));
+    bb_corrected(:,:,:,ii)      = bb_temp(:,:,:,ii) ./ m_base-1;
+end
+
+% Reshape back into 4 runs
+bb_corrected = bb_corrected(:,:,:);
 
 %% Compute response magnitude per stimulus
 
@@ -63,14 +72,14 @@ time_win   = [0.05 0.55];
 % WITHOUT baseline correction:
 ts1       = squeeze(mean(bb(:,trials.time>time_win(1) & trials.time<time_win(2),:),2));  
 % WITH baseline correction:
-ts2       = squeeze(mean(bbWBC(:,trials.time>time_win(1) & trials.time<time_win(2),:),2)); 
+ts2       = squeeze(mean(bb_corrected(:,trials.time>time_win(1) & trials.time<time_win(2),:),2)); 
 
 % Plot the PRF response
 figure;hold on;
-plot(ts1(:,:,1))
-plot(ts2(:,:,1))
+plot(ts1(1,:))
+plot(ts2(2,:))
 legend('without baseline correction', 'with baseline correction');
-corr(ts1,ts2)
+corr(ts1(1,:)',ts2(1,:)')
 
 %% Perform PRF fits
 
@@ -84,6 +93,8 @@ tr = 1;
 opt.hrf = 1;
 opt.maxpolydeg = 0; % polynomial of degree 0
 opt.xvalmode = 0; % fit all the data
+opt.maxiter = 5000;
+opt.typicalgain = 20;
 
 % Separate the four runs: reshape then put into cell (input for analyzePRF)
 data1 = reshape(ts1,[size(bb,1) size(bb,3)/4 4]); % without baseline correction
@@ -92,8 +103,170 @@ data1 = {data1(:,:,1),data1(:,:,2),data1(:,:,3),data1(:,:,4)}; % without baselin
 data2 = {data2(:,:,1),data2(:,:,2),data2(:,:,3),data2(:,:,4)}; % with baseline correction
 
 % Run analyzePRF
-results1 = analyzePRF(stimulus,data1,tr,opt); % WITHOUT baseline correction
-results2 = analyzePRF(stimulus,data2,tr,opt); % WITH baseline correction
+%results1 = analyzePRF(stimulus,data1,tr,opt); % WITHOUT baseline correction
+%results2 = analyzePRF(stimulus,data2,tr,opt); % WITH baseline correction
+
+% Average the four time series
+d1 = (data1{1}+data1{2}+data1{3}+data1{4})/4;
+d2 = (data2{1}+data2{2}+data2{3}+data2{4})/4;
+
+% Scale both ts to max, so they can have the same typical gain
+%d1 = d1 ./ max(d1);
+%d2 = d2 ./ max(d2);
+%opt.typicalgain = 1;
+
+% figure;hold on;
+% plot(d1)
+% plot(d2)
+% legend('without baseline correction', 'with baseline correction');
+% corr(d1',d2')
+
+% Run analyzePRF on the average
+results1 = analyzePRF(stimulus{1},d1,tr,opt); % WITHOUT baseline correction
+results2 = analyzePRF(stimulus{1},d2,tr,opt); % WITH baseline correction
+
+% Run analyzePRF bootstrap
+nboots = 20;
+clear r1 r2
+for ii = 1:nboots 
+    idx = randi(length(d1), [1 size(d1,2)]);
+    stim = stimulus{1}(:,:,idx);
+    data = d1(:,idx);
+    if ii == 1
+        r1 = analyzePRF(stim,data,tr,opt); % WITHOUT baseline correction
+    else 
+        r1(ii) = analyzePRF(stim,data,tr,opt); % WITHOUT baseline correction
+    end
+end
+for ii = 1:nboots 
+    idx = randi(length(d1), [1 size(d1,2)]);
+    stim = stimulus{1}(:,:,idx);
+    data = d2(:,idx);
+    if ii == 1
+        r2 = analyzePRF(stim,data,tr,opt); % WITHOUT baseline correction
+    else 
+        r2(ii) = analyzePRF(stim,data,tr,opt); % WITHOUT baseline correction
+    end
+end
+
+%%
+clear rsq1 rsq2;
+for ee = 1:120
+    for ii = 1:nboots
+        rsq1(ee,ii) = r1(ii).R2(ee);
+        rsq2(ee,ii) = r2(ii).R2(ee);
+    end
+end
+
+[~, I] = sort(mean(rsq1,2), 'descend');
+
+%% %% KK example code: Visualize the location of each voxel's pRF
+
+% The stimulus is 100 pixels (in both height and weight), and this corresponds to
+% 16.6 degrees of visual angle.  To convert from pixels to degreees, we multiply
+% by 16.6/100.
+cfactor = 16.6/100;
+clear xpos1 xpos2 ypos1 ypos2 ang1 ang2 sd1 sd2
+
+chanList = I;
+chanList = reshape(chanList, [20 6]);
+
+for cc = 1:size(chanList,2)
+    theseChans = chanList(:,cc);
+    
+    figure; hold on;
+    for ee = 1:20
+        subplot(4,5,ee);hold on;
+        set(gcf,'Units','points','Position',[100 100 400 400]);
+
+        for ii = 1:nboots 
+
+            % WITHOUT baseline correction
+            results = r1(ii); 
+            xpos1(theseChans(ee),ii) = results.ecc(theseChans(ee)) * cos(results.ang(theseChans(ee))/180*pi) * cfactor;
+            ypos1(theseChans(ee),ii) = results.ecc(theseChans(ee)) * sin(results.ang(theseChans(ee))/180*pi) * cfactor;
+            ang1(theseChans(ee),ii) = results.ang(theseChans(ee))/180*pi;
+            sd1(theseChans(ee),ii) = results.rfsize(theseChans(ee)) * cfactor;
+            h = k_drawellipse(xpos1(theseChans(ee),ii),ypos1(theseChans(ee),ii),ang1(theseChans(ee),ii),2*sd1(theseChans(ee),ii),2*sd1(theseChans(ee),ii));  % circle at +/- 2 pRF sizes
+            set(h,'Color','c','LineStyle', ':','LineWidth',1);
+            scatter(xpos1(theseChans(ee),ii),ypos1(theseChans(ee),ii),'c.');
+            %rsq1(theseChans(ee),ii) = results.R2(theseChans(ee));
+
+            % WITH baseline correction
+            results = r2(ii); 
+            xpos2(theseChans(ee),ii) = results.ecc(theseChans(ee)) * cos(results.ang(theseChans(ee))/180*pi) * cfactor;
+            ypos2(theseChans(ee),ii) = results.ecc(theseChans(ee)) * sin(results.ang(theseChans(ee))/180*pi) * cfactor;
+            ang2(theseChans(ee),ii) = results.ang(theseChans(ee))/180*pi;
+            sd2(theseChans(ee),ii) = results.rfsize(theseChans(ee)) * cfactor;
+            h = k_drawellipse(xpos2(theseChans(ee),ii),ypos2(theseChans(ee),ii),ang2(theseChans(ee),ii),2*sd2(theseChans(ee),ii),2*sd2(theseChans(ee),ii));  % circle at +/- 2 pRF sizes
+            set(h,'Color','m','LineStyle', ':','LineWidth',1);
+            scatter(xpos2(theseChans(ee),ii),ypos2(theseChans(ee),ii),'m.');
+            %rsq2(theseChans(ee),ii) = results.R2(theseChans(ee));
+
+            % plot edits
+            k_drawrectangle(0,0,16.6,16.6,'k-');  % square indicating stimulus extent
+            axis([-10 10 -10 10]);
+            straightline(0,'h','k-');       % line indicating horizontal meridian
+            straightline(0,'v','k-');       % line indicating vertical meridian
+            axis square;
+            set(gca,'XTick',-20:2:20,'YTick',-20:2:20);
+            xlabel('X-position (deg)');
+            ylabel('Y-position (deg)');
+        end
+
+        title(['R2 wobc = ' num2str(round(mean(rsq1(theseChans(ee),:),2),1)) ' ' 'R2 wbc = ' num2str(round(mean(rsq2(theseChans(ee),:),2),1))]);
+        h = k_drawellipse(mean(xpos1(theseChans(ee),:),2),mean(ypos1(theseChans(ee),:),2),mean(ang1(theseChans(ee),:),2),2*mean(sd1(theseChans(ee),:),2),2*mean(sd1(theseChans(ee),:),2));  % circle at +/- 2 pRF sizes
+        set(h,'Color','c','LineStyle', '-','LineWidth',3);
+        h = scatter(mean(xpos1(theseChans(ee),:),2),mean(ypos1(theseChans(ee),:),2),'co', 'filled');
+        set(h, 'MarkerEdgeColor', 'k', 'SizeData',50);
+
+        h = k_drawellipse(mean(xpos2(theseChans(ee),:),2),mean(ypos2(theseChans(ee),:),2),mean(ang2(theseChans(ee),:),2),2*mean(sd2(theseChans(ee),:),2),2*mean(sd2(theseChans(ee),:),2));  % circle at +/- 2 pRF sizes
+        set(h,'Color','m','LineStyle', '-','LineWidth',3);
+        h = scatter(mean(xpos2(theseChans(ee),:),2),mean(ypos2(theseChans(ee),:),2),'mo', 'filled');
+        set(h, 'MarkerEdgeColor', 'k', 'SizeData',50);
+
+    end
+end
+
+%% compare RSQs
+
+figure;hold on
+errorbar(median(rsq1(I,:),2), std(rsq1(I,:),0,2)/sqrt(nboots), 'LineWidth', 2, 'Color', 'c');
+errorbar(median(rsq2(I,:),2), std(rsq2(I,:),0,2)/sqrt(nboots), 'LineWidth', 2, 'Color', 'm');
+ylabel('R2');
+xlabel('electrode index');
+legend('wobc', 'wbc');
+
+figure;hold on
+errorbar(median(xpos1(I,:),2), std(xpos1(I,:),0,2)/sqrt(nboots), 'LineWidth', 2, 'Color', 'c');
+errorbar(median(xpos2(I,:),2), std(xpos2(I,:),0,2)/sqrt(nboots), 'LineWidth', 2, 'Color', 'm');
+ylabel('xpos');
+xlabel('electrode index');
+legend('wobc', 'wbc');
+
+figure;hold on
+errorbar(median(ypos1(I,:),2), std(ypos1(I,:),0,2)/sqrt(nboots), 'LineWidth', 2, 'Color', 'c');
+errorbar(median(ypos2(I,:),2), std(ypos2(I,:),0,2)/sqrt(nboots), 'LineWidth', 2, 'Color', 'm');
+ylabel('ypos');
+xlabel('electrode index');
+legend('wobc', 'wbc');
+
+figure;hold on
+errorbar(mean(ang1(I,:),2), std(ang1(I,:),0,2)/sqrt(nboots), 'LineWidth', 2, 'Color', 'c');
+errorbar(mean(ang2(I,:),2), std(ang2(I,:),0,2)/sqrt(nboots), 'LineWidth', 2, 'Color', 'm');
+ylabel('ang');
+xlabel('electrode index');
+legend('wobc', 'wbc');
+
+figure;hold on
+errorbar(mean(sd1(I,:),2), std(sd1(I,:),0,2)/sqrt(nboots), 'LineWidth', 2, 'Color', 'c');
+errorbar(mean(sd2(I,:),2), std(sd2(I,:),0,2)/sqrt(nboots), 'LineWidth', 2, 'Color', 'm');
+ylabel('sd');
+xlabel('electrode index');
+legend('wobc', 'wbc');
+
+%figure;bar([mean(rsq1) mean(rsq2)])
+%hold on; errorbar([mean(rsq1) mean(rsq2)], [std(rsq1) std(rsq2)], 'linestyle', 'none');
 
 %% KK example code: plot time courses with fit
 
@@ -185,59 +358,3 @@ title('model prediction');
 % set(gcf, 'Position', [60 300 2000 1000]);
 % set(gca, 'FontSize', 18)
 
-% %% %% KK example code: Visualize the location of each voxel's pRF
-% 
-% % The stimulus is 100 pixels (in both height and weight), and this corresponds to
-% % 16.6 degrees of visual angle.  To convert from pixels to degreees, we multiply
-% % by 16.6/100.
-% cfactor = 16.6/100;
-% 
-% % WITHOUT baseline correction
-% results = results1; 
-% figure; hold on;
-% set(gcf,'Units','points','Position',[100 100 400 400]);
-% cmap = jet(size(results.ang,1));
-% for p=1:size(results.ang,1)
-%   if results.R2(p)>30
-%       xpos = results.ecc(p) * cos(results.ang(p)/180*pi) * cfactor;
-%       ypos = results.ecc(p) * sin(results.ang(p)/180*pi) * cfactor;
-%       ang = results.ang(p)/180*pi;
-%       sd = results.rfsize(p) * cfactor;
-%       h = k_drawellipse(xpos,ypos,ang,2*sd,2*sd);  % circle at +/- 2 pRF sizes
-%       set(h,'Color',cmap(p,:),'LineWidth',2);
-%       set(scatter(xpos,ypos,'r.'),'CData',cmap(p,:));
-%   end
-% end
-% k_drawrectangle(0,0,16.6,16.6,'k-');  % square indicating stimulus extent
-% axis([-20 20 -20 20]);
-% straightline(0,'h','k-');       % line indicating horizontal meridian
-% straightline(0,'v','k-');       % line indicating vertical meridian
-% axis square;
-% set(gca,'XTick',-20:2:20,'YTick',-20:2:20);
-% xlabel('X-position (deg)');
-% ylabel('Y-position (deg)');
-% 
-% % WITH baseline correction
-% results = results2; 
-% figure; hold on;
-% set(gcf,'Units','points','Position',[100 100 400 400]);
-% cmap = jet(size(results.ang,1));
-% for p=1:size(results.ang,1)
-%   if results.R2(p)>30
-%       xpos = results.ecc(p) * cos(results.ang(p)/180*pi) * cfactor;
-%       ypos = results.ecc(p) * sin(results.ang(p)/180*pi) * cfactor;
-%       ang = results.ang(p)/180*pi;
-%       sd = results.rfsize(p) * cfactor;
-%       h = k_drawellipse(xpos,ypos,ang,2*sd,2*sd);  % circle at +/- 2 pRF sizes
-%       set(h,'Color',cmap(p,:),'LineWidth',2);
-%       set(scatter(xpos,ypos,'r.'),'CData',cmap(p,:));
-%   end
-% end
-% k_drawrectangle(0,0,16.6,16.6,'k-');  % square indicating stimulus extent
-% axis([-20 20 -20 20]);
-% straightline(0,'h','k-');       % line indicating horizontal meridian
-% straightline(0,'v','k-');       % line indicating vertical meridian
-% axis square;
-% set(gca,'XTick',-20:2:20,'YTick',-20:2:20);
-% xlabel('X-position (deg)');
-% ylabel('Y-position (deg)');
