@@ -43,7 +43,7 @@ run_label = {'01','02','01','02','01','02','01','02','03','04','03','04','03','0
 % NOTE: task and run labels should be noted in the order they were run!
 
 % Make plots?
-makePlot = 1;
+makePlot = 0;
 % NOTE: Figures will be saved into
 % derivatives/preprocessed/sub-label/ses-label/figures/bidsconversion
 

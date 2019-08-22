@@ -15,7 +15,7 @@ BIDSDataDir = '/Volumes/server/Projects/BAIR/Data/BIDS/';
 
 % BIDS specs
 projectName = 'motor';
-sub_label   = ['ny' num2str(patientID)]; 
+sub_label   = ['som' num2str(patientID)]; 
 ses_label   = 'nyuecog01'; 
 ses_labelt1 = 'som3t01';
 task_label  = {'boldhand',...

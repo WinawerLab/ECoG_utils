@@ -44,7 +44,7 @@ task_label  = {'hrfpattern', ...
 run_label = {'01','01','02','01','02','01','02','01',...
     '03','04','03','04','01','02','03','04', '03', '04'};
 
-makePlot = 1;
+makePlot = 0;
 
 %% DEFINE PATHS AND DATA
 
