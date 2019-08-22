@@ -1,4 +1,9 @@
-function [trigger_onsets,t] = bidsconvert_findtriggers(data, hdr, triggerChannel, makePlot, triggerIndex)
+function [trigger_onsets,t] = bidsconvert_findtriggers(data, hdr, triggerChannel, makePlot, triggerIndex, peakOpts)
+
+if nargin < 6
+    peakOpts.minPeakHeight = 0.8;
+    peakOpts.minPeakDistance = 0.5;
+end
 
 if nargin < 5 
     triggerIndex = [];
@@ -14,7 +19,7 @@ triggers = triggers / max(triggers);
 t = ((0:hdr.nSamples-1)/hdr.Fs); 
 
 fprintf('[%s] Reading triggers from data \n', mfilename);
-[~,trigger_onsets] = findpeaks(triggers, hdr.Fs, 'MinPeakHeight', 0.8, 'MinPeakDistance', 0.5);
+[~,trigger_onsets] = findpeaks(triggers, hdr.Fs, 'MinPeakHeight', peakOpts.minPeakHeight, 'MinPeakDistance', peakOpts.minPeakDistance);
 
 if makePlot 
     figure('Name', 'Found triggers'); hold on;

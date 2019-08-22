@@ -46,26 +46,60 @@ for ii = 1:nRuns
             sub_label, ses_label, task_label{ii}, run_label{ii});
     fprintf('[%s] Writing eeg, events, stimuli, json and channel files for %s \n', mfilename, fname);
     
-   
-    % Collect task-specific info for json file
-    if contains(task_label{ii}, 'hrf')                 
-        ieeg_json.TaskName = 'bair_hrfpattern';
-        ieeg_json.TaskDescription = 'Visual textures presented at irregular intervals';        
-    elseif contains(task_label{ii}, 'prf')         
-        ieeg_json.TaskName = 'bair_prf';
-        ieeg_json.TaskDescription = 'Visual bar apertures of textures sweeping across screen';	
-    elseif contains(task_label{ii}, 'spatialpattern')        
-        ieeg_json.TaskName = 'bair_spatialpattern';
-        ieeg_json.TaskDescription = 'Visual textures and gratings presented for brief, fixed durations';    
-    elseif contains(task_label{ii}, 'temporalpattern') 
-        ieeg_json.TaskName = 'bair_temporalpattern';
-        ieeg_json.TaskDescription = 'Visual textures presented for variable durations and inter-stimulus intervals';      
-	elseif contains(task_label{ii}, 'spatialobject')       
-        ieeg_json.TaskName = 'bair_spatialobject';
-        ieeg_json.TaskDescription = 'Houses, faces and letter images presented for brief, fixed durations';         
-    end   
-    ieeg_json.Instructions = 'Detect color change (red/green) at fixation';
-    % TO DO ADD MOTOR TASKS
+    % Check the sensory domain; assume visual (for older datasets)
+    if isfield(stimData(ii).params, 'sensoryDomain')
+        sensoryDomain = lower(stimData(ii).params.sensoryDomain);
+    else
+        sensoryDomain = 'visual';
+    end
+       
+    % Collect task-specific info for json file   
+    switch sensoryDomain
+        
+        case 'visual'
+            % VISUAL TASKS
+            if contains(task_label{ii}, 'hrf')                 
+                ieeg_json.TaskName = 'bair_hrfpattern';
+                ieeg_json.TaskDescription = 'Visual textures presented at irregular intervals';        
+            elseif contains(task_label{ii}, 'prf')         
+                ieeg_json.TaskName = 'bair_prf';
+                ieeg_json.TaskDescription = 'Visual bar apertures of textures sweeping across screen';	
+            elseif contains(task_label{ii}, 'spatialpattern')        
+                ieeg_json.TaskName = 'bair_spatialpattern';
+                ieeg_json.TaskDescription = 'Visual textures and gratings presented for brief, fixed durations';    
+            elseif contains(task_label{ii}, 'temporalpattern') 
+                ieeg_json.TaskName = 'bair_temporalpattern';
+                ieeg_json.TaskDescription = 'Visual textures presented for variable durations and inter-stimulus intervals';      
+            elseif contains(task_label{ii}, 'spatialobject')       
+                ieeg_json.TaskName = 'bair_spatialobject';
+                ieeg_json.TaskDescription = 'Houses, faces and letter images presented for brief, fixed durations';
+            end   
+            ieeg_json.Instructions = 'Detect color change (red/green) at fixation';
+            
+        case 'motor'
+            % MOTOR TASKS
+            if contains(task_label{ii}, 'boldhand')                 
+                ieeg_json.TaskName = 'bair_boldhand';
+                ieeg_json.TaskDescription = 'Hand clenching upon upon a visual cue (fixation color change) presented at irregular intervals';  
+                ieeg_json.Instructions = 'When fixation dot color changes, clench hand into a fist';
+            elseif contains(task_label{ii}, 'boldsat') 
+                ieeg_json.TaskName = 'bair_boldsat';
+                ieeg_json.TaskDescription = 'Hand clenching upon a visual cue (fixation color change) presented a regular intervals at one of four frequencies (boldsat 1-4)';      
+                ieeg_json.Instructions = 'When fixation dot color changes, clench hand into a fist';
+            elseif contains(task_label{ii}, 'fingermappingleft')         
+                ieeg_json.TaskName = 'bair_fingermapping';
+                ieeg_json.TaskDescription = 'Moving one finger at a time based on a visual cue indicating which finger to move (left hand)';	
+                ieeg_json.Instructions = 'When one of the 5 cues on the screen changes from white to black, bend the associated finger';
+            elseif contains(task_label{ii}, 'fingermappingright')         
+                ieeg_json.TaskName = 'bair_fingermapping';
+                ieeg_json.TaskDescription = 'Moving one finger at a time based on a visual cue indicating which finger to move (right hand)';	
+                ieeg_json.Instructions = 'When one of the 5 cues on the screen changes from white to black, bend the associated finger';
+            elseif contains(task_label{ii}, 'gestures')        
+                ieeg_json.TaskName = 'bair_gestures';
+                ieeg_json.TaskDescription = 'Make one of four hand gestures based on a learned visual cue';    
+                ieeg_json.Instructions = 'When the visual cue appears, make the associated hand gesture';           
+            end
+    end
     
     % Fix some problems in older stimulus files 
     if contains(task_label{ii}, 'hrf')   
@@ -98,7 +132,7 @@ for ii = 1:nRuns
     [~,onset_indices] = intersect(t, onsets);
    
     % Check if there are onset/offset triggers
-    if max(stimData(ii).stimulus.trigSeq) == 256
+    if (isequal(sensoryDomain, 'visual') && max(stimData(ii).stimulus.trigSeq) == 256) || isequal(sensoryDomain, 'motor') 
         % THESE DATA HAVE ONSET/OFFSET TRIGGERS
         hasOnOffTriggers = 1;
         % First trigger is task onset trigger:
