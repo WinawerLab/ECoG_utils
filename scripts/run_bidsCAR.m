@@ -15,4 +15,4 @@
      subject           = 'som726';
      session           = 'nyuecog03';
      task              = 'prf'; 
-     bidsEcogRereference(projectDir, subject, session, task, [], 0);
+     bidsEcogRereference(projectDir, subject, session, task, [], 1);

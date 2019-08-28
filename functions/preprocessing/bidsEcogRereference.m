@@ -89,7 +89,8 @@ for mm = 1:length(sessions)
     for jj = 1:length(tasks)
        for kk = 1:length(runnums{jj})
            
-           chanFile = fullfile(sessionDir, 'ieeg', sprintf('sub-%s_ses-%s_task-%s_run-%s_channels.tsv', subject, session, tasks{jj}, runnums{jj}{kk}));
+           fname = sprintf('sub-%s_ses-%s_task-%s_run-%s', subject, session, tasks{jj}, runnums{jj}{kk});
+           chanFile = fullfile(sessionDir, 'ieeg', sprintf('%s_channels.tsv', fname));
            
            % Read in the channels file
            if ~exist(chanFile, 'file')
@@ -99,7 +100,7 @@ for mm = 1:length(sessions)
            channels   = readtable(chanFile, 'FileType', 'text');
 
            % Read in the data file
-           dataReadFile = fullfile(sessionDir, 'ieeg', sprintf('sub-%s_ses-%s_task-%s_run-%s_ieeg.eeg', subject, session, tasks{jj}, runnums{jj}{kk}));
+           dataReadFile = fullfile(sessionDir, 'ieeg', sprintf('%s_ieeg.eeg', fname));
            if ~exist(dataReadFile, 'file')
                 error('data file not found: %s', dataReadFile); 
            end
@@ -111,14 +112,20 @@ for mm = 1:length(sessions)
            [data_reref, INX, INXNames] = ecog_performCAR(data, channels);           
           
            % Save out the rereferenced data to the derivatives folder
-           dataWriteFile = fullfile(writeDir, sprintf('sub-%s_ses-%s_task-%s_run-%s_ieeg.eeg', subject, session, tasks{jj}, runnums{jj}{kk}));
+           dataWriteFile = fullfile(writeDir, sprintf('%s_ieeg.eeg', fname));
            fprintf('[%s] Writing new data file: %s\n', mfilename, dataWriteFile); 
            ft_write_data(dataWriteFile, data_reref, 'header', hdr, 'dataformat', 'brainvision_eeg');
 
            % Save out a log/json file with car description/settings
-           % TO DO
            
-           % DIAGNOSTICS: Look at the effect of CAR
+%            % TO DO
+%            car_json = [];
+%            json_options = [];
+%            jsonWriteFile = fullfile(writeDir, sprintf('%s_car.json', fname));    
+%            jsonwrite(jsonWriteFile,car_json,json_options);
+%            
+
+%% DIAGNOSTICS: Look at the effect of CAR
            if makeplot
                
                figSaveDir = fullfile(writeDir, 'figures');
@@ -162,7 +169,7 @@ for mm = 1:length(sessions)
                         %set(gcf, 'Position',[1000 700 1100 600]); 
                         
                         % Generate a name for the figure
-                        figureName = fullfile(figSaveDir,sprintf('sub-%s_ses-%s_task-%s_run-%s_CAR-%s', subject, session, tasks{jj}, runnums{jj}{kk}, INXNames{mm}));
+                        figureName = fullfile(figSaveDir,sprintf('%s_CAR-%s',fname, INXNames{mm}));
                         saveas(gcf, figureName, 'png');
                    end
                end
