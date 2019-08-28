@@ -29,7 +29,7 @@ trials.broadband = cat(3,all{1}.trials.broadband, all{2}.trials.broadband);
 %% Select data from a single channel
 
 % Select a subset of electrodes to analyze
-elecIndex  = contains(trials.channels.name, 'GB'); % electrode with good signal
+elecIndex  = contains(trials.channels.name, 'GB119'); % electrode with good signal
 channels   = trials.channels(elecIndex,:);
 
 % Select the prf events
@@ -103,10 +103,10 @@ data1 = {data1(:,:,1),data1(:,:,2),data1(:,:,3),data1(:,:,4)}; % without baselin
 data2 = {data2(:,:,1),data2(:,:,2),data2(:,:,3),data2(:,:,4)}; % with baseline correction
 
 % Run analyzePRF
-%results1 = analyzePRF(stimulus,data1,tr,opt); % WITHOUT baseline correction
-%results2 = analyzePRF(stimulus,data2,tr,opt); % WITH baseline correction
+results1 = analyzePRF(stimulus,data1,tr,opt); % WITHOUT baseline correction
+results2 = analyzePRF(stimulus,data2,tr,opt); % WITH baseline correction
 
-% Average the four time series
+%% Average the four time series
 d1 = (data1{1}+data1{2}+data1{3}+data1{4})/4;
 d2 = (data2{1}+data2{2}+data2{3}+data2{4})/4;
 

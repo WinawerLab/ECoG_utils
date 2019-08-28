@@ -17,7 +17,7 @@ project_name = 'motor';
 % ses_label   = 'UMCUECOGday03';
 
 sub_label   = 'som705'; 
-ses_label   = 'nyuecog01';
+ses_label   = 'nyuecog02';
 
 % Preprocessing specs
 

@@ -24,11 +24,17 @@ for ii = 1:length(ses_label)
     all{ii}=load(dataName);
 end    
 
-%% Which session are we analyzing?
+% Concatenate sessions 2 and 3, ignore session 1 for now
+trials = all{2}.trials;
+trials.events = [all{2}.trials.events; all{3}.trials.events];
+trials.broadband = cat(3,all{2}.trials.broadband, all{3}.trials.broadband);
+trials.evoked = cat(3,all{2}.trials.evoked, all{3}.trials.evoked);
 
-whichSession = 2;
-trials = all{whichSession}.trials;
-blanks = all{whichSession}.blank_trials;
+% %% Which session are we analyzing?
+% 
+% whichSession = 2;
+% trials = all{whichSession}.trials;
+% blanks = all{whichSession}.blank_trials;
 
 %% Compute spectra
 
@@ -305,7 +311,7 @@ end
 
 subplot(3,2,5); hold on;
 p1 = plot(1:max(Y), meanBB(:,1),'k', 'LineWidth', 2);
-%p2 = errorbar(1:max(Y), meanBB(:,1), seBB(:,1), 'k');
+p2 = errorbar(1:max(Y), meanBB(:,1), seBB(:,1), 'k');
 % for ii = 1:length(unique(Y))
 %     nElecs = length(find(Y==ii));
 %     p = plot(ones([nElecs 1])*ii,BB_SUM(Y==ii,1),'b.','MarkerSize', 30,'LineStyle', 'none');
