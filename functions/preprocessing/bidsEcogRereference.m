@@ -112,18 +112,20 @@ for mm = 1:length(sessions)
            [data_reref, INX, INXNames] = ecog_performCAR(data, channels);           
           
            % Save out the rereferenced data to the derivatives folder
-           dataWriteFile = fullfile(writeDir, sprintf('%s_ieeg.eeg', fname));
+           dataWriteFile = fullfile(writeDir, 'ieeg', sprintf('%s_desc-reref_ieeg.eeg', fname));
            fprintf('[%s] Writing new data file: %s\n', mfilename, dataWriteFile); 
            ft_write_data(dataWriteFile, data_reref, 'header', hdr, 'dataformat', 'brainvision_eeg');
 
-           % Save out a log/json file with car description/settings
+           % Save out a log/json file with car description/settings?
            
 %            % TO DO
-%            car_json = [];
-%            json_options = [];
-%            jsonWriteFile = fullfile(writeDir, sprintf('%s_car.json', fname));    
-%            jsonwrite(jsonWriteFile,car_json,json_options);
-%            
+%           read in the raw data json.ieeg, 
+%           add extra fields indicating the rerefercing operation
+%           also write out a projection matrix file? (as per draft bids
+%           derivaties spec)
+%           jsonWriteFile = fullfile(writeDir, sprintf('%s_car.json', fname));    
+%           jsonwrite(jsonWriteFile,car_json,json_options);
+            
 
 %% DIAGNOSTICS: Look at the effect of CAR
            if makeplot
@@ -169,12 +171,13 @@ for mm = 1:length(sessions)
                         %set(gcf, 'Position',[1000 700 1100 600]); 
                         
                         % Generate a name for the figure
-                        figureName = fullfile(figSaveDir,sprintf('%s_CAR-%s',fname, INXNames{mm}));
+                        figureName = fullfile(figSaveDir,sprintf('%s_desc-reref_%s',fname, INXNames{mm}));
                         saveas(gcf, figureName, 'png');
                    end
                end
                close all;
            end
+           clear data hdr;
        end
    end
 end
