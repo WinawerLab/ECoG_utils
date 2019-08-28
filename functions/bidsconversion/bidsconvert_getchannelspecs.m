@@ -1,4 +1,4 @@
-function [elecInx, chanNames, chanTypes, chanUnits] = bidsconvert_getChannelSpecs(hdr, elecList, elecTypes)
+function [elecInx, chanNames, chanTypes, chanUnits] = bidsconvert_getchannelspecs(hdr, elecList, elecTypes)
 
 % This function compares channel info from the data (obtained from the file
 % header hdr) with electrode info (elecList, obtained from electrode
