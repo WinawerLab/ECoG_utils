@@ -3,13 +3,18 @@ function [signal_reref, INX, INXNames] = ecog_performCAR(signal, channels)
 % If there is no status column, add one assuming all channels are good.
 if ~isfield(summary(channels), 'status') 
     channels.status = repmat({'good'}, [height(channels) 1]);
+    fprintf('[%s] No status column found in channels file. Using all channels for CAR.\n', mfilename); 
+else
+    nBadChannels = length(find(contains(channels.status, 'bad')));
+    nGoodChannels = length(find(contains(channels.status, 'good')));
+    fprintf('[%s] Found %d good channels and %d bad channels. Including only good channels in CAR.\n', mfilename, nBadChannels, nGoodChannels); 
 end
 
 
 % Perform CAR separately for surface and depth electrodes; If there is a HD
 % grid or separate clinical grids, perform CAR separately for those
 
-INXNames = {'depth', 'surface grid A', 'surface grid B', 'surface'};
+INXNames = {'depth', 'surfacegridA', 'surfacegridB', 'surfacestrips'};
 % Define subsets of channels to perform CAR within
 INX = [];
 % DEPTH electrodes:

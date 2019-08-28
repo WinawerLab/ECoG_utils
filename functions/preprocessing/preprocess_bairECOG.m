@@ -16,9 +16,6 @@ function preprocess_bairECOG(dataPth, sub_label, ses_label, specs)
 % OUTPUT:
 % - data: struct with entire raw and broadband time courses. 
 % - trials: struct with evoked, broadband, spectra for each trial. 
-% 
-% TO DO: 
-% - Implement the following(?): Baseline correction, spectra computation?
 
 %% [0] Path specifications
 

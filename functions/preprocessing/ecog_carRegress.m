@@ -1,4 +1,4 @@
-function [signal] = ecog_carRegress_dora(signal, chans2incl)
+function [signal] = ecog_carRegress(signal, chans2incl)
 % common average referencing function with regressing out the mean, rather
 % than subtracting out the mean
 %
