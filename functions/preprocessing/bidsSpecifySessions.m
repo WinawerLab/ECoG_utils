@@ -6,16 +6,16 @@ function [sessions] = bidsSpecifySessions(projectDir, subject, sessions)
 % Input
 %     projectDir:       path where the BIDS projects lies (string)
 %     subject:          BIDS subject name (string, all lower case)
-%     session:          BIDS session name (string, all lower case)
+%     sessions:          BIDS session name (string, all lower case)
 %                           default: all sessions in subject
 %
 % Output
-%     session:          String. See input
+%     sessions:          String. See input
 %
 % Example 1
 %     projectDir        = '/Volumes/server/Projects/BAIR/Data/BIDS/visual'; 
 %     subject           = 'som648';
-%     [session, tasks, runnum] = bidsSpecifyEPIs(projectDir, subject)
+%     [sessions, tasks, runnum] = bidsSpecifyEPIs(projectDir, subject)
 
 % <projectDir>
 if ~exist('projectDir', 'var') || isempty(projectDir)

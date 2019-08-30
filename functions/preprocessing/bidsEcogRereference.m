@@ -1,15 +1,16 @@
 function bidsEcogRereference(projectDir, subject, sessions, tasks, runnums, makeplot)
 % Apply a regression-based common average reference (CAR) to bids-formatted
 % ECoG data, and write out the rereferenced data to a folder called
-% 'ECOGpreprocessedCAR' in the bids derivaties folder.
+% 'ECOGpreprocessedCAR' in the bids derivaties folder. [make output folder
+% name an input variable]?
 %
 % Note: This code will use the status column in the channels.tsv file to
-% read in which channels are good, and apply CAR only to those channels
-% (only good channels are included in the reference, and only those
-% channels are rereferenced). If there is no status column, it will be
+% read in which channels are good, and apply CAR only to those channels:
+% only good channels are included in the reference, and only those
+% channels are rereferenced. If there is no status column, it will be
 % assumed that all channels are good and all will be included (in that case
 % data should not contain DC, status channels or ECG channels).
-
+%
 % Input
 %     projectDir:       path where the BIDS projects lies (string)
 %     subject:          BIDS subject name (string, all lower case)
@@ -71,9 +72,9 @@ if ~exist('runnums', 'var'), runnums = []; end
 
 %% Perform CAR for each session, tasks and runnums 
 
-for mm = 1:length(sessions)   
+for ii = 1:length(sessions)   
     
-    [session, tasks, runnums] = bidsSpecifyData(projectDir, subject, sessions{mm}, tasks, runnums);
+    [session, tasks, runnums] = bidsSpecifyData(projectDir, subject, sessions{ii}, tasks, runnums);
     
     % <writeDir>
     writeDir = fullfile(projectDir, 'derivatives', 'ECOGpreprocessedCAR', subject, session);
@@ -116,9 +117,8 @@ for mm = 1:length(sessions)
            fprintf('[%s] Writing new data file: %s\n', mfilename, dataWriteFile); 
            ft_write_data(dataWriteFile, data_reref, 'header', hdr, 'dataformat', 'brainvision_eeg');
 
-           % Save out a log/json file with car description/settings?
+           % Save out a log/json file with car description
            
-%            % TO DO
 %           read in the raw data json.ieeg, 
 %           add extra fields indicating the rerefercing operation
 %           also write out a projection matrix file? (as per draft bids
@@ -139,16 +139,16 @@ for mm = 1:length(sessions)
 
                fprintf('[%s] Saving CAR figures...\n',mfilename);
 
-               for mm = 1:length(INX)
+               for ee = 1:length(INX)
 
-                   chan_index = INX{mm};
+                   chan_index = INX{ee};
 
                    if ~isempty(chan_index)
 
                         good_channels = find(contains(channels(chan_index,:).status, 'good'));
                         channel_plot = chan_index(good_channels(1));
 
-                        figure('Name', sprintf('car regress %s', INXNames{mm}));
+                        figure('Name', sprintf('car regress %s', INXNames{ee}));
 
                         % Plot the time courses before and after CAR
                         subplot(1,2,1); hold on
@@ -171,7 +171,7 @@ for mm = 1:length(sessions)
                         %set(gcf, 'Position',[1000 700 1100 600]); 
                         
                         % Generate a name for the figure
-                        figureName = fullfile(figSaveDir,sprintf('%s_desc-reref_%s',fname, INXNames{mm}));
+                        figureName = fullfile(figSaveDir,sprintf('%s_desc-reref_%s',fname, INXNames{ee}));
                         saveas(gcf, figureName, 'png');
                    end
                end
