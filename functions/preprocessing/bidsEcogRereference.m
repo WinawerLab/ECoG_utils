@@ -124,7 +124,6 @@ for ii = 1:length(sessions)
             % Save out the rereferenced channels file to the derivatives folder
            chanWriteFile = fullfile(writeDir, 'ieeg', sprintf('%s_desc-reref_channels.tsv', fname));
            fprintf('[%s] Writing new channels file: %s\n', mfilename, chanWriteFile); 
-
            writetable(channels_reref,chanWriteFile,'FileType','text','Delimiter','\t');
 
            % Save out a log/json file with car description:           
