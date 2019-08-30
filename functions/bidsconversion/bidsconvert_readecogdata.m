@@ -11,7 +11,7 @@ end
 % Read ECoG data
 dataFiles = dir(fullfile(dataReadDir, '*_512*.EDF'));
 if length(dataFiles) > 1 
-    fprintf('[%s] Warning, multiple datafiles found: comparing with required ses_label %s\n', mfilename, ses_label);
+    warning('[%s] Multiple datafiles found: comparing with required ses_label %s', mfilename, ses_label);
     % Figure out which session
     out = regexp(ses_label, '\d*', 'match');
     session_inx = str2double(out{1}); 
