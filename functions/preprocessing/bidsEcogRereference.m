@@ -70,11 +70,15 @@ if ~iscell(sessions), sessions = {sessions}; end
 if ~exist('tasks', 'var'), tasks = []; end
 if ~exist('runnums', 'var'), runnums = []; end
 
+if isempty(tasks), tasks_prespecified = 0; end % determines whether tasks will be cleared later in loop
+if isempty(runnums), runnums_prespecified = 0; end
+
 %% Perform CAR for each session, tasks and runnums 
 
 for ii = 1:length(sessions)   
     
     [session, tasks, runnums] = bidsSpecifyData(projectDir, subject, sessions{ii}, tasks, runnums);
+    fprintf('[%s] Starting CAR for subject: %s session: %s\n', mfilename, subject, session);
     
     % <writeDir>
     writeDir = fullfile(projectDir, 'derivatives', 'ECOGpreprocessedCAR', subject, session);
@@ -110,19 +114,24 @@ for ii = 1:length(sessions)
            data = ft_read_data(dataReadFile);
            
            % Apply CAR
-           [data_reref, INX, INXNames] = ecog_performCAR(data, channels);           
+           [data_reref, channels_reref, group_indices, group_names] = ecog_performCAR(data, channels);           
           
            % Save out the rereferenced data to the derivatives folder
            dataWriteFile = fullfile(writeDir, 'ieeg', sprintf('%s_desc-reref_ieeg.eeg', fname));
            fprintf('[%s] Writing new data file: %s\n', mfilename, dataWriteFile); 
            ft_write_data(dataWriteFile, data_reref, 'header', hdr, 'dataformat', 'brainvision_eeg');
-
-           % Save out a log/json file with car description
            
+            % Save out the rereferenced channels file to the derivatives folder
+           chanWriteFile = fullfile(writeDir, 'ieeg', sprintf('%s_desc-reref_channels.tsv', fname));
+           fprintf('[%s] Writing new channels file: %s\n', mfilename, chanWriteFile); 
+
+           writetable(channels_reref,chanWriteFile,'FileType','text','Delimiter','\t');
+
+           % Save out a log/json file with car description:           
 %           read in the raw data json.ieeg, 
 %           add extra fields indicating the rerefercing operation
-%           also write out a projection matrix file? (as per draft bids
-%           derivaties spec)
+           
+%           Also write out a projection matrix file? (draft bids derivative)
 %           jsonWriteFile = fullfile(writeDir, sprintf('%s_car.json', fname));    
 %           jsonwrite(jsonWriteFile,car_json,json_options);
             
@@ -137,18 +146,18 @@ for ii = 1:length(sessions)
     
                t = ((0:hdr.nSamples-1)/hdr.Fs); 
 
-               fprintf('[%s] Saving CAR figures...\n',mfilename);
+               fprintf('[%s] Saving CAR figures to %s \n',mfilename, figSaveDir);
 
-               for ee = 1:length(INX)
+               for ee = 1:length(group_indices)
 
-                   chan_index = INX{ee};
+                   chan_index = group_indices{ee};
 
                    if ~isempty(chan_index)
 
                         good_channels = find(contains(channels(chan_index,:).status, 'good'));
                         channel_plot = chan_index(good_channels(1));
 
-                        figure('Name', sprintf('car regress %s', INXNames{ee}));
+                        figure('Name', sprintf('car regress %s', group_names{ee}));
 
                         % Plot the time courses before and after CAR
                         subplot(1,2,1); hold on
@@ -171,7 +180,7 @@ for ii = 1:length(sessions)
                         %set(gcf, 'Position',[1000 700 1100 600]); 
                         
                         % Generate a name for the figure
-                        figureName = fullfile(figSaveDir,sprintf('%s_desc-reref_%s',fname, INXNames{ee}));
+                        figureName = fullfile(figSaveDir,sprintf('%s_desc-reref_%s',fname, group_names{ee}));
                         saveas(gcf, figureName, 'png');
                    end
                end
@@ -179,5 +188,8 @@ for ii = 1:length(sessions)
            end
            clear data hdr;
        end
-   end
+    end
+    if ~tasks_prespecified; tasks = []; end 
+    if ~runnums_prespecified; runnums = []; end 
 end
+fprintf('[%s] Done with CAR! \n', mfilename); 
