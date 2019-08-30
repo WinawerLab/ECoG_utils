@@ -11,6 +11,11 @@ if ~exist('createBIDS_ieeg_json_nyuSOM.m')
     tbUse ECoG_utils;
 end
 
+% Make plots?
+makePlot = 0; 
+% NOTE: Figures will be saved into
+% derivatives/preprocessed/sub-label/ses-label/figures/bidsconversion
+
 %% Define paths and BIDS specs %%
 
 % Input paths specs
@@ -41,11 +46,6 @@ task_label  = {'prf',...
               };              
 run_label = {'01','02','01','02','01','02','01','02','03','04','03','04','03','04','01'};
 % NOTE: task and run labels should be noted in the order they were run!
-
-% Make plots?
-makePlot = 0;
-% NOTE: Figures will be saved into
-% derivatives/preprocessed/sub-label/ses-label/figures/bidsconversion
 
 %% DEFINE PATHS AND DATA
 

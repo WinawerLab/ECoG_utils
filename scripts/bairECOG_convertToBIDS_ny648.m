@@ -233,6 +233,24 @@ for ii = 1:length(badChannels)
     end
 end
 
+% Indicate which channels below to which group in channels.tsv
+INXNames = {'depth', 'grid' 'strip'};
+INX = [];
+% DEPTH electrodes:
+INX{1} = find(contains(lower(channel_table.type), 'seeg'));
+% GRID electrodes:
+INX{2} = find(contains(lower(channel_table.type), 'ecog') & strncmp('G', channel_table.name, 1));
+% ALL OTHER SURFACE electrodes
+INX{3} = find(contains(lower(channel_table.type), 'ecog') & ~strncmp('G', channel_table.name, 1));
+for ii = 1:length(INX)
+    chan_index = INX{ii};
+    fprintf('[%s] Assigning electrodes to group: %s...\n',mfilename, INXNames{ii});
+
+    if ~isempty(chan_index)        
+        channel_table.group(chan_index,:) = INXNames(ii);
+    end
+end
+
 %% Create DATASET-SPECIFIC files %%%%%%%%%%%%%%%%%%
 
 %   - T1w.nii.gz
@@ -298,6 +316,13 @@ electrode_table.x = elec_xyz(elecInx,1);
 electrode_table.y = elec_xyz(elecInx,2);
 electrode_table.z = elec_xyz(elecInx,3);
 electrode_table.type = elec_types(elecInx);
+
+% Update electrodes.tsv to have same groups as channels.tsv
+elec_inx = ecog_matchChannels(electrode_table.name, channel_table.name);
+if length(find(elec_inx>0)) ~= height(electrode_table)
+    error('[%s] Could not find all electrode names in channel table!', mfilename)
+end
+electrode_table.group = channel_table.group(elec_inx);
 
 % Generate output name
 electrodes_tsv_name = fullfile(dataWriteDir, sprintf('sub-%s_ses-%s_electrodes.tsv', sub_label, ses_label));

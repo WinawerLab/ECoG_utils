@@ -11,6 +11,8 @@ if ~exist('createBIDS_ieeg_json_nyuSOM.m')
     tbUse ECoG_utils;
 end
 
+makePlot = 0;
+
 %% Define paths and BIDS specs %%
 
 % Input paths specs
@@ -41,7 +43,6 @@ task_label  = {'hrfpattern', ...
               };              
 run_label = {'01','01','02','01','02','01','02','01','02','03','04','03','04','03','04'};
 
-makePlot = 0;
 
 %% DEFINE PATHS AND DATA
 

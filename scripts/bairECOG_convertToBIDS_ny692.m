@@ -11,6 +11,8 @@ if ~exist('createBIDS_ieeg_json_nyuSOM.m')
     tbUse ECoG_utils;
 end
 
+makePlot = 0;
+
 %% Define paths and BIDS specs %%
 
 patientID   = 692; % Specify patient's raw folder name here
@@ -37,8 +39,6 @@ task_label  = {'prf',...
                'temporalpattern', ...
               };              
 run_label = {'01','02','01','02','01','02','01','02','03','04','03','04','03','04'};
-
-makePlot = 0;
 
 %% DEFINE PATHS AND DATA
 
