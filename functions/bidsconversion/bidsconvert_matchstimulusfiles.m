@@ -1,4 +1,4 @@
-function [stimData] = bidsconvert_matchstimulusfiles(dataReadDir, patientID, ses_label, task_label, run_label, trigger_onsets, makePlot)
+function [stimData, triggersAreMatched] = bidsconvert_matchstimulusfiles(dataReadDir, patientID, ses_label, task_label, run_label, trigger_onsets, makePlot)
 
 if nargin < 7 || isempty(makePlot)
     makePlot = 0;
@@ -58,9 +58,16 @@ end
 
 % CHECK: Does the number of requested triggers match the number of triggers
 % that were detected in the trigger channel?
-fprintf('[%s] Asserting that all the triggers are in the data \n', mfilename);
-assert(isequal(requestedTriggerCount, length(trigger_onsets)), 'Found triggers do not match requested triggers!!!');
-
+fprintf('[%s] Asserting that number of triggers match requested number \n', mfilename);
+foundTriggerCount = length(trigger_onsets);
+%assert(isequal(requestedTriggerCount, length(trigger_onsets)), 'Found triggers do not match requested triggers!!!');
+if isequal(requestedTriggerCount, foundTriggerCount)
+    triggersAreMatched = 1;
+else
+    triggersAreMatched = 0;
+    warning('[%s] Number of triggers does not match requested number!!! \n Triggers in data = %d, Triggers requested = %d. \n Please double check the cause of this discrepancy before continuing.', mfilename, foundTriggerCount, requestedTriggerCount);
+end
+    
 stimData = stimData_sorted;
 
 end
