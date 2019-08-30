@@ -106,28 +106,25 @@ for ii = 1:length(sessions)
            
            fname = sprintf('sub-%s_ses-%s_task-%s_run-%s', subject, session, tasks{jj}, runnums{jj}{kk});
            chanFile = fullfile(sessionDir, 'ieeg', sprintf('%s_channels.tsv', fname));
-           
-           % Read in the channels file
-           if ~exist(chanFile, 'file')
-                error('channels file not found: %s', chanFile); 
-           end
-           fprintf('[%s] Reading in channels file: %s\n', mfilename, chanFile); 
-           channels   = readtable(chanFile, 'FileType', 'text');
-
-            % Read in the json file:   
-           jsonReadFile = fullfile(sessionDir, 'ieeg', sprintf('%s_ieeg.json', fname));
-           fprintf('[%s] Reading in ieeg json file: %s\n', mfilename, jsonReadFile); 
-           ieeg_json = jsonread(jsonReadFile);
-           
+    
            % Read in the data file
            dataReadFile = fullfile(sessionDir, 'ieeg', sprintf('%s_ieeg.eeg', fname));
-           if ~exist(dataReadFile, 'file')
-                error('data file not found: %s', dataReadFile); 
-           end
+           if ~exist(dataReadFile, 'file'), error('data file not found: %s', dataReadFile); end
            fprintf('[%s] Reading in data file: %s\n', mfilename, dataReadFile); 
            hdr = ft_read_header(dataReadFile);
            data = ft_read_data(dataReadFile);
            
+           % Read in the json file:   
+           jsonReadFile = fullfile(sessionDir, 'ieeg', sprintf('%s_ieeg.json', fname));
+           if ~exist(jsonReadFile, 'file'), error('data file not found: %s', dataReadFile); end
+           fprintf('[%s] Reading in ieeg json file: %s\n', mfilename, jsonReadFile); 
+           ieeg_json = jsonread(jsonReadFile);
+           
+           % Read in the channels file
+           if ~exist(chanFile, 'file'), error('channels file not found: %s', chanFile); end
+           fprintf('[%s] Reading in channels file: %s\n', mfilename, chanFile); 
+           channels   = readtable(chanFile, 'FileType', 'text');
+  
            % Apply CAR
            [data_reref, channels_reref, group_indices, group_names] = ecog_performCAR(data, channels);           
           
@@ -136,11 +133,6 @@ for ii = 1:length(sessions)
            fprintf('[%s] Writing new data file: %s\n', mfilename, dataWriteFile); 
            ft_write_data(dataWriteFile, data_reref, 'header', hdr, 'dataformat', 'brainvision_eeg');
            
-            % Save out the rereferenced channels file to the derivatives folder
-           chanWriteFile = fullfile(writeDir, 'ieeg', sprintf('%s_desc-reref_channels.tsv', fname));
-           fprintf('[%s] Writing new channels file: %s\n', mfilename, chanWriteFile); 
-           writetable(channels_reref,chanWriteFile,'FileType','text','Delimiter','\t');
-
            % Save out a log/json file with CAR description:   
            jsonReadFile = fullfile(sessionDir, 'ieeg', sprintf('%s_ieeg.json', fname));
            ieeg_json = jsonread(jsonReadFile);
@@ -151,6 +143,11 @@ for ii = 1:length(sessions)
            fprintf('[%s] Writing new ieeg json file: %s\n', mfilename, jsonWriteFile); 
            json_options.indent = '    '; 
            jsonwrite(jsonWriteFile,ieeg_json, json_options)
+           
+            % Save out the rereferenced channels file to the derivatives folder
+           chanWriteFile = fullfile(writeDir, 'ieeg', sprintf('%s_desc-reref_channels.tsv', fname));
+           fprintf('[%s] Writing new channels file: %s\n', mfilename, chanWriteFile); 
+           writetable(channels_reref,chanWriteFile,'FileType','text','Delimiter','\t');
            
 %% DIAGNOSTICS: Look at the effect of CAR
            if savePlot
