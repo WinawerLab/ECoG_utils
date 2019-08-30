@@ -105,8 +105,8 @@ for ii = 1:nRuns
     if contains(task_label{ii}, 'hrf')   
         if length(find(stimData(ii).stimulus.trigSeq)) ~=32 && max(stimData(ii).stimulus.trigSeq) ~= 256
             % There are additional triggers that we should not use
-            fprintf('[%s] Warning: hrf stimulus file has incorrect number of triggers \n', mfilename)
-            fprintf('[%s] Removing directly adjacent triggers from stimfile \n', mfilename)
+            warning('[%s] Hrf stimulus file has incorrect number of triggers', mfilename)
+            fprintf('[%s] Removing directly adjacent triggers from stimfile \n', mfilename);
             requestedTriggerInx = find(stimData(ii).stimulus.trigSeq);
             requestedTriggerInx_diff = [nan diff(requestedTriggerInx)];
             stimData(ii).stimulus.trigSeq(requestedTriggerInx(requestedTriggerInx_diff == 1)) = 0;
@@ -115,7 +115,7 @@ for ii = 1:nRuns
     if contains(task_label{ii}, 'prf')
         if length(find(stimData(ii).stimulus.trigSeq)) ~=224 && max(stimData(ii).stimulus.trigSeq) ~= 256
             % Old prf stim files had too many triggers + missing triggers
-            fprintf('[%s] Warning: prf stimulus file has incorrect number of triggers \n', mfilename)
+            warning('[%s] Prf stimulus file has incorrect number of triggers', mfilename)
             [newTrigSeq] = bidsconvert_fixprftrigseq(stimData(ii).stimulus);
             stimData(ii).stimulus.trigSeq = newTrigSeq;
             % Overwrite trial names to prevent concatenation problems in
