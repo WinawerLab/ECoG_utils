@@ -27,6 +27,7 @@ function bidsEcogRereference(projectDir, subject, sessions, tasks, runnums, outp
 %                           default: true
 % To Do: Also write out a projection matrix file? (see draft bids derivative)
 % To Do: If following BIDS spec, outputFolder should be 'pipelinename'
+% To Do: Also write out a README file to explain what this is?
 %
 % Example 1
 % This example rereferences all the data for all sessions, tasks, and runs

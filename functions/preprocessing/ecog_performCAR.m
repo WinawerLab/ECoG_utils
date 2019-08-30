@@ -23,7 +23,7 @@ group_indices = cell(size(group_names));
 % Loop over electrode groups:
 for ii = 1:length(group_names)
     
-    fprintf('[%s] Referencing electrodes of group %s...\n',mfilename, group_names{ii});
+    fprintf('[%s] Referencing %s electrodes...\n',mfilename, group_names{ii});
     chan_index = find(contains(channels.group, group_names{ii}));
     
     if ~isempty(chan_index)
