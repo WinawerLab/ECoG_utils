@@ -1,8 +1,7 @@
-function bidsEcogRereference(projectDir, subject, sessions, tasks, runnums, makeplot)
+function bidsEcogRereference(projectDir, subject, sessions, tasks, runnums, outputFolder, savePlot)
 % Apply a regression-based common average reference (CAR) to bids-formatted
 % ECoG data, and write out the rereferenced data to a folder called
-% 'ECOGpreprocessedCAR' in the bids derivaties folder. [make output folder
-% name an input variable]?
+% 'ECOGpreprocessedCAR' in the bids derivaties folder. 
 %
 % Note: This code will use the status column in the channels.tsv file to
 % read in which channels are good, and apply CAR only to those channels:
@@ -20,10 +19,15 @@ function bidsEcogRereference(projectDir, subject, sessions, tasks, runnums, make
 %                           default: all tasks in session
 %     runnums:          BIDS run numbers (vector or cell array of vectors)
 %                           default: all runs for specified tasks
-%     makeplot:         generate plots of timecourse and spectra for a
+%     outputFolder:     Name of folder where rereferenced data is placed
+%                           default: 'ECOGpreprocessedCAR'
+%     savePlot:         generate plots of timecourse and spectra for a
 %                       sample electrode before and after CAR in a separate 
 %                       'figures' folder in the derivaties folder 
 %                           default: true
+% To Do: Also write out a projection matrix file? (see draft bids derivative)
+% To Do: If following BIDS spec, outputFolder should be 'pipelinename'
+%
 % Example 1
 % This example rereferences all the data for all sessions, tasks, and runs
 % found for this subject, and generates plots
@@ -38,7 +42,7 @@ function bidsEcogRereference(projectDir, subject, sessions, tasks, runnums, make
 %     subject           = 'som726';
 %     session           = 'nyuecog03';
 %     task              = 'prf'; 
-%     bidsEcogRereference(projectDir, subject, session, task, [], 0);
+%     bidsEcogRereference(projectDir, subject, session, task, [], [], 0);
 
 
 % <projectDir>
@@ -62,16 +66,22 @@ if ~exist('sessions', 'var') || isempty(sessions)
     end
 end
 
-if ~exist('makeplot', 'var') || isempty(makeplot)
-    makeplot = true;
+% <outputFolder>
+if ~exist('outputFolder', 'var') || isempty(outputFolder)
+    outputFolder = 'ECOGpreprocessedCAR';
+end
+
+% <plots>
+if ~exist('savePlot', 'var') || isempty(savePlot)
+    savePlot = true;
 end
 
 if ~iscell(sessions), sessions = {sessions}; end
 if ~exist('tasks', 'var'), tasks = []; end
 if ~exist('runnums', 'var'), runnums = []; end
 
-if isempty(tasks), tasks_prespecified = 0; end % determines whether tasks will be cleared later in loop
-if isempty(runnums), runnums_prespecified = 0; end
+if isempty(tasks), cleartasks = 1; end % determines whether tasks will be cleared later in loop
+if isempty(runnums), clearrunnums = 1; end
 
 %% Perform CAR for each session, tasks and runnums 
 
@@ -81,9 +91,9 @@ for ii = 1:length(sessions)
     fprintf('[%s] Starting CAR for subject: %s session: %s\n', mfilename, subject, session);
     
     % <writeDir>
-    writeDir = fullfile(projectDir, 'derivatives', 'ECOGpreprocessedCAR', subject, session);
+    writeDir = fullfile(projectDir, 'derivatives', outputFolder, subject, session);
     if ~exist(writeDir, 'dir')
-        mkdir(writeDir); fprintf('[%s] Creating a writeDir for sub-%s, ses-%s\n', mfilename, subject, session); 
+        mkdir(writeDir); fprintf('[%s] Creating a rereferencing output folder for sub-%s, ses-%s\n', mfilename, subject, session); 
     end    
     
     sessionDir = fullfile(projectDir, sprintf('sub-%s', subject), sprintf('ses-%s', session));
@@ -104,6 +114,11 @@ for ii = 1:length(sessions)
            fprintf('[%s] Reading in channels file: %s\n', mfilename, chanFile); 
            channels   = readtable(chanFile, 'FileType', 'text');
 
+            % Read in the json file:   
+           jsonReadFile = fullfile(sessionDir, 'ieeg', sprintf('%s_ieeg.json', fname));
+           fprintf('[%s] Reading in ieeg json file: %s\n', mfilename, jsonReadFile); 
+           ieeg_json = jsonread(jsonReadFile);
+           
            % Read in the data file
            dataReadFile = fullfile(sessionDir, 'ieeg', sprintf('%s_ieeg.eeg', fname));
            if ~exist(dataReadFile, 'file')
@@ -126,17 +141,19 @@ for ii = 1:length(sessions)
            fprintf('[%s] Writing new channels file: %s\n', mfilename, chanWriteFile); 
            writetable(channels_reref,chanWriteFile,'FileType','text','Delimiter','\t');
 
-           % Save out a log/json file with car description:           
-%           read in the raw data json.ieeg, 
-%           add extra fields indicating the rerefercing operation
+           % Save out a log/json file with CAR description:   
+           jsonReadFile = fullfile(sessionDir, 'ieeg', sprintf('%s_ieeg.json', fname));
+           ieeg_json = jsonread(jsonReadFile);
+           % Update the iEEGreference field with a description of the
+           % common average procedure:
+           ieeg_json.iEEGReference = 'A common average reference (CAR) was computed separately for each group of good channels and regressed out of each channel.';
+           jsonWriteFile = fullfile(writeDir, 'ieeg', sprintf('%s_desc-reref_ieeg.json', fname));
+           fprintf('[%s] Writing new ieeg json file: %s\n', mfilename, jsonWriteFile); 
+           json_options.indent = '    '; 
+           jsonwrite(jsonWriteFile,ieeg_json, json_options)
            
-%           Also write out a projection matrix file? (draft bids derivative)
-%           jsonWriteFile = fullfile(writeDir, sprintf('%s_car.json', fname));    
-%           jsonwrite(jsonWriteFile,car_json,json_options);
-            
-
 %% DIAGNOSTICS: Look at the effect of CAR
-           if makeplot
+           if savePlot
                
                figSaveDir = fullfile(writeDir, 'figures');
                if ~exist(figSaveDir, 'dir')
@@ -188,7 +205,7 @@ for ii = 1:length(sessions)
            clear data hdr;
        end
     end
-    if ~tasks_prespecified; tasks = []; end 
-    if ~runnums_prespecified; runnums = []; end 
+    if exist('cleartasks', 'var'); tasks = []; end 
+    if exist('clearrunnums', 'var'); runnums = []; end 
 end
 fprintf('[%s] Done with CAR! \n', mfilename); 
