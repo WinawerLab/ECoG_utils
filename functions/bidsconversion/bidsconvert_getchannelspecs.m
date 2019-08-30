@@ -49,12 +49,12 @@ if max(contains(hdr.label, 'REF')) == 1
                 inx = find(strncmp(elecList, chanName, length(chanName)));
                 if length(inx) == 1
                     elecInx(ii) = inx;
-                elseif length(inx) < 1
-                    fprintf('[%s] Warning: could not find coordinates for channel %s with electrode information! \n', mfilename, chanName);
+                elseif length(inx) < 1                   
+                    warning('[%s] Could not find coordinates for channel %s in electrode file!', mfilename, chanName);
                     chanNames{ii} = chanName;
                     chanTypes{ii} = 'unknown';
                 elseif length(inx) > 1
-                    error('[%s] Multiple coordinates found for channel %s! \n', mfilename, chanName);
+                    error('[%s] Multiple coordinates found for channel %s!', mfilename, chanName);
                 end
                 chanNames{ii} = chanName;
             elseif contains (C{1}, 'ECG')
@@ -108,11 +108,11 @@ else
                 elecInx(ii) = inx;
                 chanNames{ii} = elecList{inx};
             elseif length(inx) < 1
-                fprintf('[%s] Warning: could not find coordinates for channel %s! \n', mfilename, chanName);
+                warning('[%s]  could not find coordinates for channel %s!', mfilename, chanName);
                 chanNames{ii} = chanName;
                 chanTypes{ii} = 'other';
             elseif length(inx) > 1
-                error('[%s] Multiple coordinates found for channel %s! \n', mfilename, chanName);
+                error('[%s] Multiple coordinates found for channel %s!', mfilename, chanName);
             end
         end
     end

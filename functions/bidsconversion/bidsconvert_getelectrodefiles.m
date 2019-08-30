@@ -75,6 +75,34 @@ channel_table.sampling_frequency = repmat(hdr.Fs,size(channel_table,1),1);
 % Indicate which channel is the trigger channel in channels.tsv
 channel_table.type{triggerChannel} = 'trig';
 
+% Indicate which channels below to which group in channels.tsv
+INXNames = {'depth', 'gridA', 'gridB', 'grid', 'strip'};
+INX = [];
+% DEPTH electrodes:
+INX{1} = find(contains(lower(channel_table.type), 'seeg'));
+% GRID electrodes:
+INX{2} = find(contains(lower(channel_table.type), 'ecog') & strncmp('GA', channel_table.name, 2));
+INX{3} = find(contains(lower(channel_table.type), 'ecog') & strncmp('GB', channel_table.name, 2));
+% if the grid is labeled as 'G', not A or B:
+INX{4} = find(contains(lower(channel_table.type), 'ecog') & strncmp('G', channel_table.name,1) & ~strncmp('GA', channel_table.name, 2) & ~strncmp('GB', channel_table.name, 2));
+% ALL OTHER SURFACE electrodes
+INX{5} = find(contains(lower(channel_table.type), 'ecog') & ~strncmp('G', channel_table.name,1));
+for ii = 1:length(INX)
+    chan_index = INX{ii};
+    fprintf('[%s] Assigning electrodes to group: %s...\n',mfilename, INXNames{ii});
+
+    if ~isempty(chan_index)        
+        channel_table.group(chan_index,:) = INXNames(ii);
+    end
+end
+
+% Update electrodes.tsv to have same groups
+elec_inx = ecog_matchChannels(electrode_table.name, channel_table.name);
+if length(find(elec_inx>0)) ~= height(electrode_table)
+    error('[%s] Could not find all electrode names in channel table!', mfilename)
+end
+electrode_table.group = channel_table.group(elec_inx);
+
 % Indicate channel statuses
 %channel_table.status = repmat({'bad'},height(channel_table),1);
 %channel_table.status_description = repmat({'bad'},height(channel_table),1);

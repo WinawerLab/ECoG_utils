@@ -13,12 +13,12 @@ function [channel_table] = createBIDS_ieeg_channels_tsv_nyuSOM(n)
 % modified RG 201809
 
 %% required columns
-name = repmat('unknown', n, 1); % Label of the channel, only contains letters and numbers. 
+name = repmat('n/a', n, 1); % Label of the channel, only contains letters and numbers. 
 % The label must correspond to _electrodes.tsv name and all ieeg type
 % channels are required to have a position. The reference channel name MUST
 % be provided in the reference column.
 
-type = repmat('unknown', n, 1); % Type of channel, see section 3.3.2 of iEEG BIDS spec.
+type = repmat('n/a', n, 1); % Type of channel, see section 3.3.2 of iEEG BIDS spec.
 
 units = repmat({'microV'}, n, 1); % Physical unit of the value represented in this channel,
 % e.g. V for Volt, specified according to the SI unit symbol and possibly 
@@ -38,10 +38,10 @@ sampling_frequency = repmat('unknown', n, 1); % OPTIONAL. Sampling rate of
 notch = repmat('n/a', n, 1); % OPTIONAL. Frequencies used for the notch 
 % filter applied to the channel, in Hz. If no notch filter applied, use n/a 
 
-reference = repmat('unknown', n, 1); % Specification of the reference (options: ?bipolar?, 
+reference = repmat('n/a', n, 1); % Specification of the reference (options: ?bipolar?, 
 % ?mastoid?, ?intracranial?, ?ElectrodeName01?) .
 
-group = repmat({'unknown'}, n, 1); % RECOMMENDED Which group of channels 
+group = repmat({'n/a'}, n, 1); % RECOMMENDED Which group of channels 
 % (grid/strip/seeg/depth) this channel belongs to. This is relevant because
 % one group has one cable-bundle and noise can be shared. This can be a
 % name or number. Note that any groups specified in `_electrodes.tsv` must
