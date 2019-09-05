@@ -3,17 +3,27 @@ function [signal_reref, channels_reref, group_indices, group_names] = ecog_perfo
 % If there is no status column, add one assuming all channels are good.
 if ~isfield(summary(channels), 'status') 
     channels.status = repmat({'good'}, [height(channels) 1]);
-    fprintf('[%s] No status column found in channels file. Using all channels for CAR.\n', mfilename); 
+    fprintf('[%s] No status column found in channels file. Assuming all channels are good.\n', mfilename); 
 else
     nBadChannels = length(find(contains(channels.status, 'bad')));
     nGoodChannels = length(find(contains(channels.status, 'good')));
     fprintf('[%s] Found %d good channels and %d bad channels. Including only good channels in CAR.\n', mfilename, nGoodChannels, nBadChannels); 
 end
 
+% If there is no group column, use the 'type' column to separate depth and
+% surface channels and assume those belong to one group each.
+if ~isfield(summary(channels), 'group')
+    channels.group = channels.type;
+    fprintf('[%s] No group column found in channels file. Using type column to designate groups.\n', mfilename); 
+end
+
 % Perform CAR separately for different groups of electrodes as indicated
 % by the groups column in the channels tsv.
 group_names = unique(channels.group);
-group_names = group_names(~contains(group_names, {'n/a', 'unknown'}));
+group_names = group_names(~contains(lower(group_names), {'n/a', 'unknown', 'other', ...
+    'misc', 'ref', 'ecg', 'eog', 'emg', 'trig', 'veog', 'heog', 'audio','pupil', 'eyegaze', 'syslock', 'pd', 'adc', 'dac', 'dbs'})); 
+% these are all possible non-ieeg type names allowed by BIDS, in case there
+% is no group column and the type column is used to group electrodes.
 
 % Initialize
 signal_reref = signal;

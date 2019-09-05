@@ -1,14 +1,19 @@
 function bidsEcogRereference(projectDir, subject, sessions, tasks, runnums, outputFolder, savePlot)
-% Apply a regression-based common average reference (CAR) to bids-formatted
-% ECoG data, and write out the rereferenced data to a folder called
-% 'ECOGpreprocessedCAR' in the bids derivaties folder. 
+% Applies a regression-based common average reference (CAR) to
+% bids-formatted ECoG data, and writes out the rereferenced data to an
+% output folder in the bids derivatives folder. 
 %
-% Note: This code will use the status column in the channels.tsv file to
-% read in which channels are good, and apply CAR only to those channels:
-% only good channels are included in the reference, and only those
-% channels are rereferenced. If there is no status column, it will be
-% assumed that all channels are good and all will be included (in that case
-% data should not contain DC, status channels or ECG channels).
+% Notes:
+% This code uses the 'group' and 'status' columns in channels.tsv to
+% determine which channels to average into a common reference. For a given
+% group, only 'good' channels are included in the reference average, which
+% is then regressed out of all channels of that group. If there is no group
+% column, channels are grouped by 'type' (a bids-required column) instead.
+% If there is no status column, all channels are assumed to be good.
+%
+% TO DO: Also write out a projection matrix file? (see draft bids derivative)
+% TO DO: If following BIDS spec, outputFolder should be 'pipelinename'
+% TO DO: Also write out a README file to explain what this is?
 %
 % Input
 %     projectDir:       path where the BIDS projects lies (string)
@@ -25,9 +30,6 @@ function bidsEcogRereference(projectDir, subject, sessions, tasks, runnums, outp
 %                       sample electrode before and after CAR in a separate 
 %                       'figures' folder in the derivaties folder 
 %                           default: true
-% To Do: Also write out a projection matrix file? (see draft bids derivative)
-% To Do: If following BIDS spec, outputFolder should be 'pipelinename'
-% To Do: Also write out a README file to explain what this is?
 %
 % Example 1
 % This example rereferences all the data for all sessions, tasks, and runs
@@ -81,6 +83,9 @@ if ~iscell(sessions), sessions = {sessions}; end
 if ~exist('tasks', 'var'), tasks = []; end
 if ~exist('runnums', 'var'), runnums = []; end
 
+cleartasks = 0;
+clearrunnums = 0;
+
 if isempty(tasks), cleartasks = 1; end % determines whether tasks will be cleared later in loop
 if isempty(runnums), clearrunnums = 1; end
 
@@ -94,7 +99,7 @@ for ii = 1:length(sessions)
     % <writeDir>
     writeDir = fullfile(projectDir, 'derivatives', outputFolder, subject, session);
     if ~exist(writeDir, 'dir')
-        mkdir(writeDir); fprintf('[%s] Creating a rereferencing output folder for sub-%s, ses-%s\n', mfilename, subject, session); 
+        mkdir(writeDir); fprintf('[%s] Creating a CAR output folder for sub-%s, ses-%s\n', mfilename, subject, session); 
     end    
     
     sessionDir = fullfile(projectDir, sprintf('sub-%s', subject), sprintf('ses-%s', session));
@@ -106,7 +111,6 @@ for ii = 1:length(sessions)
        for kk = 1:length(runnums{jj})
            
            fname = sprintf('sub-%s_ses-%s_task-%s_run-%s', subject, session, tasks{jj}, runnums{jj}{kk});
-           chanFile = fullfile(sessionDir, 'ieeg', sprintf('%s_channels.tsv', fname));
     
            % Read in the data file
            dataReadFile = fullfile(sessionDir, 'ieeg', sprintf('%s_ieeg.eeg', fname));
@@ -122,10 +126,11 @@ for ii = 1:length(sessions)
            ieeg_json = jsonread(jsonReadFile);
            
            % Read in the channels file
+           chanFile = fullfile(sessionDir, 'ieeg', sprintf('%s_channels.tsv', fname));
            if ~exist(chanFile, 'file'), error('channels file not found: %s', chanFile); end
            fprintf('[%s] Reading in channels file: %s\n', mfilename, chanFile); 
            channels   = readtable(chanFile, 'FileType', 'text');
-  
+           
            % Apply CAR
            [data_reref, channels_reref, group_indices, group_names] = ecog_performCAR(data, channels);           
           
@@ -134,22 +139,25 @@ for ii = 1:length(sessions)
            fprintf('[%s] Writing new data file: %s\n', mfilename, dataWriteFile); 
            ft_write_data(dataWriteFile, data_reref, 'header', hdr, 'dataformat', 'brainvision_eeg');
            
-           % Save out a log/json file with CAR description:   
-           jsonReadFile = fullfile(sessionDir, 'ieeg', sprintf('%s_ieeg.json', fname));
-           ieeg_json = jsonread(jsonReadFile);
-           % Update the iEEGreference field with a description of the
-           % common average procedure:
+           % In the ieeg.json file, update the iEEGreference field with a
+           % description of the common average procedure:
            ieeg_json.iEEGReference = 'A common average reference (CAR) was computed separately for each group of good channels and regressed out of each channel.';
            jsonWriteFile = fullfile(writeDir, 'ieeg', sprintf('%s_desc-reref_ieeg.json', fname));
            fprintf('[%s] Writing new ieeg json file: %s\n', mfilename, jsonWriteFile); 
            json_options.indent = '    '; 
            jsonwrite(jsonWriteFile,ieeg_json, json_options)
            
-            % Save out the rereferenced channels file to the derivatives folder
+           % Save out the rereferenced channels file to the derivatives folder
            chanWriteFile = fullfile(writeDir, 'ieeg', sprintf('%s_desc-reref_channels.tsv', fname));
            fprintf('[%s] Writing new channels file: %s\n', mfilename, chanWriteFile); 
            writetable(channels_reref,chanWriteFile,'FileType','text','Delimiter','\t');
            
+           % Copy over the events.tsv file
+           eventsReadFile = fullfile(sessionDir, 'ieeg', sprintf('%s_events.tsv', fname));
+           eventsWriteFile = fullfile(writeDir, 'ieeg', sprintf('%s_desc-reref_events.tsv', fname));
+           copyfile(eventsReadFile, eventsWriteFile)
+           fprintf('[%s] Copying over events file: %s\n', mfilename, eventsWriteFile); 
+
 %% DIAGNOSTICS: Look at the effect of CAR
            if savePlot
                
@@ -167,35 +175,37 @@ for ii = 1:length(sessions)
                    chan_index = group_indices{ee};
 
                    if ~isempty(chan_index)
-
-                        good_channels = find(contains(channels(chan_index,:).status, 'good'));
-                        channel_plot = chan_index(good_channels(1));
-
-                        figure('Name', sprintf('car regress %s', group_names{ee}));
-
-                        % Plot the time courses before and after CAR
-                        subplot(1,2,1); hold on
-                        plot(t,data(channel_plot,:),'k')
-                        plot(t,data_reref(channel_plot,:),'g')
-                        legend({'before CAR','after CAR'})
-                        xlabel('Time (s)'); ylabel('Voltage');set(gca, 'FontSize', 16);
-                        title(channels.name(channel_plot));
-
-                        % Plot the spectra before and after CAR
-                        subplot(1,2,2),hold on
-                        [pxx,freqs] = pwelch(data(channel_plot,:)',hdr.Fs,0,hdr.Fs,hdr.Fs);
-                        [pxx2,~] = pwelch(data_reref(channel_plot,:)',hdr.Fs,0,hdr.Fs,hdr.Fs);
-                        plot(freqs,pxx,'k')
-                        plot(freqs,pxx2,'g'); 
-                        set(gca, 'YScale', 'log')
-                        xlabel('Frequency (Hz)'); ylabel('Log power');set(gca, 'FontSize', 16);
-                        title(channels.name(channel_plot));
-
-                        %set(gcf, 'Position',[1000 700 1100 600]); 
                         
-                        % Generate a name for the figure
-                        figureName = fullfile(figSaveDir,sprintf('%s_desc-reref_%s',fname, group_names{ee}));
-                        saveas(gcf, figureName, 'png');
+                       if isfield(summary(channels), 'status') 
+                           good_channels = find(contains(channels(chan_index,:).status, 'good'));
+                           channel_plot = chan_index(good_channels(1));
+                       else
+                           channel_plot = chan_index(1);
+                       end
+                       
+                       figure('Name', sprintf('car regress %s', group_names{ee}));
+
+                       % Plot the time courses before and after CAR
+                       subplot(1,2,1); hold on
+                       plot(t,data(channel_plot,:),'k')
+                       plot(t,data_reref(channel_plot,:),'g')
+                       legend({'before CAR','after CAR'})
+                       xlabel('Time (s)'); ylabel('Voltage');set(gca, 'FontSize', 16);
+                       title(channels.name(channel_plot));
+
+                       % Plot the spectra before and after CAR
+                       subplot(1,2,2),hold on
+                       [pxx,freqs] = pwelch(data(channel_plot,:)',hdr.Fs,0,hdr.Fs,hdr.Fs);
+                       [pxx2,~] = pwelch(data_reref(channel_plot,:)',hdr.Fs,0,hdr.Fs,hdr.Fs);
+                       plot(freqs,pxx,'k')
+                       plot(freqs,pxx2,'g'); 
+                       set(gca, 'YScale', 'log')
+                       xlabel('Frequency (Hz)'); ylabel('Log power');set(gca, 'FontSize', 16);
+                       title(channels.name(channel_plot));
+                        
+                       % Generate a name for the figure
+                       figureName = fullfile(figSaveDir,sprintf('%s_desc-reref_%s',fname, group_names{ee}));
+                       saveas(gcf, figureName, 'png');
                    end
                end
                close all;
@@ -203,7 +213,7 @@ for ii = 1:length(sessions)
            clear data hdr;
        end
     end
-    if exist('cleartasks', 'var'); tasks = []; end 
-    if exist('clearrunnums', 'var'); runnums = []; end 
+    if cleartasks, tasks = []; end 
+    if clearrunnums, runnums = []; end 
 end
 fprintf('[%s] Done with CAR! \n', mfilename); 

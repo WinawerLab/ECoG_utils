@@ -1,5 +1,5 @@
-function [session, tasks, runnum, modality] = bidsSpecifyData(projectDir, subject,...
-    session, tasks, runnum)
+function [session, tasks, runnums,modality] = bidsSpecifyData(projectDir, subject,...
+    session, tasks, runnums)
 % Specify tasks and run numbers and verify paths for BIDS session
 % [session, tasks, runnum] = bidsSpecifyEPIs(projectDir, subject, session, [tasks], [runnum])
 %
@@ -9,12 +9,15 @@ function [session, tasks, runnum, modality] = bidsSpecifyData(projectDir, subjec
 %     session:          BIDS session name (string, all lower case)
 %     tasks:            one or more BIDS tasks (string or cell array of strings)
 %                           default: all tasks in session
-%     runnum:           BIDS run numbers (vector or cell array of vectors)
+%     runnums:          BIDS run numbers (vector or cell array of vectors)
 %                           default: all runs for specified tasks
+%
+%
 % Output
 %     session:          String. See input
 %     tasks:            Cell array of strings. See input
-%     runnum:           Cell array of vectors. See input 
+%     runnums:          Cell array of vectors. See input 
+%     modality:         String indicating data modality. 
 %
 % Example 1
 %     projectDir        = '/Volumes/server/Projects/BAIR/Data/BIDS/visual'; 
@@ -22,7 +25,7 @@ function [session, tasks, runnum, modality] = bidsSpecifyData(projectDir, subjec
 %     session           = 'nyuecog01';
 %     [session, tasks, runnum] = bidsSpecifyData(projectDir, subject, session)
 %
-% See also bidsGLM.m bidsTSVtoDesign.m
+% See also bidsSpecifySessions.m
 
 
 % <projectDir>
@@ -72,9 +75,9 @@ end
 if ~iscell(tasks), tasks = {tasks}; end
 
 % <runnum>
-if ~exist('runnum', 'var') || isempty(runnum)
+if ~exist('runnums', 'var') || isempty(runnums)
     
-    runnum = cell(1,length(tasks));
+    runnums = cell(1,length(tasks));
     for ii = 1:length(tasks)
         files = dir(fullfile(sessionDir, 'func', sprintf('*task-%s_*bold.nii*', tasks{ii})));
         modality = 'mri';
@@ -89,11 +92,11 @@ if ~exist('runnum', 'var') || isempty(runnum)
         if ~isempty(files)
             for jj = 1:length(files)
                 %runnum{ii}(jj) = str2double(bidsGet(files(jj).name, 'run'));
-                runnum{ii}{jj} = bidsGet(files(jj).name, 'run');
+                runnums{ii}{jj} = bidsGet(files(jj).name, 'run');
             end
         end
     end
 end
-if ~iscell(runnum), runnum = {runnum}; end
+if ~iscell(runnums), runnums = {runnums}; end
 
 end
