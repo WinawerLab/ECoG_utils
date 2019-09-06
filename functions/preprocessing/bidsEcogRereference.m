@@ -201,7 +201,11 @@ for ii = 1:length(sessions)
                        plot(freqs,pxx,'k')
                        plot(freqs,pxx2,'g'); 
                        set(gca, 'YScale', 'log')
-                       set(gca, 'XLim', [0 250]) % maximum freq resolution for typical sample rate at NYU SOM (UMCU data have higher sample rates);
+                       set(gca, 'XLim', [0 256]) 
+                       % maximum freq resolution for typical sample rate at
+                       % NYU SOM (UMCU data have higher sample rates);
+                       % hardcoded rather than made read from hdr so it's
+                       % easier to compare across NYU and UMCU
                        xlabel('Frequency (Hz)'); ylabel('Log power');set(gca, 'FontSize', 16);
                        title(channels.name(channel_plot));
                         
