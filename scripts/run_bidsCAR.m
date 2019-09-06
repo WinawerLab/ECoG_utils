@@ -4,8 +4,8 @@
 % This example rereferences all the data for all sessions, tasks, and runs
 % found for this subject, and generates plots
      projectDir        = '/Volumes/server/Projects/BAIR/Data/BIDS/visual'; 
-     subject           = 'chaam';
-     bidsEcogRereference(projectDir, subject, [], [], [], [], 0)
+     subject           = 'beilen';
+     bidsEcogRereference(projectDir, subject)
 
      
 %% Example 2

@@ -12,11 +12,11 @@ function bidsEcogRereference(projectDir, subject, sessions, tasks, runnums, outp
 % If there is no status column, all channels are assumed to be good.
 %
 % TO DO: Also write out a projection matrix file? (see draft bids derivative)
-% TO DO: If following BIDS spec, outputFolder should be 'pipelinename'
+% TO DO: If following BIDS spec, outputFolder should be 'pipelinename' (?)
 % TO DO: Also write out a README file to explain what this is?
 %
 % Input
-%     projectDir:       path where the BIDS projects lies (string)
+%     projectDir:       path where the BIDS project lies (string)
 %     subject:          BIDS subject name (string, all lower case)
 %     sessions:         BIDS session name (string, all lower case)
 %                           default: all sessions with 'ecog' in the name
@@ -25,10 +25,10 @@ function bidsEcogRereference(projectDir, subject, sessions, tasks, runnums, outp
 %     runnums:          BIDS run numbers (vector or cell array of vectors)
 %                           default: all runs for specified tasks
 %     outputFolder:     Name of folder where rereferenced data is placed
-%                           default: 'ECOGpreprocessedCAR'
+%                           default: 'EcogCAR'
 %     savePlot:         generate plots of timecourse and spectra for a
 %                       sample electrode before and after CAR in a separate 
-%                       'figures' folder in the derivaties folder 
+%                       'figures' folder in the derivatives folder 
 %                           default: true
 %
 % Example 1
@@ -46,7 +46,8 @@ function bidsEcogRereference(projectDir, subject, sessions, tasks, runnums, outp
 %     session           = 'nyuecog03';
 %     task              = 'prf'; 
 %     bidsEcogRereference(projectDir, subject, session, task, [], [], 0);
-
+%
+% See also bidsSpecifySessions.m bidsSpecifyData.m ecog_performCAR.m
 
 % <projectDir>
 if ~exist('projectDir', 'var') || isempty(projectDir)
@@ -71,7 +72,7 @@ end
 
 % <outputFolder>
 if ~exist('outputFolder', 'var') || isempty(outputFolder)
-    outputFolder = 'ECOGpreprocessedCAR';
+    outputFolder = 'EcogCAR';
 end
 
 % <plots>
@@ -97,7 +98,7 @@ for ii = 1:length(sessions)
     fprintf('[%s] Starting CAR for subject: %s session: %s\n', mfilename, subject, session);
     
     % <writeDir>
-    writeDir = fullfile(projectDir, 'derivatives', outputFolder, subject, session);
+    writeDir = fullfile(projectDir, 'derivatives', outputFolder, sprintf('sub-%s',subject), sprintf('ses-%s',session));
     if ~exist(writeDir, 'dir')
         mkdir(writeDir); fprintf('[%s] Creating a CAR output folder for sub-%s, ses-%s\n', mfilename, subject, session); 
     end    
@@ -163,7 +164,7 @@ for ii = 1:length(sessions)
                
                figSaveDir = fullfile(writeDir, 'figures');
                if ~exist(figSaveDir, 'dir')
-                    mkdir(figSaveDir); fprintf('[%s]: Creating a derivatives figures directory for sub-%s, ses-%s\n', mfilename, subject, session); 
+                    mkdir(figSaveDir); fprintf('[%s]: Creating a figure directory for sub-%s, ses-%s\n', mfilename, subject, session); 
                end    
     
                t = ((0:hdr.nSamples-1)/hdr.Fs); 
