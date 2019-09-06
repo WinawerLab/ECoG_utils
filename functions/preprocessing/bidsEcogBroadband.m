@@ -9,8 +9,7 @@ function bidsEcogBroadband(projectDir, subject, sessions, tasks, runnums, ...
 % rereferencing) before computing broadband, the inputdata is assumed to
 % be located in the derivatives folder and have a 'desc' field in the name.
 %
-% TO DO Save out a readme or json that includes information about the bands
-% and methodstr
+% TO DO Save out a readme?
 %
 % Input
 %     projectDir:       path where the BIDS project lies (string)
