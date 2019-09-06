@@ -93,7 +93,7 @@ if ~exist('method', 'var')
     method = [];
 end
 
-% <method>
+% <bands>
 if ~exist('bands', 'var') 
     bands = [];
 end
@@ -136,7 +136,7 @@ for ii = 1:length(sessions)
     fprintf('[%s] Starting Broadband extraction for sub-%s, ses-%s\n', mfilename, subject, session);
     
     % <writeDir>
-    writeDir = fullfile(projectDir, 'derivatives', outputFolder, subject, session);
+    writeDir = fullfile(projectDir, 'derivatives', outputFolder, sprintf('sub-%s', subject), sprintf('ses-%s', session));
     if ~exist(writeDir, 'dir')
         mkdir(writeDir); fprintf('[%s] Creating a Broadband output folder for sub-%s, ses-%s\n', mfilename, subject, session); 
     end    
@@ -149,6 +149,8 @@ for ii = 1:length(sessions)
    
     for jj = 1:length(tasks)
        for kk = 1:length(runnums{jj})
+           
+           fprintf('[%s] Task = %s, Run = %s \n', mfilename, tasks{jj}, runnums{jj}{kk});
            
            fname_in = sprintf('sub-%s_ses-%s_task-%s_run-%s_desc-%s', subject, session, tasks{jj}, runnums{jj}{kk}, description);
            % Replace the 'desc' field in the output files with 'broadband'
@@ -171,6 +173,7 @@ for ii = 1:length(sessions)
            
            % Apply only to those channels that actually have data
            chan_index = find(contains(lower(channels.type), {'ecog', 'seeg'}));
+           fprintf('[%s] Found %d ecog and seeg channels, applying broadband to these channels only. \n', mfilename, length(chan_index)); 
            data_bb = data;
            [broadband, methodstr, bandsused] = ecog_extractBroadband(data(chan_index,:), hdr.Fs, method, bands);           
            data_bb(chan_index,:) = broadband;
@@ -190,8 +193,10 @@ for ii = 1:length(sessions)
            end
            channels.units(chan_index) = {unitName};
            % LOW_CUTOFF 
-           channels.low_cutoff(chan_index) = max(bandsused(:));
-           channels.high_cutoff(chan_index) = min(bandsused(:));
+           if isnumeric(channels.low_cutoff), channels.low_cutoff = num2cell(channels.low_cutoff);end
+           if isnumeric(channels.high_cutoff), channels.high_cutoff = num2cell(channels.high_cutoff);end
+           channels.low_cutoff(chan_index) = {max(bandsused(:))};
+           channels.high_cutoff(chan_index) = {min(bandsused(:))};
            % BANDS, METHODS, BANDWIDTH
            channels.bb_method = repmat({'n/a'}, [height(channels),1]);
            channels.bb_bandwidth = repmat({'n/a'}, [height(channels),1]);
@@ -231,7 +236,7 @@ for ii = 1:length(sessions)
                fprintf('[%s] Saving Broadband figures to %s \n',mfilename, figSaveDir);
                 
                % Plot the first channel by default
-               chan_index = find(contains(channels.type, 'ecog') & contains(channels.status, 'good'));
+               chan_index = find(contains(lower(channels.type), 'ecog') & contains(channels.status, 'good'));
                channel_plot = chan_index(1);
 
                figure('Name', sprintf('broadband %s', channels.name{channel_plot}));
@@ -250,14 +255,6 @@ for ii = 1:length(sessions)
                xlabel('Time (s)'); ylabel('Broadband estimate');set(gca, 'FontSize', 16);
                title(sprintf('%s %s \n %s',channels.name{channel_plot}, 'broadband timecourse', methodstr));
                
-%                [pxx,freqs] = pwelch(data(channel_plot,:)',hdr.Fs,0,hdr.Fs,hdr.Fs);
-%                [pxx2,~] = pwelch(data_reref(channel_plot,:)',hdr.Fs,0,hdr.Fs,hdr.Fs);
-%                plot(freqs,pxx,'k')
-%                plot(freqs,pxx2,'g'); 
-%                set(gca, 'YScale', 'log')
-%                xlabel('Frequency (Hz)'); ylabel('Log power');set(gca, 'FontSize', 16);
-%                title(channels.name(channel_plot));
-
                % Generate a name for the figure
                figureName = fullfile(figSaveDir,sprintf('%s_%s',fname_out, channels.name{channel_plot}));
                saveas(gcf, figureName, 'png');

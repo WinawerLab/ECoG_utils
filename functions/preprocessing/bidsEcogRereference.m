@@ -111,6 +111,8 @@ for ii = 1:length(sessions)
     for jj = 1:length(tasks)
        for kk = 1:length(runnums{jj})
            
+           fprintf('[%s] Task = %s, Run = %s \n', mfilename, tasks{jj}, runnums{jj}{kk});
+
            fname = sprintf('sub-%s_ses-%s_task-%s_run-%s', subject, session, tasks{jj}, runnums{jj}{kk});
     
            % Read in the data file
