@@ -25,7 +25,7 @@ function bidsEcogRereference(projectDir, subject, sessions, tasks, runnums, outp
 %     runnums:          BIDS run numbers (vector or cell array of vectors)
 %                           default: all runs for specified tasks
 %     outputFolder:     Name of folder where rereferenced data is placed
-%                           default: 'EcogCAR'
+%                           default: 'ECoGCAR'
 %     savePlot:         generate plots of timecourse and spectra for a
 %                       sample electrode before and after CAR in a separate 
 %                       'figures' folder in the derivatives folder 
@@ -72,7 +72,7 @@ end
 
 % <outputFolder>
 if ~exist('outputFolder', 'var') || isempty(outputFolder)
-    outputFolder = 'EcogCAR';
+    outputFolder = 'ECoGCAR';
 end
 
 % <plots>
@@ -201,6 +201,7 @@ for ii = 1:length(sessions)
                        plot(freqs,pxx,'k')
                        plot(freqs,pxx2,'g'); 
                        set(gca, 'YScale', 'log')
+                       set(gca, 'XLim', [0 250]) % maximum freq resolution for typical sample rate at NYU SOM (UMCU data have higher sample rates);
                        xlabel('Frequency (Hz)'); ylabel('Log power');set(gca, 'FontSize', 16);
                        title(channels.name(channel_plot));
                         
