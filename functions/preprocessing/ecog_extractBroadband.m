@@ -1,4 +1,4 @@
-function [broadband, methodstr] = ecog_extractBroadband(x, srate, method, bands)
+function [broadband, methodstr, bands] = ecog_extractBroadband(x, srate, method, bands)
 % Compute time varying broadband envelope of a time series
 % broadband = extractBroadband(x, srate, method, bands)
 %
@@ -50,7 +50,7 @@ function [broadband, methodstr] = ecog_extractBroadband(x, srate, method, bands)
 
 if ~exist('srate', 'var')  || isempty(srate),  srate = 1000; end
 if ~exist('bands', 'var')  || isempty(bands),  bands = {[60 200], 20}; end
-if ~exist('method', 'var') || isempty(method), method = @(bp) geomean(abs(hilbert(bp)).^2); end
+if ~exist('method', 'var') || isempty(method), method = @(bp)geomean(abs(hilbert(bp)).^2); end
 
 % format the bands input
 if isa(bands, 'cell')
@@ -95,8 +95,6 @@ methodstr = func2str(method);
 
 % if only one band is used, eliminate singleton dimension
 if size(broadband, 1) == 1, broadband = squeeze(broadband); end
-
-broadband = broadband';
 
 % old method specification:
 %
@@ -144,6 +142,7 @@ broadband = broadband';
 %     otherwise
 %         error('Unknown broadband method %s', method);
 % end
+% broadband = broadband';
 
 %fprintf('done\n');
 
