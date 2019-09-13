@@ -1,7 +1,7 @@
 function [session, tasks, runnums,modality] = bidsSpecifyData(projectDir, subject,...
     session, tasks, runnums)
 % Specify tasks and run numbers and verify paths for BIDS session
-% [session, tasks, runnum] = bidsSpecifyEPIs(projectDir, subject, session, [tasks], [runnum])
+% [session, tasks, runnum] = bidsSpecifyData(projectDir, subject, session, [tasks], [runnum])
 %
 % Input
 %     projectDir:       path where the BIDS projects lies (string)
