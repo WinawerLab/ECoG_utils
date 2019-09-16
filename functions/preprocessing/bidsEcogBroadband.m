@@ -107,7 +107,7 @@ if ~exist('outputFolder', 'var') || isempty(outputFolder)
     outputFolder = 'ECoGBroadband';
 end
 
-% <outputFolder>
+% <description>
 if ~exist('description', 'var') || isempty(description)
     description = 'reref';
 end
@@ -127,47 +127,26 @@ clearrunnums = 0;
 if isempty(tasks), cleartasks = 1; end % determines whether tasks will be cleared later in loop
 if isempty(runnums), clearrunnums = 1; end
 
-%% Perform CAR for each session, tasks and runnums 
+%% Compute broadband for each session, tasks and runnums 
 
 for ii = 1:length(sessions)   
     
     [session, tasks, runnums] = bidsSpecifyData(projectDir, subject, sessions{ii}, tasks, runnums);
     fprintf('[%s] Starting Broadband extraction for sub-%s, ses-%s\n', mfilename, subject, session);
     
-    % <writeDir>
-    writeDir = fullfile(projectDir, 'derivatives', outputFolder, sprintf('sub-%s', subject), sprintf('ses-%s', session));
-    if ~exist(writeDir, 'dir')
-        mkdir(writeDir); fprintf('[%s] Creating a Broadband output folder for sub-%s, ses-%s\n', mfilename, subject, session); 
-    end    
-    
-    % <readDir>
-    sessionDir = fullfile(projectDir, 'derivatives', inputFolder, sprintf('sub-%s', subject), sprintf('ses-%s', session));
-    if ~exist(sessionDir, 'dir')
-        error('input folder not found: %s', sessionDir); 
-    end
+    % define paths
+    dataPath = fullfile(projectDir, 'derivatives', inputFolder);
+    writePath = fullfile(projectDir, 'derivatives', outputFolder);
    
     for jj = 1:length(tasks)
        for kk = 1:length(runnums{jj})
            
-           fprintf('[%s] Task = %s, Run = %s \n', mfilename, tasks{jj}, runnums{jj}{kk});
-           
-           fname_in = sprintf('sub-%s_ses-%s_task-%s_run-%s_desc-%s', subject, session, tasks{jj}, runnums{jj}{kk}, description);
-           % Replace the 'desc' field in the output files with 'broadband'
-           fname_out = sprintf('sub-%s_ses-%s_task-%s_run-%s_desc-%s', subject, session, tasks{jj}, runnums{jj}{kk}, 'broadband');
-           
-           % Read in the channels file
-           chanFile = fullfile(sessionDir, 'ieeg', sprintf('%s_channels.tsv', fname_in));
-           if ~exist(chanFile, 'file'), error('channels file not found: %s', chanFile); end
-           fprintf('[%s] Reading in channels file: %s\n', mfilename, chanFile); 
-           channels   = readtable(chanFile, 'FileType', 'text');
-           
-           % Read in the data file
-           dataReadFile = fullfile(sessionDir, 'ieeg', sprintf('%s_ieeg.eeg', fname_in));
-           if ~exist(dataReadFile, 'file'), error('data file not found: %s', dataReadFile); end
-           fprintf('[%s] Reading in data file: %s\n', mfilename, dataReadFile); 
-           hdr = ft_read_header(dataReadFile);
-           data = ft_read_data(dataReadFile);
-                                 
+           task = tasks{jj};
+           runnum = runnums{jj}{kk};
+           fprintf('[%s] Task = %s, Run = %s \n', mfilename, task, runnum);
+                     
+           [data, channels, events, ieeg_json, hdr] = bidsEcogReadFiles(dataPath, subject, session, task, runnum, description);
+                                          
            % COMPUTE BROADBAND
            
            % Apply only to those channels that actually have data
@@ -176,12 +155,7 @@ for ii = 1:length(sessions)
            data_bb = data;
            [broadband, methodstr, bandsused] = ecog_extractBroadband(data(chan_index,:), hdr.Fs, method, bands);           
            data_bb(chan_index,:) = broadband;
-           
-           % Save out the broadband timecourses to the derivatives folder
-           dataWriteFile = fullfile(writeDir, 'ieeg', sprintf('%s_ieeg.eeg', fname_out));
-           fprintf('[%s] Writing new data file: %s\n', mfilename, dataWriteFile); 
-           ft_write_data(dataWriteFile, data_bb, 'header', hdr, 'dataformat', 'brainvision_eeg');   
-           
+                       
            % Add columns to channels file about broadband bands and method,
            % update units
            % UNITS (heuristic)
@@ -204,28 +178,14 @@ for ii = 1:length(sessions)
            channels.bb_bandwidth(chan_index) = {diff(bandsused(1,:))};
            channels.bb_bands(chan_index) = {mat2str(bandsused)};
            
-           % Save out new channels file
-           chanWriteFile = fullfile(writeDir, 'ieeg', sprintf('%s_channels.tsv', fname_out));
-           fprintf('[%s] Writing new channels file: %s\n', mfilename, chanWriteFile); 
-           writetable(channels,chanWriteFile,'FileType','text','Delimiter','\t');
-       
-           % Copy over the ieeg.json file
-           jsonReadFile = fullfile(sessionDir, 'ieeg', sprintf('%s_ieeg.json', fname_in));
-           jsonWriteFile = fullfile(writeDir, 'ieeg', sprintf('%s_ieeg.json', fname_out));
-           copyfile(jsonReadFile, jsonWriteFile)
-           fprintf('[%s] Copying over ieeg json file: %s\n', mfilename, jsonWriteFile); 
-        
-           % Copy over the events.tsv file
-           eventsReadFile = fullfile(sessionDir, 'ieeg', sprintf('%s_events.tsv', fname_in));
-           eventsWriteFile = fullfile(writeDir, 'ieeg', sprintf('%s_events.tsv', fname_out));
-           copyfile(eventsReadFile, eventsWriteFile)
-           fprintf('[%s] Copying over events file: %s\n', mfilename, eventsWriteFile); 
-          
+           % Update the description and save out the data 
+           [fname_out] = bidsEcogWriteFiles(writePath, subject, session, task, runnum, 'broadband', ...
+                data_bb, channels, events, ieeg_json, hdr);         
 
 %% DIAGNOSTICS: Inspect the broadband time courses
            if savePlot
                
-               figSaveDir = fullfile(writeDir, 'figures');
+               figSaveDir = fullfile(writePath, sprintf('sub-%s', subject), sprintf('ses-%s', session), 'figures');
                if ~exist(figSaveDir, 'dir')
                     mkdir(figSaveDir); fprintf('[%s]: Creating a figure directory for sub-%s, ses-%s\n', mfilename, subject, session); 
                end    

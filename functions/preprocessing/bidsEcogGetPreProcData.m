@@ -1,5 +1,5 @@
 
-function [ts, channels, events] = bidsEcogGetPreprocData(dataPath, subject, sessions, tasks, runnums)
+function [ts, channels, events] = bidsEcogGetPreprocData(dataPath, subject, sessions, tasks, runnums, description)
 
 % get timeseries, channels, events, concatenated for subset of tasks
 % should get timeseries, events and channel info for a subset of
@@ -12,18 +12,20 @@ function [ts, channels, events] = bidsEcogGetPreprocData(dataPath, subject, sess
 for ii = 1:length(sessions)
 
     % bidsSpecifyData
-    [session, tasks, runnum] = bidsSpecifyData(projectDir, subject, sessions{ii}, tasks);
+    [session, tasks, runnums] = bidsSpecifyData(dataPath, subject, sessions{ii}, tasks, runnums);
     
-    % get time series
-    [ts, info] = bidsGetPreprocData(dataPath, dataStr, tasks, runnum);
+    for ii = 1:length(tasks)
+        for jj = 1:length(runnums{ii})
+            
+            
+            [data, channels, events] = bidsEcogReadFiles(dataPath, subject, session, tasks{ii}, runnums{ii}{jj}, description);
+            
+
+        end
+    end
+
     
-    % get channels and events
-    
-    
-%         dataFiles   = dir(fullfile(dataDir,sprintf('sub-%s_ses-%s_task-*.eeg',sub_label, ses_label)));
-%     eventFiles  = dir(fullfile(dataDir,sprintf('sub-%s_ses-%s_task-*events.tsv',sub_label, ses_label)));
-%     chanFiles   = dir(fullfile(dataDir,sprintf('sub-%s_ses-%s_task-*channels.tsv',sub_label, ses_label)));
-% 
+     
 %     % Pre-allocate list of runs to be concatenated 
 %     cfg.dataset = [];
 %     samplesToAdd = 0;

@@ -97,74 +97,33 @@ for ii = 1:length(sessions)
     [session, tasks, runnums] = bidsSpecifyData(projectDir, subject, sessions{ii}, tasks, runnums);
     fprintf('[%s] Starting CAR for subject: %s session: %s\n', mfilename, subject, session);
     
-    % <writeDir>
-    writeDir = fullfile(projectDir, 'derivatives', outputFolder, sprintf('sub-%s',subject), sprintf('ses-%s',session));
-    if ~exist(writeDir, 'dir')
-        mkdir(writeDir); fprintf('[%s] Creating a CAR output folder for sub-%s, ses-%s\n', mfilename, subject, session); 
-    end    
-    
-    sessionDir = fullfile(projectDir, sprintf('sub-%s', subject), sprintf('ses-%s', session));
-    if ~exist(sessionDir, 'dir')
-        error('data directory not found: %s', sessionDir); 
-    end
-   
+    % define paths
+    writePath = fullfile(projectDir, 'derivatives', outputFolder);
+      
     for jj = 1:length(tasks)
        for kk = 1:length(runnums{jj})
            
-           fprintf('[%s] Task = %s, Run = %s \n', mfilename, tasks{jj}, runnums{jj}{kk});
-
-           fname = sprintf('sub-%s_ses-%s_task-%s_run-%s', subject, session, tasks{jj}, runnums{jj}{kk});
-    
-           % Read in the data file
-           dataReadFile = fullfile(sessionDir, 'ieeg', sprintf('%s_ieeg.eeg', fname));
-           if ~exist(dataReadFile, 'file'), error('data file not found: %s', dataReadFile); end
-           fprintf('[%s] Reading in data file: %s\n', mfilename, dataReadFile); 
-           hdr = ft_read_header(dataReadFile);
-           data = ft_read_data(dataReadFile);
-           
-           % Read in the json file:   
-           jsonReadFile = fullfile(sessionDir, 'ieeg', sprintf('%s_ieeg.json', fname));
-           if ~exist(jsonReadFile, 'file'), error('data file not found: %s', dataReadFile); end
-           fprintf('[%s] Reading in ieeg json file: %s\n', mfilename, jsonReadFile); 
-           ieeg_json = jsonread(jsonReadFile);
-           
-           % Read in the channels file
-           chanFile = fullfile(sessionDir, 'ieeg', sprintf('%s_channels.tsv', fname));
-           if ~exist(chanFile, 'file'), error('channels file not found: %s', chanFile); end
-           fprintf('[%s] Reading in channels file: %s\n', mfilename, chanFile); 
-           channels   = readtable(chanFile, 'FileType', 'text');
-           
+           task = tasks{jj};
+           runnum = runnums{jj}{kk};
+           fprintf('[%s] Task = %s, Run = %s \n', mfilename, task, runnum);
+                     
+           [data, channels, events, ieeg_json, hdr] = bidsEcogReadFiles(projectDir, subject, session, task, runnum);
+                  
            % Apply CAR
            [data_reref, channels_reref, group_indices, group_names] = ecog_performCAR(data, channels);           
           
-           % Save out the rereferenced data to the derivatives folder
-           dataWriteFile = fullfile(writeDir, 'ieeg', sprintf('%s_desc-reref_ieeg.eeg', fname));
-           fprintf('[%s] Writing new data file: %s\n', mfilename, dataWriteFile); 
-           ft_write_data(dataWriteFile, data_reref, 'header', hdr, 'dataformat', 'brainvision_eeg');
-           
-           % In the ieeg.json file, update the iEEGreference field with a
-           % description of the common average procedure:
+           % In the ieeg.json file, update the iEEGreference field
            ieeg_json.iEEGReference = 'A common average reference (CAR) was computed separately for each group of good channels and regressed out of each channel.';
-           jsonWriteFile = fullfile(writeDir, 'ieeg', sprintf('%s_desc-reref_ieeg.json', fname));
-           fprintf('[%s] Writing new ieeg json file: %s\n', mfilename, jsonWriteFile); 
-           json_options.indent = '    '; 
-           jsonwrite(jsonWriteFile,ieeg_json, json_options)
-           
-           % Save out the rereferenced channels file to the derivatives folder
-           chanWriteFile = fullfile(writeDir, 'ieeg', sprintf('%s_desc-reref_channels.tsv', fname));
-           fprintf('[%s] Writing new channels file: %s\n', mfilename, chanWriteFile); 
-           writetable(channels_reref,chanWriteFile,'FileType','text','Delimiter','\t');
-           
-           % Copy over the events.tsv file
-           eventsReadFile = fullfile(sessionDir, 'ieeg', sprintf('%s_events.tsv', fname));
-           eventsWriteFile = fullfile(writeDir, 'ieeg', sprintf('%s_desc-reref_events.tsv', fname));
-           copyfile(eventsReadFile, eventsWriteFile)
-           fprintf('[%s] Copying over events file: %s\n', mfilename, eventsWriteFile); 
+          
+           % Update the description and save out the data 
+           [fname_out] = bidsEcogWriteFiles(writePath, subject, session, task, runnum, 'reref', ...
+                data_reref, channels_reref, events, ieeg_json, hdr);         
 
 %% DIAGNOSTICS: Look at the effect of CAR
            if savePlot
                
-               figSaveDir = fullfile(writeDir, 'figures');
+               figSaveDir = fullfile(writePath, sprintf('sub-%s', subject), sprintf('ses-%s', session), 'figures');
+
                if ~exist(figSaveDir, 'dir')
                     mkdir(figSaveDir); fprintf('[%s]: Creating a figure directory for sub-%s, ses-%s\n', mfilename, subject, session); 
                end    
@@ -212,7 +171,7 @@ for ii = 1:length(sessions)
                        title(channels.name(channel_plot));
                         
                        % Generate a name for the figure
-                       figureName = fullfile(figSaveDir,sprintf('%s_desc-reref_%s',fname, group_names{ee}));
+                       figureName = fullfile(figSaveDir,sprintf('%s_desc-reref_%s',fname_out, group_names{ee}));
                        saveas(gcf, figureName, 'png');
                    end
                end
