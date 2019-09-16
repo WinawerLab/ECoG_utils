@@ -1,4 +1,4 @@
-function [broadband, methodstr, bands] = ecog_extractBroadband(x, srate, method, bands)
+function [broadband, methodstr, bands] = ecog_extractBroadband(x, srate, method, bandopts)
 % Compute time varying broadband envelope of a time series
 % broadband = extractBroadband(x, srate, method, bands)
 %
@@ -8,11 +8,11 @@ function [broadband, methodstr, bands] = ecog_extractBroadband(x, srate, method,
 %   srate:  sample rate (Hz) [default = 1000]
 %
 %   method: a function handle that specifies the method for computing 
-%           broadband that takes as input band-passfiltered data (bp) 
+%           broadband that takes as input bandpass filtered data (bp) 
 %           of dimensions (number of bands x time x n). 
 %           [default: @(bp) geomean(abs(hilbert(bp)).^2)]
 %            
-%   bands:  a matrix (number of bands x 2) or a cell array {[lb, ub], width}
+%   bandopts: a matrix (number of bands x 2) or a cell array {[lb, ub], width}
 %           [default = {[70 200], 20}]
 % 
 % Note: the bandpass-filtered data is stacked in the first dimension of bp,
@@ -32,39 +32,41 @@ function [broadband, methodstr, bands] = ecog_extractBroadband(x, srate, method,
 %   data = randn(10000,1);  
 %   srate = 1000;
 %   method = @(bp) geomean(abs(hilbert(bp)).^2);
-%   bands  = {[60 200], 35};
+%   bandopts  = {[60 200], 35};
 %   [broadband1, methodstr1] = ecog_extractBroadband(data);
-%   [broadband2, methodstr2] = ecog_extractBroadband(data, [], [], bands);
+%   [broadband2, methodstr2] = ecog_extractBroadband(data, [], [], bandopts);
 %   figure, 
 %   subplot(2,1,1); plot(1:length(data), data)
 %   subplot(2,1,2); plot(1:length(data), broadband1, 1:length(data), broadband2);
 % 
 %   Example 3: use a single band and adapt method accordingly:
 %   data = randn(10000,1);  
-%   bands  = {[60 200], 140};
+%   bandopts  = {[60 200], 140};
 %   method = @(bp) abs(hilbert(bp)).^2;
-%   [broadband, methodstr] = ecog_extractBroadband(data, [], method, bands);
+%   [broadband, methodstr] = ecog_extractBroadband(data, [], method, bandopts);
 %   figure, 
 %   subplot(2,1,1); plot(1:length(data), data)
 %   subplot(2,1,2); plot(1:length(data), broadband);
 
-if ~exist('srate', 'var')  || isempty(srate),  srate = 1000; end
-if ~exist('bands', 'var')  || isempty(bands),  bands = {[60 200], 20}; end
-if ~exist('method', 'var') || isempty(method), method = @(bp)geomean(abs(hilbert(bp)).^2); end
+if ~exist('srate', 'var')    || isempty(srate),     srate = 1000; end
+if ~exist('bandopts', 'var') || isempty(bandopts),  bandopts = {[60 200], 20}; end
+if ~exist('method', 'var')   || isempty(method),    method = @(bp)geomean(abs(hilbert(bp)).^2); end
 
 % format the bands input
-if isa(bands, 'cell')
+if isa(bandopts, 'cell')
     
     % Entire range for broadband
-    band_rg  = bands{1}; 
+    band_rg  = bandopts{1}; 
     
     % Bin width 
-    band_w   = bands{2}; 
+    band_w   = bandopts{2}; 
 
     % All bins
     lb       = band_rg(1):band_w:band_rg(2)-band_w;
     ub       = lb+band_w;
     bands   = [lb; ub]';
+else
+    bands = bandopts;
 end
     
 % band pass filter each sub-band
