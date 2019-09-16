@@ -531,10 +531,10 @@ for a = 1:length(specs.atlasNames)
             end
     end
            
-    %if exist('fig','var')
+    if exist('fig','var')
         % Set view parameters
         set_view(gcf)
-    %end
+    end
 end
 
 % Print to window how many maps were found, and make a count per area (across hemispheres)

@@ -1,5 +1,7 @@
 function [data, channels, events, ieeg_json, hdr] = bidsEcogReadFiles(dataPath, subject, session, task, runnum, description)
 
+% TO DO add description, what to with less inputs
+
 % <outputFolder>
 if ~exist('description', 'var')
     description = [];

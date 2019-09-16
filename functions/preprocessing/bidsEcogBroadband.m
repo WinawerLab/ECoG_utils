@@ -173,10 +173,10 @@ for ii = 1:length(sessions)
            % BANDS, METHODS, BANDWIDTH
            channels.bb_method = repmat({'n/a'}, [height(channels),1]);
            channels.bb_bandwidth = repmat({'n/a'}, [height(channels),1]);
-           channels.bb_bands = repmat({'n/a'}, [height(channels),1]);
+           %channels.bb_bands = repmat({'n/a'}, [height(channels),1]);
            channels.bb_method(chan_index) = {methodstr};
            channels.bb_bandwidth(chan_index) = {diff(bandsused(1,:))};
-           channels.bb_bands(chan_index) = {mat2str(bandsused)};
+           %channels.bb_bands(chan_index) = {mat2str(bandsused)};
            
            % Update the description and save out the data 
            [fname_out] = bidsEcogWriteFiles(writePath, subject, session, task, runnum, 'broadband', ...
