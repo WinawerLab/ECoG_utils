@@ -160,9 +160,7 @@ for ii = 1:length(sessions)
            % update units
            % UNITS (heuristic)
            if contains(methodstr, '.^2')
-               unitName = 'broadbandpower';
-           else
-               unitName = 'broadbandamplitude';
+               unitName = 'uV^2';
            end
            channels.units(chan_index) = {unitName};
            % LOW_CUTOFF 
