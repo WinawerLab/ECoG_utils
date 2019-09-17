@@ -1,6 +1,6 @@
 function [broadband, methodstr, bands] = ecog_extractBroadband(x, srate, method, bandopts)
 % Compute time varying broadband envelope of a time series
-% broadband = extractBroadband(x, srate, method, bands)
+% broadband = ecog_extractBroadband(x, srate, method, bandsopts)
 %
 % Inputs
 %   x:      data (time x n) (n is number of channels or epochs)
@@ -8,18 +8,15 @@ function [broadband, methodstr, bands] = ecog_extractBroadband(x, srate, method,
 %   srate:  sample rate (Hz) [default = 1000]
 %
 %   method: a function handle that specifies the method for computing 
-%           broadband that takes as input bandpass filtered data (bp) 
-%           of dimensions (number of bands x time x n). 
-%           [default: @(bp) geomean(abs(hilbert(bp)).^2)]
+%           broadband that takes as input bandpass filtered data (bp)  
+%           of dimensions (time x n x number of bands). 
+%           [default: @(bp,banddim) geomean(abs(hilbert(bp)).^2,banddim)]
 %            
 %   bandopts: a matrix (number of bands x 2) or a cell array {[lb, ub], width}
 %           [default = {[70 200], 20}]
 % 
-% Note: the bandpass-filtered data is stacked in the first dimension of bp,
-% and the mean (if specified in the function handle) is taken over that
-% dimension. If filtering a single band, the method function handle should
-% not include an averaging step, or should explicitly specify that the mean
-% is to be taken over the first, singleton dimension; see Example 3 below.
+% Note: If filtering a single band, the averaging step and therefore the
+% banddim input argument can be eliminated (see Example 4 below).
 %
 % Example 1: default settings:
 %   data = randn(10000,1);  
@@ -31,15 +28,25 @@ function [broadband, methodstr, bands] = ecog_extractBroadband(x, srate, method,
 % Example 2: compare different bandwidths:
 %   data = randn(10000,1);  
 %   srate = 1000;
-%   method = @(bp) geomean(abs(hilbert(bp)).^2);
 %   bandopts  = {[60 200], 35};
-%   [broadband1, methodstr1] = ecog_extractBroadband(data);
-%   [broadband2, methodstr2] = ecog_extractBroadband(data, [], [], bandopts);
+%   [broadband1] = ecog_extractBroadband(data);
+%   [broadband2] = ecog_extractBroadband(data, [], [], bandopts);
 %   figure, 
 %   subplot(2,1,1); plot(1:length(data), data)
 %   subplot(2,1,2); plot(1:length(data), broadband1, 1:length(data), broadband2);
+%
+% Example 3: compare different methods:
+%   data = randn(10000,1);  
+%   srate = 1000;
+%   method = @(bp,banddim) geomean(abs(hilbert(bp)),banddim); % take amplitude instead of power
+%   [broadband1, methodstr1] = ecog_extractBroadband(data);
+%   [broadband2, methodstr2] = ecog_extractBroadband(data, [], method);
+%   figure, 
+%   subplot(2,1,1); plot(1:length(data), data); 
+%   subplot(2,1,2); plot(1:length(data), broadband1, 1:length(data), broadband2);
+%   legend(methodstr1, methodstr2);
 % 
-%   Example 3: use a single band and adapt method accordingly:
+% Example 4: use a single band and adapt method accordingly:
 %   data = randn(10000,1);  
 %   bandopts  = {[60 200], 140};
 %   method = @(bp) abs(hilbert(bp)).^2;
@@ -50,7 +57,7 @@ function [broadband, methodstr, bands] = ecog_extractBroadband(x, srate, method,
 
 if ~exist('srate', 'var')    || isempty(srate),     srate = 1000; end
 if ~exist('bandopts', 'var') || isempty(bandopts),  bandopts = {[60 200], 20}; end
-if ~exist('method', 'var')   || isempty(method),    method = @(bp)geomean(abs(hilbert(bp)).^2); end
+if ~exist('method', 'var')   || isempty(method),    method = @(bp,banddim)geomean(abs(hilbert(bp)).^2,banddim); end
 
 % format the bands input
 if isa(bandopts, 'cell')
@@ -70,12 +77,11 @@ else
 end
     
 % band pass filter each sub-band
-% the first dimension represents the multiple bands
-bp  = zeros([size(bands,1) size(x)], 'double');
+bp  = zeros([size(x) size(bands,1)], 'double');
 
 for ii = 1:size(bands,1)
-    fprintf('[%s] Filtering signal in band %d-%d\n',mfilename,bands(ii,1),bands(ii,2));
-    bp(ii,:,:) = butterpass_eeglabdata_nyu(x,bands(ii,:),srate); 
+    fprintf('[%s] Filtering signal in band %d-%d\n', mfilename, bands(ii,1),bands(ii,2));
+    bp(:,:,ii) = butterpass_eeglabdata_nyu(x,bands(ii,:),srate); 
     % divide power by band width?
     %tmp = butterpass_eeglabdata_nyu(x,bands(ii,:),srate);
     %tmp = tmp / diff(bands(ii,:)); 
@@ -83,22 +89,24 @@ for ii = 1:size(bands,1)
 end
 
 % if only one time series, then eliminate singleton dimension
-% if size(bp, 2) == 1, bp = squeeze(bp); end
-
-%banddim = length(size(bp));
-
-%whiten = @(x) (x - mean(x(:)))./ diff(prctile(x, [.25 .75]));
-%whiten = @(x) x;
+if size(bp, 2) == 1, bp = squeeze(bp); end
 
 fprintf('[%s] Computing broadband... \n', mfilename);
 
-broadband = method(bp);
 methodstr = func2str(method);
 
-% if only one band is used, eliminate singleton dimension
-if size(broadband, 1) == 1, broadband = squeeze(broadband); end
+if ~contains(methodstr, 'banddim')
+    broadband = method(bp);
+else
+    banddim = length(size(bp));
+    broadband = method(bp,banddim);
+end
 
 % old method specification:
+%
+%whiten = @(x) (x - mean(x(:)))./ diff(prctile(x, [.25 .75]));
+%whiten = @(x) x;
+%
 %
 % switch method
 %     case {1}

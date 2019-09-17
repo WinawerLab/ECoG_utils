@@ -100,7 +100,7 @@ end
 
 fprintf('[%s] Performing Common Average reference...\n',mfilename);
 
-[signal, INX, INXNames] = ecog_performCAR(ftdata.trial{1}, channels);
+[signal, ~, INX, INXNames] = ecog_performCAR(ftdata.trial{1}, channels);
 
 % DIAGNOSTICS: Look at the effect of CAR
 switch specs.make_plots
@@ -147,6 +147,7 @@ end
 %% [4] Compute time-varying broadband 
 
 [broadband, methodstr] = ecog_extractBroadband(signal', ftdata.fsample, specs.bb_method, specs.bb_bands);
+broadband = broadband';
 
 % Create a data structure to save
 data = struct();
@@ -259,15 +260,15 @@ end
  
 saveName = fullfile(saveDir, sprintf('sub-%s_ses-%s_epoched.mat', sub_label, ses_label));
 
-fprintf('[%s] Saving preprocessed epoched data...\n',mfilename);
+fprintf('[%s] Saving preprocessed epoched data to %s...\n',mfilename, saveName);
 if exist(saveName,'file')
-    fprintf('[%s] Warning: epoched data file already exists!\n',mfilename);
+    warning('[%s] Epoched data file already exists! Saving as separate file with timestamp. ',mfilename);
     switch specs.overwrite
         case 'yes'
             fprintf('[%s] Overwriting...\n',mfilename);
         case 'no'
-            fprintf('[%s] Saving as separate file with timestamp...\n',mfilename);
             saveName = fullfile(saveDir, sprintf('sub-%s_ses-%s_epoched_%s', sub_label, ses_label, datestr(now,30)));
+            fprintf('[%s] Saving preprocessed epoched data to %s...\n',mfilename, saveName);
     end
 end
 
