@@ -158,25 +158,31 @@ for ii = 1:length(sessions)
            broadband = broadband'; % transpose back to channels x time
            data_bb(chan_index,:) = broadband;
                        
-           % Add columns to channels file about broadband bands and method,
-           % update units
+           % Update channels with info about broadband bands and method.
+           
+           % Update units
            % UNITS (heuristic)
            if contains(methodstr, '.^2')
                unitName = 'uV^2';
            end
            channels.units(chan_index) = {unitName};
-           % LOW_CUTOFF 
+           
+           % Update cut-offs
            if isnumeric(channels.low_cutoff), channels.low_cutoff = num2cell(channels.low_cutoff);end
            if isnumeric(channels.high_cutoff), channels.high_cutoff = num2cell(channels.high_cutoff);end
            channels.low_cutoff(chan_index) = {max(bandsused(:))};
            channels.high_cutoff(chan_index) = {min(bandsused(:))};
-           % BANDS, METHODS, BANDWIDTH
+           
+           % Update method and bandwidth
            channels.bb_method = repmat({'n/a'}, [height(channels),1]);
            channels.bb_bandwidth = repmat({'n/a'}, [height(channels),1]);
-           %channels.bb_bands = repmat({'n/a'}, [height(channels),1]);
+           %channels.bb_bands = repmat({'n/a'}, [height(channels),1]); %
            channels.bb_method(chan_index) = {methodstr};
            channels.bb_bandwidth(chan_index) = {diff(bandsused(1,:))};
            %channels.bb_bands(chan_index) = {mat2str(bandsused)};
+           %Note: the bb_bands column is is commented out because this
+           %format creates problems when reading in the table again using
+           %tableread.m; might work with different format (e.g. w/o spaces)
            
            % Update the description and save out the data 
            [fname_out] = bidsEcogWriteFiles(writePath, subject, session, task, runnum, 'broadband', ...

@@ -5,7 +5,6 @@ function [data, channels, events, ieeg_json, hdr] = bidsEcogReadFiles(dataPath, 
 % [data, channels, events, ieeg_json, hdr] = bidsEcogReadFiles(dataPath, ...
 % subject, session, task, runnum, [description])
 %
-%
 % Input
 %     dataPath:         path where the BIDS project lies (string)
 %     subject:          BIDS subject name (string, all lower case)
