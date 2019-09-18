@@ -1,0 +1,64 @@
+function [epochs_normalized] = ecog_normalizeEpochs(epochs, t, baselineTime, description, idx)
+% Applies a normalization to the epoched time courses based on a specified
+% time interval within the epoch. The normalization can be either a
+% conversion to percent signal change (appropriate for broadband) or a
+% simple subtraction of the baseline within the epoch itself (appropriate
+% for ERPs).
+%
+% ecog_convertToPercentSignal(epochs, t, baselineTime, [calc], [runidx])
+%
+% Input
+%   epochs:             3D array containing epoched time series (channels x
+%                       samples x epochs)
+%   t:                  1D array of length samples indicating time relative 
+%                       to stimulus onset (in seconds)
+%   baselineTime:       time window over which to compute the baseline
+%                       signal (in seconds), e.g [-0.2 1];
+%   normDescription:    string describing the normalization procedure, 
+%                       which should be one of the following:
+%                           - percentsignalchange (default)
+%                           - subtractwithintrial 
+%   idx:                vector of length epochs indicating subgroups for
+%                       which to apply normalization separately (e.g.,
+%                       individual runs).
+%                           default: vector of ones (no subgroups).
+%
+% Output
+%   epochs_normalized:  3D array containing normalized epoched time series
+%                       (channels x samples x epochs)
+% Example
+%
+% See also ecog_makeEpochs.m
+
+if ~exist('calc', 'var') || isempty(description)
+    description = 'percentsignalchange';
+end
+
+if ~exist('runidx', 'var') || isempty(idx)
+    idx = ones(size(epochs,3),1); 
+end
+
+% define the baseline window
+base_range = (t >= baselineTime(1) & t < baselineTime(2));
+
+% determine how many runs we need to normalize for
+runs = unique(idx);
+% initialize
+epochs_normalized = epochs;
+
+% normalize
+for ii = 1:length(runs)
+    idx = (idx == runs(ii));
+    
+    switch description
+        case 'percentsignalchange'
+            m_base     = squeeze(median(mean(epochs(:, base_range, idx), 2), 3));
+            epochs_normalized(:,:,idx) = epochs(:,:,idx)./m_base-1;
+        case 'subtractwithintrial'
+            epochs_normalized(:,:,idx) = epochs(:,:,idx) - mean(epochs(:,base_range,idx),2);
+        otherwise
+            error('unknown normalization calculation')
+    end
+end
+end
+
