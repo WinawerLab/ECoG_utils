@@ -1,11 +1,11 @@
 
-function [data, channels, events, json] = bidsEcogGetPreprocData(dataPath, subject, sessions, tasks, runnums, description)
+function [data, channels, events] = bidsEcogGetPreprocData(dataPath, subject, sessions, tasks, runnums, description)
 
 % get timeseries, channels, events, concatenated for subset of tasks
 % should get timeseries, events and channel info for a subset of
 % tasks and runnums(optional) for a given data folder.
     
-% [data, channels, events] = bidsEcogGetPreProcData(dataPath, subject, [sessions], [tasks], [runnums])
+% [data, channels, events, srate] = bidsEcogGetPreProcData(dataPath, subject, [sessions], [tasks], [runnums])
 
 [sessions] = bidsSpecifySessions(dataPath, subject, sessions);
 
@@ -14,7 +14,8 @@ allData = [];
 allEvents = [];
 samplesToAdd = 0;
 secondsToAdd = 0;
-    
+
+runCount = 0;
 for ii = 1:length(sessions)
 
     % bidsSpecifyData
@@ -29,21 +30,25 @@ for ii = 1:length(sessions)
         for kk = 1:length(runnums{jj})
             
             runnum = runnums{jj}{kk};
-
-            [data, channels, events, json, hdr] = bidsEcogReadFiles(dataPath, subject, session, task, runnum, description);
+            [data, channels, events, ~, hdr] = bidsEcogReadFiles(dataPath, subject, session, task, runnum, description);
             
+            runCount = runCount + 1;
             % Run various checks:
             
             % Check if there are trial_names, if not, add them
-            if ~isfield(summary(events), 'trial_name')
-                fprintf('[%s] Event lack trial names - adding them now .\n',mfilename);
+            if ~isfield(events, 'trial_name')
+                fprintf('[%s] Events lack trial names - adding them now .\n',mfilename);
                 events = bair_addTrialNamesToEventsTable(events);
             end
             
-            if ~iscell(events.stim_file_index)
-                events.stim_file_index = num2cell(events.stim_file_index);
+%             if ~iscell(events.stim_file_index)
+%                 events.stim_file_index = num2cell(events.stim_file_index);
+%             end
+            
+            if ~isfield(events,'event_sample')
+                events.event_sample = round(events.onset*hdr.Fs);
             end
- 
+            
             if ~isfield(events, 'ISI')
                 events.ISI = zeros(height(events),1);
             end
@@ -51,18 +56,15 @@ for ii = 1:length(sessions)
             % Add task and run indices to the events file
             events.run_name = repmat({runnum}, [height(events),1]);
             events.session_name = repmat({session}, [height(events),1]);
-            
-            % Concatenate tasks and runs - add task and run indices to events 
 
             % Concatenate data and events; update onsets 
-            if jj == 1, allEvents = events; end
-            if jj > 1
-                if isfield(summary(events),'event_sample')
-                    events.event_sample = events.event_sample + samplesToAdd;
-                    events.onset = events.event_sample/hdr.Fs;
-                else
-                    events.onset = events.onset + secondsToAdd;
-                end
+            if runCount == 1 
+                allEvents = events; 
+                allData = data; 
+            end
+            if runCount > 1
+                events.event_sample = events.event_sample + samplesToAdd;
+                events.onset = events.onset + secondsToAdd;
                 allEvents = [allEvents; events];
                 allData = cat(2,allData,data);
             end
@@ -80,10 +82,15 @@ for ii = 1:length(sessions)
     if ii == 1, previousChannels = channels; end
     if ii > 1
         if isfield(summary(channels), 'status')
-            assert(isequal(channels.status, previousChannels.status))
-%                 % todo: if this assertion fails, meaning that a visual
-%                 % electrode is bad in one session but not another, include
-%                 % only the good session, e.g. put one set of trials to nans
+            if ~isequal(channels.status, previousChannels.status)  
+                 % This means one or more electrodes are bad in one session
+                 % but not another. For now, label the electrode as good
+                 % across all sessions:
+                 channels.status(~strcmp(channels.status, previousChannels.status)) = {'good'};
+                 % and assume bad channels/epochs will removed at later
+                 % stages.
+                 % TO DO: find some smarter way to deal with this problem
+            end
         end
     end
 end

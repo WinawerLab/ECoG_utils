@@ -31,7 +31,7 @@ if hasVisualElecs
         end
     end
     
-    viselec_benson = []; visarea_benson = [];%visecc_benson = []; visang_benson = []; vissig_benson = [];
+    viselec_benson = []; 
     if ~isempty(visualelectrodes.benson14_varea)
         viselec_benson = [viselec_benson visualelectrodes.benson14_varea.elec_labels];
     end
@@ -45,8 +45,8 @@ if hasVisualElecs
         %name{ii} = viselec{ii};
         wangInx = strmatch(viselec{ii}, viselec_wang, 'exact');
         if ~isempty(wangInx)
-            wang{elInx} = visarea_wang{wangInx};
-            matched_node(elInx) = matchednodes_wang(wangInx);           
+            wang{elInx} = visarea_wang{wangInx(1)};
+            matched_node(elInx) = matchednodes_wang(wangInx(1));           
         end
         bensonInx = strmatch(viselec{ii}, viselec_benson, 'exact');
         if ~isempty(bensonInx)

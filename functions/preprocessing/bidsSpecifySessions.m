@@ -19,12 +19,12 @@ function [sessions] = bidsSpecifySessions(projectDir, subject, sessions)
 
 % <projectDir>
 if ~exist('projectDir', 'var') || isempty(projectDir)
-    error('projectDir not defined');
+    error('projectDir not defined'); 
 end    
 
 % <subject>
 if ~exist('subject', 'var') || isempty(subject)
-    error('subject not defined');
+    error('subject not defined'); 
 end
 
 subjectDir = fullfile(projectDir, sprintf('sub-%s', subject));

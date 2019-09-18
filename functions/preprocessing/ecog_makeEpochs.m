@@ -12,8 +12,8 @@ function [epochs, t] = ecog_makeEpochs(raw_ts, onsets, epoch_time, fs)
 %   fs:           sampling rate (Hz)
 %
 % Outputs:
-%   ts:           3D array containing epoched time series (samples by
-%                   epoch x channel)
+%   epochs:       3D array containing epoched time series (channels x
+%                   samples x epochs)                   
 %   t:            1D array of epoch time points relative to stimulus onset 
 %                   e.g. -0.5 to 1 (in seconds)
 
