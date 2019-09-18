@@ -153,7 +153,9 @@ for ii = 1:length(sessions)
            chan_index = find(contains(lower(channels.type), {'ecog', 'seeg'}));
            fprintf('[%s] Found %d ecog and seeg channels, applying broadband to these channels only. \n', mfilename, length(chan_index)); 
            data_bb = data;
-           [broadband, methodstr, bandsused] = ecog_extractBroadband(data(chan_index,:), hdr.Fs, method, bands);           
+           temp_data = data(chan_index,:)'; % inputs to ecog_extractBroadband should be time x channels
+           [broadband, methodstr, bandsused] = ecog_extractBroadband(temp_data, hdr.Fs, method, bands);           
+           broadband = broadband'; % transpose back to channels x time
            data_bb(chan_index,:) = broadband;
                        
            % Add columns to channels file about broadband bands and method,
