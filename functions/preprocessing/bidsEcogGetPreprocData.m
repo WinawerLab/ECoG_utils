@@ -36,7 +36,7 @@ for ii = 1:length(sessions)
             % Run various checks:
             
             % Check if there are trial_names, if not, add them
-            if ~isfield(events, 'trial_name')
+            if ~isfield(summary(events), 'trial_name')
                 fprintf('[%s] Events lack trial names - adding them now .\n',mfilename);
                 events = bair_addTrialNamesToEventsTable(events);
             end
@@ -45,11 +45,11 @@ for ii = 1:length(sessions)
 %                 events.stim_file_index = num2cell(events.stim_file_index);
 %             end
             
-            if ~isfield(events,'event_sample')
+            if ~isfield(summary(events),'event_sample')
                 events.event_sample = round(events.onset*hdr.Fs);
             end
             
-            if ~isfield(events, 'ISI')
+            if ~isfield(summary(events), 'ISI')
                 events.ISI = zeros(height(events),1);
             end
             
