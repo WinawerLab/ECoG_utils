@@ -1,4 +1,4 @@
-function [out] = electrode_to_nearest_node(specs, varargin)
+function [out] = electrode_to_nearest_node(specs, BIDSformatted)
 
 % This function matches a list of electrode locations in an ECoG patient to
 % the nearest node in their T1s freesurfer pial surface reconstruction,
@@ -38,7 +38,7 @@ function [out] = electrode_to_nearest_node(specs, varargin)
 % specs.thresh      = maximum allowed distance between electrode and node,
 %                     in mm (if empty, thresh is infinite, meaning that the
 %                     electrode can be infinitely far) - default empty
-%
+% BIDSformatted     = flag to indicate if the data is in BIDS
 %
 % OUTPUT: a struct containing the following fields for two probablistic
 % atlases of visual brain regions (wang2015 and benson14)
@@ -70,14 +70,14 @@ function [out] = electrode_to_nearest_node(specs, varargin)
 
 if ~isfield(specs, 'dataDir') || isempty(specs.dataDir)
     rootDir = fullfile(filesep, 'Volumes', 'server', 'Projects', 'BAIR', 'Data');
-    if contains(specs.pID, {'som', 'umcu', 'ny'})
-        % this is a BIDS formatted dataset; look in the BIDS folder
-        specs.dataDir = fullfile(rootDir, 'BIDS'); 
-        BIDSformatted = 1;
-    else
-        % this is not a BIDS formatted dataset; look in the Raw folder 
-        specs.dataDir = fullfile(rootDir, 'Raw', 'ECoG'); 
-        BIDSformatted = 0;
+    if ~exist('BIDSformatted', 'var')
+        if contains(specs.pID, {'som', 'umcu', 'ny'})
+            % this is a BIDS formatted dataset; look in the BIDS folder
+            BIDSformatted = 1;
+        else
+            % this is not a BIDS formatted dataset; look in the Raw folder 
+            BIDSformatted = 0;
+        end
     end
 end
 
@@ -133,15 +133,17 @@ end
 
 if BIDSformatted
     
+    specs.dataDir = fullfile(rootDir, 'BIDS'); 
+
     % Check which projectfolder this patient is located
     patientDir = fullfile(specs.dataDir, 'visual', sprintf('sub-%s', specs.pID));
-    if ~isdir(patientDir)
+    if ~isfolder(patientDir)
         patientDir = fullfile(specs.dataDir, 'motor', sprintf('sub-%s', specs.pID));
     end
-    if ~isdir(patientDir)
+    if ~isfolder(patientDir)
         patientDir = fullfile(specs.dataDir, 'tactilepilot', sprintf('sub-%s', specs.pID));
     end
-    if ~isdir(patientDir)
+    if ~isfolder(patientDir)
         fprintf('[%s] Could not find patient data folder. Please check paths. \n',mfilename);
         out = [];
         return
@@ -182,7 +184,7 @@ if BIDSformatted
             else
                 elec_xyz = [E.x E.y E.z];
             end
-            if contains(specs.pID,'umcuchaam')
+            if contains(specs.pID,{'umcuchaam', 'chaam'})
                 % subtract effect of cropping by freesurfer
                 elec_xyz(:,1) = elec_xyz(:,1)-3.4490;
                 elec_xyz(:,2) = elec_xyz(:,2)-34.6040;
@@ -191,7 +193,9 @@ if BIDSformatted
         end
     end
 
-else        
+else
+    
+    specs.dataDir = fullfile(rootDir, 'Raw', 'ECoG'); 
     patientDir = fullfile(specs.dataDir, specs.pID);
 
     % Check whether this patient is in the RAW BAIR directory, if not find it in SoM
