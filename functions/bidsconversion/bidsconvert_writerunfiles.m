@@ -1,5 +1,5 @@
 function bidsconvert_writerunfiles(dataWriteDir, stimWriteDir, sub_label, ses_label, task_label, run_label, ...
-    data, hdr, stimData, channel_table, trigger_onsets)
+    data, hdr, stimData, channel_table, trigger_onsets, segmentOnFlips)
 
 %% Create RUN-SPECIFIC files %%%%%%%%%%%%%%%%%%
 
@@ -10,7 +10,9 @@ function bidsconvert_writerunfiles(dataWriteDir, stimWriteDir, sub_label, ses_la
 %   - ieeg.json 
 %   - channels.tsv
 
-segmentOnFlips = 1;% Make this an input variable?
+if ~exist('segmentOnFlips', 'var') || isempty(segmentOnFlips)
+    segmentOnFlips = 1;
+end
 
 %% Big loop across runs
 
@@ -40,11 +42,6 @@ nDecimals = 4; % Specify temporal precision of time stamps in events files
 for ii = 1:nRuns
     
     stim0 = num_triggers_total+1;
-    
-    % Generate filename
-    fname = sprintf('sub-%s_ses-%s_task-%s_run-%s', ...
-            sub_label, ses_label, task_label{ii}, run_label{ii});
-    fprintf('[%s] Writing eeg, events, stimuli, json and channel files for %s \n', mfilename, fname);
     
     % Check the sensory domain; assume visual (for older datasets)
     if isfield(stimData(ii).params, 'sensoryDomain')
@@ -178,21 +175,19 @@ for ii = 1:nRuns
         event_sample = (onset_indices - run_start_inx);
     end
     
-    % Collect info for tsv file
+    % Collect info for events.tsv file
     events_table = stimData(ii).stimulus.tsv;
-    if ~isfield(events_table, 'ISI')
-        events_table.ISI = zeros(height(events_table),1);
-    end
     
     % Overwrite onset with onsets of triggers
     events_table.event_sample = event_sample;
     events_table.onset        = strtrim(cellstr(num2str(events_table.event_sample/hdr.Fs,['%.' num2str(nDecimals) 'f'])));
-        
-    % Update a number of other fields in events table
-    events_table.stim_file    = repmat([fname '.mat'], height(events_table), 1);
+    
+    % Update a number of other fields in events table:
+    
+    % Some formatting to facilitate concatenation of events files in analysis:
+    if ~isfield(summary(events_table), 'ISI'); events_table.ISI = zeros(height(events_table),1); end
     events_table.duration     = strtrim(cellstr(num2str(events_table.duration,['%.' num2str(nDecimals) 'f']))); 
     events_table.ISI          = strtrim(cellstr(num2str(events_table.ISI,['%.' num2str(nDecimals) 'f'])));    
-    
     % Add a task column to the events_table 
     events_table.task_name   = repmat(task_label{ii}, height(events_table), 1);
     
@@ -200,26 +195,37 @@ for ii = 1:nRuns
     ieeg_json.SamplingFrequency = hdr_thisrun.Fs;
     ieeg_json.RecordingDuration = round(hdr_thisrun.nSamples/hdr_thisrun.Fs,nDecimals);
   
-    % Write out new data file:    
+    %%  Write data, channel, json and events file:    
+    
+    % Generate a filename
+    fname = sprintf('sub-%s_ses-%s_task-%s_run-%s', ...
+            sub_label, ses_label, task_label{ii}, run_label{ii});
+    
+    fprintf('[%s] Writing bids files for %s \n', mfilename, fname);
+    
+    % Write data files:    
     data_fname = fullfile(dataWriteDir, sprintf('%s_ieeg', fname));
     ft_write_data(data_fname, data_thisrun, 'header', hdr_thisrun, 'dataformat', 'brainvision_eeg');
-   
-    % Write out events.tsv file: 
-    events_fname = fullfile(dataWriteDir, sprintf('%s_events.tsv', fname));
-    writetable(events_table, events_fname, 'FileType','text', 'Delimiter', '\t')
-    
-    % Write out stimulus file:
-    stimfile_thisrun = stimData(ii);
-    stimfile_fname = fullfile(stimWriteDir, sprintf('%s.mat', fname));
-    save(stimfile_fname,'-struct', 'stimfile_thisrun', '-v7.3')
-      
-    % Write out json_ieeg file:
+     
+    % Write json_ieeg file:
     jsonfile_fname = fullfile(dataWriteDir, sprintf('%s_ieeg.json', fname));    
     jsonwrite(jsonfile_fname,ieeg_json,json_options)
     
-    % Write out channels.tsv file:
+    % Write channels.tsv file:
     channels_fname = fullfile(dataWriteDir, sprintf('%s_channels.tsv', fname));    
     writetable(channel_table,channels_fname,'FileType','text','Delimiter','\t');
+    
+	% Write stimulus file:
+    stimfile_thisrun = stimData(ii);
+    stimfile_fname = fullfile(stimWriteDir, sprintf('%s.mat', fname));
+    save(stimfile_fname,'-struct', 'stimfile_thisrun', '-v7.3')
+    
+    % Update events table to point to the newly saved stimulus file:
+    events_table.stim_file = repmat([fname '.mat'], height(events_table), 1);
+    
+    % Write events.tsv file: 
+    events_fname = fullfile(dataWriteDir, sprintf('%s_events.tsv', fname));
+    writetable(events_table, events_fname, 'FileType','text', 'Delimiter', '\t')
     
 end
 
