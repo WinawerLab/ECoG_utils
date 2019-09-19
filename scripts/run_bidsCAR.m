@@ -1,18 +1,20 @@
+%% projectDir        
+projectDir = '/Volumes/server/Projects/BAIR/Data/BIDS/visual'; 
 
-
-%% Example 1
-% This example rereferences all the data for all sessions, tasks, and runs
-% found for this subject, and generates plots
-     projectDir        = '/Volumes/server/Projects/BAIR/Data/BIDS/visual'; 
-     subject           = 'beilen';
-     bidsEcogRereference(projectDir, subject)
-
-     
-%% Example 2
-% This example rereferences the raw data for all runs of a specific session 
-% and tasks, and does not generate any plots
-     projectDir        = '/Volumes/server/Projects/BAIR/Data/BIDS/visual'; 
-     subject           = 'som726';
-     session           = 'nyuecog03';
-     task              = 'prf'; 
-     bidsEcogRereference(projectDir, subject, session, task, [], [], 0);
+subjects = {'som648'; 
+            'som661'; 
+            'som674'; 
+            'som682'; 
+            'som692'; 
+            'som708'; 
+            'som709'; 
+            'som718'; 
+            'som723'; 
+            'som726';
+            'beilen'; 
+            'chaam'};
+    
+for ii = 1:length(subjects)
+    subject = subjects{ii};
+    bidsEcogRereference(projectDir, subject, [], [], [], [], 0);
+end

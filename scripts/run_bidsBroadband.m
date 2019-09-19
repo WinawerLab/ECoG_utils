@@ -20,9 +20,12 @@ subjects = {'som648';
     
 for ii = 1:length(subjects)
     subject = subjects{ii};
-    bidsEcogBroadband(projectDir, subject, [], [], [], bands);
+    bidsEcogBroadband(projectDir, subject, [], [], [], bands, [], [], [], [], 0);
 end
-     
+
+%function bidsEcogBroadband(projectDir, subject, sessions, tasks, runnums, ...
+%    bands, method, inputFolder, outputFolder, description, savePlot)
+
  
 %% UMCU patients - line noise at 50 hz
 
@@ -34,6 +37,6 @@ subjects = {'beilen';
         
 for ii = 1:length(subjects)
     subject = subjects{ii};
-    bidsEcogBroadband(projectDir, subject, [], [], [], bands);
+    bidsEcogBroadband(projectDir, subject, [], [], [], bands, [], [], [], [], 0);
 end
      
