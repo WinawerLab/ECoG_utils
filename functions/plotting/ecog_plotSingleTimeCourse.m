@@ -8,7 +8,7 @@ if nargin < 7 || isempty(yLim)
 end
 
 if nargin < 6 || isempty(yLabel)
-    yLabel= 'Broadband response';
+    yLabel = 'Broadband response';
 end
     
 if nargin < 5 || isempty(plotTitle)
@@ -61,7 +61,7 @@ set(get(get(l2,'Annotation'),'LegendInformation'),'IconDisplayStyle','off');
 %ylabel(yLabel);
 title(plotTitle);
 
-set(gca, 'fontsize', 18);
+set(gca, 'fontsize', 14);
  
 
 

@@ -9,7 +9,7 @@ function [epochs_normalized] = ecog_normalizeEpochs(epochs, t, baselineTime, des
 %
 % Input
 %   epochs:             3D array containing epoched time series (channels x
-%                       samples x epochs)
+%                       epochs x samples)
 %   t:                  1D array of length samples indicating time relative 
 %                       to stimulus onset (in seconds)
 %   baselineTime:       time window over which to compute the baseline
@@ -35,7 +35,7 @@ if ~exist('calc', 'var') || isempty(description)
 end
 
 if ~exist('runidx', 'var') || isempty(idx)
-    idx = ones(size(epochs,3),1); 
+    idx = ones(size(epochs,2),1); 
 end
 
 % define the baseline window
@@ -52,10 +52,10 @@ for ii = 1:length(runs)
     
     switch description
         case 'percentsignalchange'
-            m_base     = squeeze(median(mean(epochs(:, base_range, idx), 2), 3));
-            epochs_normalized(:,:,idx) = epochs(:,:,idx)./m_base-1;
+            m_base     = squeeze(nanmedian(nanmean(epochs(:, idx, base_range), 3), 2));
+            epochs_normalized(:,idx,:) = epochs(:,idx,:)./m_base-1;
         case 'subtractwithintrial'
-            epochs_normalized(:,:,idx) = epochs(:,:,idx) - mean(epochs(:,base_range,idx),2);
+            epochs_normalized(:,idx,:) = epochs(:,idx,:) - nanmean(epochs(:,idx, base_range),3);
         otherwise
             error('unknown normalization calculation')
     end

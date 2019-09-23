@@ -39,7 +39,7 @@ for iRun = 1:length(dataFiles)
          eventsTable.stim_file_index = num2cell(eventsTable.stim_file_index);
     end
         
-    if ~isfield(eventsTable, 'ISI')
+    if ~isfield(summary(eventsTable), 'ISI')
         eventsTable.ISI = zeros(height(eventsTable),1);
     end
         

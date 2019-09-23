@@ -10,8 +10,8 @@
 % Dataset specs
 project_name = 'visual';
 
-sub_label    = 'som648';
-ses_label   = {'nyuecog01'};
+%sub_label    = 'som648';
+%ses_label   = {'nyuecog01'};
 
 %sub_label   = 'som726'; 
 %ses_label   = {'nyuecog01','nyuecog02','nyuecog03'};
@@ -19,8 +19,8 @@ ses_label   = {'nyuecog01'};
 %sub_label   = 'umcuchaam'; 
 %ses_label   = {'UMCUECOGday03'};
 
-%sub_label   = 'umcubeilen'; 
-%ses_label   = {'UMCUECOGday03', 'UMCUECOGday06'};
+sub_label   = 'beilen'; 
+ses_label   = {'UMCUECOGday03', 'UMCUECOGday06'};
 
 % PREPROCESSING SPECS
 

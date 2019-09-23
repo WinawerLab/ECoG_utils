@@ -144,7 +144,7 @@ for d = 1:length(specs.dataTypes)
             case 'broadband'
                 % percent signal? (similar to 'relchange' in fieldtrip)
                 %elData = (elData - baseline) ./ baseline;
-                elData = (elData - mean(elData(trials.time<0,:),1)) ./ baseline;
+       %         elData = (elData - mean(elData(trials.time<0,:),1)) ./ baseline;
             case 'evoked'
                 % standard ERP approach(?)
                 %elData = (elData - baseline);
@@ -154,9 +154,9 @@ for d = 1:length(specs.dataTypes)
         % Select subset of trials to plot
         for jj = 1:length(trial_index)
             % Compute mean and standard error of the mean
-            mnToPlot(:,jj) = mean(elData(:,trial_index{jj}),2);
-            Llim(:,jj) = mnToPlot(:,jj)-(std(elData(:,trial_index{jj}),0,2)/sqrt(length(trial_index{jj})));
-            Ulim(:,jj) = mnToPlot(:,jj)+(std(elData(:,trial_index{jj}),0,2)/sqrt(length(trial_index{jj})));  
+            mnToPlot(:,jj) = nanmean(elData(:,trial_index{jj}),2);
+            Llim(:,jj) = mnToPlot(:,jj)-(nanstd(elData(:,trial_index{jj}),0,2)/sqrt(length(trial_index{jj})));
+            Ulim(:,jj) = mnToPlot(:,jj)+(nanstd(elData(:,trial_index{jj}),0,2)/sqrt(length(trial_index{jj})));  
         end
 
         % Smooth the data?
@@ -210,22 +210,24 @@ for d = 1:length(specs.dataTypes)
         end
         viselec_name = [];
         for atlas = {'wang2015_atlas','benson14_varea', 'wang15_mplbl'}
-            if ~isempty(trials.viselec)
-                if ~isempty(trials.viselec.(atlas{:}))
-                    %viselec = contains(trials.viselec.(atlas{:}).elec_labels, electrodeName);
-                    viselec = find(strcmp(electrodeName,trials.viselec.(atlas{:}).elec_labels));
-                    if any(viselec)
-                        %viselec_name = [viselec_name atlas{:}(1:8) ':' trials.viselec.(atlas{:}).area_labels{viselec} ' '];
-                        atlasstr = strsplit(atlas{:},'_');
-                        viselec_name = [viselec_name atlasstr{1}(1) ':' trials.viselec.(atlas{:}).area_labels{viselec} ' '];
-                        switch atlas{:}
-                            case 'benson14_varea'
-                                switch specs.plot.addEccToTitle
-                                    case 'yes'
-                                        viselec_name = [viselec_name sprintf('[ecc = %0.1f] ', trials.viselec.benson14_varea.node_eccen(viselec))];
-                                         %viselec_name = [viselec_name ' ecc = ' num2str(trials.viselec.benson14_varea.node_eccen(viselec)) ' '];
-                                 end
-                        end                         
+            if isfield(trials, 'viselec')
+                if ~isempty(trials.viselec)
+                    if ~isempty(trials.viselec.(atlas{:}))
+                        %viselec = contains(trials.viselec.(atlas{:}).elec_labels, electrodeName);
+                        viselec = find(strcmp(electrodeName,trials.viselec.(atlas{:}).elec_labels));
+                        if any(viselec)
+                            %viselec_name = [viselec_name atlas{:}(1:8) ':' trials.viselec.(atlas{:}).area_labels{viselec} ' '];
+                            atlasstr = strsplit(atlas{:},'_');
+                            viselec_name = [viselec_name atlasstr{1}(1) ':' trials.viselec.(atlas{:}).area_labels{viselec} ' '];
+                            switch atlas{:}
+                                case 'benson14_varea'
+                                    switch specs.plot.addEccToTitle
+                                        case 'yes'
+                                            viselec_name = [viselec_name sprintf('[ecc = %0.1f] ', trials.viselec.benson14_varea.node_eccen(viselec))];
+                                             %viselec_name = [viselec_name ' ecc = ' num2str(trials.viselec.benson14_varea.node_eccen(viselec)) ' '];
+                                     end
+                            end                         
+                        end
                     end
                 end
             end

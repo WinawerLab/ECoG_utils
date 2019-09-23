@@ -1,6 +1,6 @@
 function [epochs, t] = ecog_makeEpochs(raw_ts, onsets, epoch_time, fs)
 % Slice time series matrix (channels x samples) into 3D epoched array
-% (channels x samples x epochs) based on trigger times.
+% (channels x epochs x samples) based on trigger times.
 %
 % [epochs, t] = ecog_makeEpochs(data, onsets, epoch_time, fs)
 %
@@ -13,7 +13,7 @@ function [epochs, t] = ecog_makeEpochs(raw_ts, onsets, epoch_time, fs)
 %
 % Outputs:
 %   epochs:       3D array containing epoched time series (channels x
-%                   samples x epochs)                   
+%                   epochs x samples)                   
 %   t:            1D array of epoch time points relative to stimulus onset 
 %                   e.g. -0.5 to 1 (in seconds)
 
@@ -26,7 +26,7 @@ if max(mod(onsets,1)) == 0
     onset_samples = onsets;
 else
     % onsets are in seconds
-    onset_samples = onsets*fs;
+    onset_samples = round(onsets*fs);
 end
     
 epoch_samples = round(epoch_time * fs); %epoch length in samples
@@ -37,7 +37,7 @@ inds = bsxfun(@plus,onset_samples,(epoch_samples(1):epoch_samples(2)-1));
 
 ts       = raw_ts(:,inds); 
 epochs   = reshape(ts, size(raw_ts,1),size(inds,1), size(inds,2));
-epochs   = permute(epochs, [1 3 2]);
+%epochs   = permute(epochs, [1 3 2]);
 
 t = epoch_samples(1):epoch_samples(2)-1;
 t = t/fs;
