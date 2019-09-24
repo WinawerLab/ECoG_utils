@@ -1,15 +1,15 @@
-function [epochs_normalized] = ecog_normalizeEpochs(epochs, t, baselineTime, description, idx)
+function [epochs] = ecog_normalizeEpochs(epochs, t, baselineTime, description, idx)
 % Applies a normalization to the epoched time courses based on a specified
 % time interval within the epoch. The normalization can be either a
 % conversion to percent signal change (appropriate for broadband) or a
 % simple subtraction of the baseline within the epoch itself (appropriate
 % for ERPs).
 %
-% ecog_convertToPercentSignal(epochs, t, baselineTime, [calc], [runidx])
+% [epochs] = ecog_normalizeEpochs(epochs, t, baselineTime, description, idx)
 %
 % Input
-%   epochs:             3D array containing epoched time series (channels x
-%                       epochs x samples)
+%   epochs:             3D array containing epoched time series (samples x
+%                       epochs x channels)
 %   t:                  1D array of length samples indicating time relative 
 %                       to stimulus onset (in seconds)
 %   baselineTime:       time window over which to compute the baseline
@@ -25,7 +25,7 @@ function [epochs_normalized] = ecog_normalizeEpochs(epochs, t, baselineTime, des
 %
 % Output
 %   epochs_normalized:  3D array containing normalized epoched time series
-%                       (channels x samples x epochs)
+%                       (samples x epochs x channels)
 % Example
 %
 % See also ecog_makeEpochs.m
@@ -34,7 +34,7 @@ if ~exist('calc', 'var') || isempty(description)
     description = 'percentsignalchange';
 end
 
-if ~exist('runidx', 'var') || isempty(idx)
+if ~exist('idx', 'var') || isempty(idx)
     idx = ones(size(epochs,2),1); 
 end
 
@@ -43,8 +43,9 @@ base_range = (t >= baselineTime(1) & t < baselineTime(2));
 
 % determine how many runs we need to normalize for
 runs = unique(idx);
-% initialize
-epochs_normalized = epochs;
+
+% permute dimensions so we can use pointwise division
+epochs = permute(epochs, [3 2 1]);
 
 % normalize
 for ii = 1:length(runs)
@@ -52,13 +53,17 @@ for ii = 1:length(runs)
     
     switch description
         case 'percentsignalchange'
-            m_base     = squeeze(nanmedian(nanmean(epochs(:, idx, base_range), 3), 2));
-            epochs_normalized(:,idx,:) = epochs(:,idx,:)./m_base-1;
+            m_base     = squeeze(median(mean(epochs(:,idx,base_range),3, 'omitnan'), 2));
+            epochs(:,idx,:) = epochs(:,idx,:)./m_base-1;
         case 'subtractwithintrial'
-            epochs_normalized(:,idx,:) = epochs(:,idx,:) - nanmean(epochs(:,idx, base_range),3);
+            epochs(:,idx,:) = epochs(:,idx,:) - mean(epochs(:,idx,base_range),3, 'omitnan');
         otherwise
             error('unknown normalization calculation')
     end
 end
+
+% permute back to origin dims
+epochs = permute(epochs, [3 2 1]);
+
 end
 
