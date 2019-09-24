@@ -33,7 +33,8 @@ for ii = 1:length(sessions)
             [data, channels, events, ~, hdr] = bidsEcogReadFiles(dataPath, subject, session, task, runnum, description);
             
             runCount = runCount + 1;
-            % Run various checks:
+            
+            % Run various checks on events table:
             
             % Check if there are trial_names, if not, add them
             if ~isfield(summary(events), 'trial_name')
@@ -41,22 +42,15 @@ for ii = 1:length(sessions)
                 events = bair_addTrialNamesToEventsTable(events);
             end
             
-%             if ~iscell(events.stim_file_index)
-%                 events.stim_file_index = num2cell(events.stim_file_index);
-%             end
+            % Check if there are sample indices and ISIs:
+            if ~isfield(summary(events),'event_sample'); events.event_sample = round(events.onset*hdr.Fs);end
+            if ~isfield(summary(events), 'ISI');events.ISI = zeros(height(events),1);end
             
-            if ~isfield(summary(events),'event_sample')
-                events.event_sample = round(events.onset*hdr.Fs);
-            end
-            
-            if ~isfield(summary(events), 'ISI')
-                events.ISI = zeros(height(events),1);
-            end
-            
-            % Add task and run indices to the events file
-            events.run_name = repmat({runnum}, [height(events),1]);
+            % Add task, session and run indices to the events file
+            if ~isfield(summary(events), 'task_name'), events.task_name = repmat({task}, [height(events),1]); end
             events.session_name = repmat({session}, [height(events),1]);
-
+            events.run_name = repmat({runnum}, [height(events),1]);
+                
             % Concatenate data and events; update onsets 
             if runCount == 1 
                 allEvents = events; 
