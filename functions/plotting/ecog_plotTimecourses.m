@@ -144,7 +144,7 @@ for d = 1:length(specs.dataTypes)
             case 'broadband'
                 % percent signal? (similar to 'relchange' in fieldtrip)
                 %elData = (elData - baseline) ./ baseline;
-       %         elData = (elData - mean(elData(trials.time<0,:),1)) ./ baseline;
+                elData = (elData - mean(elData(trials.time<0,:),1)) ./ baseline;
             case 'evoked'
                 % standard ERP approach(?)
                 %elData = (elData - baseline);

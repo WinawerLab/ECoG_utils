@@ -42,15 +42,17 @@ if  max(contains(events.Properties.VariableNames, 'trial_name')) == 0
 end
 
 % Resample and SHIFT the UMCU data 
-if contains(sub_label, 'umcu')
-    fprintf('[%s] This is a umcu patient: resampling and shifting the data\n',mfilename);
+if contains(sub_label, {'chaam', 'intraop'})
+    fprintf('[%s] This is a umcu patient: resampling the data\n',mfilename);
     % Resample
     cfg = [];
     cfg.resamplefs      = 512;  % frequency at which the data will be resampled 
     cfg.detrend         = 'no'; %'no' or 'yes', detrend the data prior to resampling (no default specified, see below)
     [ftdata] = ft_resampledata(cfg, ftdata);
     ftdata.hdr.Fs = ftdata.fsample;
-    
+end
+if contains(sub_label, 'chaam')
+    fprintf('[%s] This is umcu patient chaam: shifting the data\n',mfilename);
     % Shift 
     shiftInSeconds = 0.062; % 62 ms
 	shiftInSamples = round(shiftInSeconds/(1/512)); % assuming sample rate of 512
@@ -81,18 +83,21 @@ visualelectrodes       = electrode_to_nearest_node(E2NSpecs, dataDir);
 switch specs.make_plots
     case 'yes'
         fprintf('[%s] Saving pial mesh figures...\n',mfilename);
-
-        nPlots = get(gcf,'Number');
-        for ii = 1:nPlots
-            atlasName = get(ii,'Name');
-            atlasName = strsplit(atlasName);
-            if length(atlasName) == 1
-                atlasName = 'none';
-            else
-                atlasName = atlasName{2};
+        
+        fig = get(groot,'CurrentFigure');
+        if ~isempty(fig)
+            nPlots = get(gcf,'Number');
+            for ii = 1:nPlots
+                atlasName = get(ii,'Name');
+                atlasName = strsplit(atlasName);
+                if length(atlasName) == 1
+                    atlasName = 'none';
+                else
+                    atlasName = atlasName{2};
+                end
+                plotName = sprintf('pialmesh_atlas-%s',atlasName);
+                saveas(ii, fullfile(figSaveDir, sprintf('%s-%s-%s',sub_label, ses_label,plotName)), 'epsc');close;
             end
-            plotName = sprintf('pialmesh_atlas-%s',atlasName);
-            saveas(ii, fullfile(figSaveDir, sprintf('%s-%s-%s',sub_label, ses_label,plotName)), 'epsc');
         end
 end
 
@@ -100,7 +105,7 @@ end
 
 fprintf('[%s] Performing Common Average reference...\n',mfilename);
 
-[signal, ~, INX, INXNames] = ecog_performCAR(ftdata.trial{1}, channels);
+[signal, channels, INX, INXNames] = ecog_performCAR(ftdata.trial{1}, channels);
 
 % DIAGNOSTICS: Look at the effect of CAR
 switch specs.make_plots
@@ -138,8 +143,7 @@ switch specs.make_plots
             title(ftdata.label(channel_plot));
             
             set(gcf, 'Position',[1000 700 1100 600]); 
-            saveas(gcf, fullfile(figSaveDir, sprintf('%s-%s-CAR-%s',sub_label, ses_label,INXNames{ii})), 'epsc');
-
+            saveas(gcf, fullfile(figSaveDir, sprintf('%s-%s-CAR-%s',sub_label, ses_label, INXNames{ii})), 'epsc');close;
         end
     end
 end
@@ -180,17 +184,17 @@ switch specs.make_plots
         elseif max(contains(data.channels.name, 'MKR')) % Utrecht data
             eltomatch = data.channels.name{find(contains(data.channels.name,'MKR'))};
         else
-            fprintf('[%s] Could not find trigger channel, not plotting triggers\n', mfilename)
+            fprintf('[%s] Could not find trigger channel, not plotting triggers\n', mfilename);
             eltomatch = [];
         end
         if ~isempty(eltomatch)
             el = ecog_matchChannels(eltomatch, data);
-            ecog_plotFullTimeCourse(data,'raw', el); title('triggers');
+            ecog_plotFullTimeCourse(data,'raw', el); title('triggers'); 
             set(gcf, 'Name', 'triggers');
         end
         
         % save plot
-        saveas(gcf, fullfile(figSaveDir, sprintf('%s-%s-triggerchannel',sub_label, ses_label)), 'epsc');
+        saveas(gcf, fullfile(figSaveDir, sprintf('%s-%s-triggerchannel',sub_label, ses_label)), 'epsc'); close
 
 end
 
@@ -218,7 +222,7 @@ switch specs.make_plots
         ecog_plotFullTimeCourse(data,'broadband', el); % no smoothing
         % ecog_plotFullTimeCourse(data,'broadband', el, data.hdr.Fs/2); % with smoothing
         set(gcf, 'Name', 'example broadband time course');
-        saveas(gcf, fullfile(figSaveDir, sprintf('%s-%s-examplechannel',sub_label, ses_label)), 'epsc');
+        saveas(gcf, fullfile(figSaveDir, sprintf('%s-%s-examplechannel',sub_label, ses_label)), 'epsc'); close;
 
 end
 

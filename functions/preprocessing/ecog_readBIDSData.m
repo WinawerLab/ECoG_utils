@@ -1,4 +1,4 @@
-function [data, events, chans] = ecog_readBIDSData(dataDir, sub_label, ses_label)
+function [data, events, channels] = ecog_readBIDSData(dataDir, sub_label, ses_label)
 
 % Specify fieldtrip configuraton for reading in the files
 cfg            = [];
@@ -72,14 +72,21 @@ fprintf('[%s] Reading in the data using FieldTrip:\n',mfilename);
 data    = ft_preprocessing(cfg);
 
 % Read in one of the channel files
-chans   = readtable(fullfile(dataDir,chanFiles(1).name), 'FileType', 'text');
+if ~isempty(chanFiles)
+    channels   = readtable(fullfile(dataDir,chanFiles(1).name), 'FileType', 'text');
 
-% Check whether the channel info in channels.tsv matches the data
-assert(size(chans,1) == length(data.label));
+    % Check whether the channel info in channels.tsv matches the data
+    assert(size(channels,1) == length(data.label));
 
-% Replace data.label with names from channels.tsv for better readability
-data.label = chans.name;
-data.hdr.label = chans.name;
+    % Replace data.label with names from channels.tsv for better readability
+    data.label = channels.name;
+    data.hdr.label = channels.name;
+else
+    name = hdr.label;
+    type = hdr.chantype;
+    units = hdr.chanunit;
+    channels = table(name, type, units);
+end
 %fprintf('done \n');
 
 end
