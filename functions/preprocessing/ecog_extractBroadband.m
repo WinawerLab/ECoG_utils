@@ -57,7 +57,7 @@ function [broadband, methodstr, bands] = ecog_extractBroadband(x, srate, method,
 
 if ~exist('srate', 'var')    || isempty(srate),     srate = 1000; end
 if ~exist('bandopts', 'var') || isempty(bandopts),  bandopts = {[60 200], 20}; end
-if ~exist('method', 'var')   || isempty(method),    method = @(bp,banddim)geomean(abs(hilbert(bp)).^2,banddim); end
+if ~exist('method', 'var')   || isempty(method),    method = @(bp,banddim) geomean(abs(hilbert(bp)).^2,banddim); end
 
 % format the bands input
 if isa(bandopts, 'cell')
