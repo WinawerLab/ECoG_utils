@@ -53,7 +53,7 @@ for ii = 1:length(runs)
     
     switch description
         case 'percentsignalchange'
-            m_base     = squeeze(median(mean(epochs(:,idx,base_range),3, 'omitnan'), 2));
+            m_base     = squeeze(median(mean(epochs(:,idx,base_range),3, 'omitnan'), 2, 'omitnan'));
             epochs(:,idx,:) = epochs(:,idx,:)./m_base-1;
         case 'subtractwithintrial'
             epochs(:,idx,:) = epochs(:,idx,:) - mean(epochs(:,idx,base_range),3, 'omitnan');
