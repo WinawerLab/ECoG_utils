@@ -64,30 +64,31 @@ else
     fname_out = sprintf('sub-%s_ses-%s_task-%s_run-%s', subject, session, task, runnum);
 end
 
-sessionDir = fullfile(dataPath, sprintf('sub-%s', subject), sprintf('ses-%s', session));
+sessionDir = fullfile(dataPath, sprintf('sub-%s', subject), sprintf('ses-%s', session), 'ieeg');
+if ~exist(sessionDir, 'dir'), mkdir(sessionDir);end
 fprintf('[%s] Writing to %s\n', mfilename, sessionDir);
 fprintf('[%s] Writing %s', mfilename, fname_out);
 
 % Write out the channels file
-chanWriteFile = fullfile(sessionDir, 'ieeg', sprintf('%s_channels.tsv', fname_out));
+chanWriteFile = fullfile(sessionDir, sprintf('%s_channels.tsv', fname_out));
 %fprintf('[%s] Writing new channels file: %s\n', mfilename, chanWriteFile); 
 fprintf('.'); 
 writetable(channels,chanWriteFile,'FileType','text','Delimiter','\t');
        
 % Write out the events file
-eventsWriteFile = fullfile(sessionDir, 'ieeg', sprintf('%s_events.tsv', fname_out));
+eventsWriteFile = fullfile(sessionDir, sprintf('%s_events.tsv', fname_out));
 %fprintf('[%s] Writing new channels file: %s\n', mfilename, eventsWriteFile); 
 fprintf('.'); 
 writetable(events,eventsWriteFile,'FileType','text','Delimiter','\t');
   
 % Save out the data file
-dataWriteFile = fullfile(sessionDir, 'ieeg', sprintf('%s_ieeg.eeg', fname_out));
+dataWriteFile = fullfile(sessionDir, sprintf('%s_ieeg.eeg', fname_out));
 %fprintf('[%s] Writing new data file: %s\n', mfilename, dataWriteFile); 
 fprintf('.'); 
 ft_write_data(dataWriteFile, data, 'header', hdr, 'dataformat', 'brainvision_eeg');   
 
 % Save out the ieeg_json file
-jsonWriteFile = fullfile(sessionDir, 'ieeg', sprintf('%s_desc-reref_ieeg.json', fname_out));
+jsonWriteFile = fullfile(sessionDir, sprintf('%s_ieeg.json', fname_out));
 %fprintf('[%s] Writing new ieeg json file: %s\n', mfilename, jsonWriteFile); 
 fprintf('.\n'); 
 json_options.indent = '    '; 
