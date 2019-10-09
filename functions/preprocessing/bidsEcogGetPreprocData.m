@@ -41,6 +41,12 @@ for ii = 1:length(sessions)
                 fprintf('[%s] Events lack trial names - adding them now .\n',mfilename);
                 events = bair_addTrialNamesToEventsTable(events);
             end
+            % Check if there are trial_names, if not, add them
+            if ~isfield(summary(events), 'stim_file')
+                fprintf('[%s] Events lack stim files - adding them now .\n',mfilename);
+                events.stim_file = repmat({'n/a'}, [height(events) 1]);
+            end
+            
             
             % Check if there are sample indices and ISIs:
             if ~isfield(summary(events),'event_sample'); events.event_sample = round(events.onset*hdr.Fs);end

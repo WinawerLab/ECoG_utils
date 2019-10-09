@@ -1,9 +1,12 @@
-function [signal_reref, channels_reref, group_indices, group_names] = ecog_performCAR(signal, channels)
+ function [signal_reref, channels_reref, group_indices, group_names] = ecog_performCAR(signal, channels)
 
 % If there is no status column, add one assuming all channels are good.
 if ~isfield(summary(channels), 'status') 
     channels.status = repmat({'good'}, [height(channels) 1]);
     fprintf('[%s] No status column found in channels file. Assuming all channels are good.\n', mfilename); 
+elseif length(unique(channels.status)) == 1 && contains(unique(channels.status), 'n/a')
+    fprintf('[%s] Status column in channels file is n/a. Assuming all channels are good.\n', mfilename); 
+    channels.status = repmat({'good'}, [height(channels) 1]);
 else
     nBadChannels = length(find(contains(channels.status, 'bad')));
     nGoodChannels = length(find(contains(channels.status, 'good')));

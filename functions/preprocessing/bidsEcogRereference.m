@@ -139,7 +139,7 @@ for ii = 1:length(sessions)
                    if ~isempty(chan_index)
                         
                        if isfield(summary(channels), 'status') 
-                           good_channels = find(contains(channels(chan_index,:).status, 'good'));
+                           good_channels = find(contains(channels_reref(chan_index,:).status, 'good'));
                            channel_plot = chan_index(good_channels(1));
                        else
                            channel_plot = chan_index(1);

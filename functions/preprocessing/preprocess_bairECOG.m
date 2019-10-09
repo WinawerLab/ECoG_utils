@@ -61,7 +61,10 @@ if contains(sub_label, 'chaam')
         events.event_sample = events.event_sample + shiftInSamples; 
     end
 end
-
+if contains(sub_label, 'intraop')
+    channels.status = repmat({'good'}, [height(channels) 1]);
+    channels.status(80:96,:) = {'bad'};
+end
 %% [2] Compute matches with visual regions
 fprintf('[%s] Computing matches with visual atlases...\n',mfilename);
 E2NSpecs = [];
@@ -266,7 +269,7 @@ saveName = fullfile(saveDir, sprintf('sub-%s_ses-%s_epoched.mat', sub_label, ses
 
 fprintf('[%s] Saving preprocessed epoched data to %s...\n',mfilename, saveName);
 if exist(saveName,'file')
-    warning('[%s] Epoched data file already exists! Saving as separate file with timestamp. ',mfilename);
+    warning('[%s] Epoched data file already exists!',mfilename);
     switch specs.overwrite
         case 'yes'
             fprintf('[%s] Overwriting...\n',mfilename);
