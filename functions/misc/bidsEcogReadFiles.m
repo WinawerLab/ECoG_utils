@@ -3,7 +3,7 @@ function [data, channels, events, ieeg_json, hdr] = bidsEcogReadFiles(dataPath, 
 % sub-<subject>_ses-<session>_task-<task>_run-<runnum>_desc-<description>.
 %
 % [data, channels, events, ieeg_json, hdr] = bidsEcogReadFiles(dataPath, ...
-% subject, session, task, runnum, [description])
+%     subject, session, task, runnum, [description])
 %
 % Input
 %     dataPath:         path where the BIDS project lies (string)
@@ -49,48 +49,51 @@ if ~exist('description', 'var')
 end
 
 if ~isempty(description)
-    fname_in = sprintf('sub-%s_ses-%s_task-%s_run-%s_desc-%s', subject, session, task, runnum, description);
+    fname_in = sprintf('sub-%s_ses-%s_task-%s*_run-%s_desc-%s*', subject, session, task, runnum, description);
 else
-    fname_in = sprintf('sub-%s_ses-%s_task-%s_run-%s', subject, session, task, runnum);
+    fname_in = sprintf('sub-%s_ses-%s_task-%s*_run-%s*', subject, session, task, runnum);
 end
 
-sessionDir = fullfile(dataPath, sprintf('sub-%s', subject), sprintf('ses-%s', session));
+sessionDir = fullfile(dataPath, sprintf('sub-%s', subject), sprintf('ses-%s', session), 'ieeg');
 fprintf('[%s] Reading from %s\n', mfilename, sessionDir);
 fprintf('[%s] Reading %s', mfilename, fname_in);
 
 % Read in the channels file
-chanFile = fullfile(sessionDir, 'ieeg', sprintf('%s_channels.tsv', fname_in));
-if ~exist(chanFile, 'file'), error('channels file not found: %s', chanFile); end
+chanFile = dir(fullfile(sessionDir, sprintf('%s_channels.tsv', fname_in)));
+if length(chanFile) < 0, error('did not find channels file %s in %s', chanFile.name, chanFile.folder); end
+if length(chanFile) > 1, error('found multiple channels files %s in %s', chanFile.name, chanFile.folder); end
 %fprintf('[%s] Reading in channels file: %s\n', mfilename, chanFile); 
 fprintf('.'); 
-channels = readtable(chanFile, 'FileType', 'text');
+channels = readtable(fullfile(chanFile.folder, chanFile.name), 'FileType', 'text');
 %channels = tdfread(chanFile);
 %channels = struct2table(channels);
 
 % Read in the events file
-eventsFile = fullfile(sessionDir, 'ieeg', sprintf('%s_events.tsv', fname_in));
-if ~exist(eventsFile, 'file'), error('events file not found: %s', eventsFile); end
+eventsFile = dir(fullfile(sessionDir, sprintf('%s_events.tsv', fname_in)));
+if length(eventsFile) < 0, error('did not find event file %s in %s', eventsFile.name, eventsFile.folder); end
+if length(eventsFile) > 1, error('found multiple event files %s in %s', eventsFile.name, eventsFile.folder); end
 %fprintf('[%s] Reading in events file: %s\n', mfilename, eventsFile); 
 fprintf('.'); 
-events = readtable(eventsFile, 'FileType', 'text');
+events = readtable(fullfile(eventsFile.folder, eventsFile.name), 'FileType', 'text');
 %events = tdfread(eventsFile);
 %events = struct2table(events);
  
 % Read in the data file
-dataFile = fullfile(sessionDir, 'ieeg', sprintf('%s_ieeg.eeg', fname_in));
-if ~exist(dataFile, 'file'), error('data file not found: %s', dataFile); end
+dataFile = dir(fullfile(sessionDir, sprintf('%s_ieeg.eeg', fname_in)));
+if length(dataFile) < 0, error('did not find data file %s in %s', dataFile.name, dataFile.folder); end
+if length(dataFile) > 1, error('found multiple data files %s in %s', dataFile.name, dataFile.folder); end
 %fprintf('[%s] Reading in data file: %s\n', mfilename, dataFile); 
 fprintf('.'); 
-hdr = ft_read_header(dataFile);
-data = ft_read_data(dataFile);
+hdr = ft_read_header(fullfile(dataFile.folder, dataFile.name));
+data = ft_read_data(fullfile(dataFile.folder, dataFile.name));
 
 % Read in the json file
-jsonReadFile = fullfile(sessionDir, 'ieeg', sprintf('%s_ieeg.json', fname_in));
-if ~exist(jsonReadFile, 'file'), error('data file not found: %s', dataReadFile); end
+jsonFile = dir(fullfile(sessionDir, sprintf('%s_ieeg.json', fname_in)));
+if length(jsonFile) < 0, error('did not find json file %s in %s', jsonFile.name, jsonFile.folder); end
+if length(jsonFile) > 1, error('found multiple json files %s in %s', jsonFile.name, jsonFile.folder); end
 %fprintf('[%s] Reading in ieeg json file: %s\n', mfilename, jsonReadFile); 
 fprintf('.\n'); 
-ieeg_json = jsonread(jsonReadFile);
-           
-                           
+ieeg_json = jsonread(fullfile(jsonFile.folder, jsonFile.name));
+                                   
 end
 
