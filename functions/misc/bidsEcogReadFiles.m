@@ -60,7 +60,7 @@ fprintf('[%s] Reading %s', mfilename, fname_in);
 
 % Read in the channels file
 chanFile = dir(fullfile(sessionDir, sprintf('%s_channels.tsv', fname_in)));
-if length(chanFile) < 0, error('did not find channels file %s in %s', chanFile.name, chanFile.folder); end
+if length(chanFile) < 1, error('did not find channels file %s in %s', chanFile.name, chanFile.folder); end
 if length(chanFile) > 1, error('found multiple channels files %s in %s', chanFile.name, chanFile.folder); end
 %fprintf('[%s] Reading in channels file: %s\n', mfilename, chanFile); 
 fprintf('.'); 
@@ -70,7 +70,7 @@ channels = readtable(fullfile(chanFile.folder, chanFile.name), 'FileType', 'text
 
 % Read in the events file
 eventsFile = dir(fullfile(sessionDir, sprintf('%s_events.tsv', fname_in)));
-if length(eventsFile) < 0, error('did not find event file %s in %s', eventsFile.name, eventsFile.folder); end
+if length(eventsFile) < 1, error('did not find event file %s in %s', eventsFile.name, eventsFile.folder); end
 if length(eventsFile) > 1, error('found multiple event files %s in %s', eventsFile.name, eventsFile.folder); end
 %fprintf('[%s] Reading in events file: %s\n', mfilename, eventsFile); 
 fprintf('.'); 
@@ -80,7 +80,7 @@ events = readtable(fullfile(eventsFile.folder, eventsFile.name), 'FileType', 'te
  
 % Read in the data file
 dataFile = dir(fullfile(sessionDir, sprintf('%s_ieeg.eeg', fname_in)));
-if length(dataFile) < 0, error('did not find data file %s in %s', dataFile.name, dataFile.folder); end
+if length(dataFile) < 1, error('did not find data file %s in %s', dataFile.name, dataFile.folder); end
 if length(dataFile) > 1, error('found multiple data files %s in %s', dataFile.name, dataFile.folder); end
 %fprintf('[%s] Reading in data file: %s\n', mfilename, dataFile); 
 fprintf('.'); 
@@ -89,7 +89,7 @@ data = ft_read_data(fullfile(dataFile.folder, dataFile.name));
 
 % Read in the json file
 jsonFile = dir(fullfile(sessionDir, sprintf('%s_ieeg.json', fname_in)));
-if length(jsonFile) < 0, error('did not find json file %s in %s', jsonFile.name, jsonFile.folder); end
+if length(jsonFile) < 1, error('did not find json file %s in %s', jsonFile.name, jsonFile.folder); end
 if length(jsonFile) > 1, error('found multiple json files %s in %s', jsonFile.name, jsonFile.folder); end
 %fprintf('[%s] Reading in ieeg json file: %s\n', mfilename, jsonReadFile); 
 fprintf('.\n'); 
