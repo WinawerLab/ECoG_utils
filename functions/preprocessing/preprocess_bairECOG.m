@@ -99,11 +99,11 @@ switch specs.make_plots
                     atlasName = atlasName{2};
                 end
                 plotName = sprintf('pialmesh_atlas-%s',atlasName);
-                saveas(ii, fullfile(figSaveDir, sprintf('%s-%s-%s',sub_label, ses_label,plotName)), 'epsc');close;
+                saveas(ii, fullfile(figSaveDir, sprintf('%s-%s-%s',sub_label, ses_label,plotName)), 'epsc');
             end
         end
 end
-
+close all;
 %% [3] Do a common average reference using the good channels
 
 fprintf('[%s] Performing Common Average reference...\n',mfilename);
