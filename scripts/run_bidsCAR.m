@@ -13,8 +13,12 @@ subjects = {'som648';
             'som726';
             'beilen'; 
             'chaam'};
-    
+%subjects = {'beilen'; 
+%            'chaam'};
+        
 for ii = 1:length(subjects)
     subject = subjects{ii};
-    bidsEcogRereference(projectDir, subject, [], [], [], [], 0);
+    bidsEcogRereference(projectDir, subject);
 end
+
+%%

@@ -43,7 +43,7 @@ run_label = {'01','02','01','01','02','01','02','01','02','03','04','03','04','0
 % NOTE: task and run labels should be noted in the order they were run!
 
 % Make plots?
-makePlot = 1;
+makePlot = 0;
 % NOTE: Figures will be saved into
 % derivatives/preprocessed/sub-label/ses-label/figures/bidsconversion
 
@@ -72,8 +72,8 @@ triggerChannel = find(strcmp(triggerChannelName,hdr.label));
 figure;plot(rawdata(triggerChannel,:)); 
 title([num2str(triggerChannel) ': ' hdr.label{triggerChannel}]);
         
-run_start = []; % Manually determined from plot of triggerchannel 
-run_end   = []; 
+run_start = [160000]; % Manually determined from plot of triggerchannel 
+run_end   = [1060000]; 
 
 % Clip the data
 data = rawdata(:,run_start:run_end);
@@ -82,6 +82,18 @@ hdr.nSamples = size(data,2);
 % Check if we have all the triggers we want
 figure;plot(data(triggerChannel,:)); 
 title([num2str(triggerChannel) ': ' hdr.label{triggerChannel}]);
+
+% PATIENTSPECIFIC HACK %%
+
+% For 748, there's a mismatch for one set of electrodes that are labeled
+% 'DMP' in the data, but 'DMPT' in the electrode coordinates provided by
+% SoM. Hack by overwriting names in the hdr:
+INX = find(contains(hdr.label, 'DPM')); 
+for ii = 1:length(INX)
+    oldlabel = hdr.label{INX(ii)};
+    newlabel = [oldlabel(1:3) 'T' oldlabel(4:end)];
+    hdr.label{INX(ii)} = newlabel;
+end
 
 %% CHANNEL IDENTIFICATION
 
@@ -94,7 +106,7 @@ t = ((0:hdr.nSamples-1)/hdr.Fs);
 
 % Plot the raw voltage time course of each channel
 if makePlot
-    for cChan = 1:1:size(data,1) 
+    for cChan = 20:1:size(data,1) 
         figure;plot(t,data(cChan,:)); 
         title([num2str(cChan) ': ' hdr.label{cChan}]);
         xlabel('Time (s)'); ylabel('Raw amplitude (microV)'); set(gca,'fontsize',16); 
@@ -106,11 +118,12 @@ end
 
 % This is a list of to be excluded channels from CAR; will be labeled as
 % 'bad' in the channels tsv file
-exclude_inx = []; % e.g. 6 12 13 87
+exclude_inx = [20 44 96 126 189 190 191]; 
 
 % Specify reasons for marked as bad, e.g. spikes, elipeptic,
 % outlierspectrum, lowfreqdrift
-BADCHANNELS_MANUALTABLE = [num2cell(exclude_inx)' repmat({'spikes'}, [length(exclude_inx) 1])]; 
+%BADCHANNELS_MANUALTABLE = [num2cell(exclude_inx)' repmat({'spikes'}, [length(exclude_inx) 1])]; 
+BADCHANNELS_MANUALTABLE = [num2cell(exclude_inx)' {'deviantshape'; 'saturated+spikes';'saturated'; 'saturated'; 'spikes'; 'spikes'; 'spikes'}];
 
 %% CHECK THE CHANNEL SELECTIONS and save figures
 
@@ -119,7 +132,7 @@ badChannels = [];
 
 % Generate spectral plot; check command window output for outliers; 
 if makePlot 
-    inx_notEEGchans = [find(contains(hdr.chantype, 'ecg')); find(contains(hdr.label, {'DC', 'SG', 'Pleth', 'PR', 'OSAT', 'TRIG'}))];
+    inx_notEEGchans = find(contains(hdr.label, {'DC', 'SG', 'Pleth', 'PR', 'OSAT', 'TRIG', 'EKG', 'ECG'}));
     chansToPlot = setdiff(1:length(hdr.label),[inx_notEEGchans; badChannels]);
     [outliers] = ecog_plotChannelSpectra(data, chansToPlot, hdr); title('All channels spectra');
     saveas(gcf, fullfile(preprocDir, 'figures', 'bidsconversion', sprintf('%s-%s-spectra_allchannels',sub_label, ses_label)), 'epsc');
@@ -158,7 +171,7 @@ badChannelsDescriptions = BADCHANNELS_MANUALTABLE(:,2);
 
 % Generate spectral plot; check command window output for outliers; 
 if makePlot 
-    inx_notEEGchans = [find(contains(hdr.chantype, 'ecg')); find(contains(hdr.label, {'DC', 'SG', 'Pleth', 'PR', 'OSAT', 'TRIG'}))];
+    inx_notEEGchans = find(contains(hdr.label, {'DC', 'SG', 'Pleth', 'PR', 'OSAT', 'TRIG', 'EKG', 'ECG'}));
     chansToPlot = setdiff(1:length(hdr.label),[inx_notEEGchans; badChannels]);
     [outliers] = ecog_plotChannelSpectra(data, chansToPlot, hdr); title('Good channels spectra');
     saveas(gcf, fullfile(preprocDir, 'figures', 'bidsconversion', sprintf('%s-%s-spectra_goodchannels',sub_label, ses_label)), 'epsc');

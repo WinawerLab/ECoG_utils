@@ -5,8 +5,8 @@
 
 % Dataset specs
 projectName = 'visual';
-sub_label   = 'intraop015'; 
-ses_label   = 'UMCUOR';
+sub_label   = 'som748'; 
+ses_label   = 'nyuecog01';
 
 % Input paths 
 projectDir  = '/Volumes/server/Projects/BAIR/';
@@ -45,10 +45,13 @@ spectra.pwrspctrm = cat(2,spectra_trials.pwrspctrm, spectra_blanks.pwrspctrm);
 
 saveFigure = 1;
 
-% Which stimulus conditions to plot? 
-whichTrials = {'ONEPULSE-1','ONEPULSE-2', 'ONEPULSE-3','ONEPULSE-4', 'ONEPULSE-5', 'ONEPULSE-6'};
+% Which stimulus conditions to plot? %
+%whichTrials = {'HRFPATTERN'};
+%whichTrials = {'ONEPULSE-1','ONEPULSE-2', 'ONEPULSE-3','ONEPULSE-4', 'ONEPULSE-5', 'ONEPULSE-6'};
 %whichTrials = {'TWOPULSE-1','TWOPULSE-2', 'TWOPULSE-3','TWOPULSE-4', 'TWOPULSE-5', 'TWOPULSE-6'};
+%whichTrials = {'CRF-1','CRF-2', 'CRF-3','CRF-4', 'CRF-5'};
 %whichTrials = {'VERTICAL','HORIZONTAL', 'DIAGONAL'};
+whichTrials = {'HOUSES','FACES','LETTERS'};
 
 % PLOT time course for each condition
 specs = [];
@@ -61,32 +64,37 @@ specs.plot.nSubPlots     = [];
 specs.plot.addEccToTitle = 'yes';
 specs.plot.showMax       = 'no';
 specs.plot.XLim          = [-0.2 1.5];
-specs.plot.YLim          = [-0.5 5];
+specs.plot.YLim          = [];%[-0.5 5];
 
 % % Plot a subset of electrodes
-whichElectrodes = {'chan97','chan98', 'chan99', 'chan116'};
-ecog_plotTimecourses(trials, whichElectrodes, whichTrials, specs);
+%whichElectrodes = {'chan97','chan98', 'chan99', 'chan116'};
+%ecog_plotTimecourses(trials, whichElectrodes, whichTrials, specs);
 
 % % Plot the entire HD grid
+gridList = [];
+for ee = 1:128
+	chanName = ['GB' num2str(ee)];    
+    if strmatch(chanName,whichElectrodes, 'exact')
+        gridList{ee} = chanName;
+    else
+        gridList{ee} = [chanName '-nodata'];
+    end
+end
 
-% Which electrodes to plot? (Each electrode gets a subplot)
-whichElectrodes = trials.channels.name(contains(trials.channels.name, 'chan'));
-% Create a list of electrode names to match to the grid and which includes
-% names for the electrodes of the grid that were not connected
- 
 % Plot response per electrode
 v = 1:16:113;
 inx{1} = [v v+1 v+2 v+3 v+4 v+5 v+6 v+7]; % TOP HALF OF HD GRID
 inx{2} = inx{1} + 8; % BOTTOM HALF OF HD GRID
 inxNames = {'HDtop', 'HDbottom'};
 
-plotName    = 'bbtimecourse_scaled';
-trialName   = [whichTrials{:}]; % 'CRF' 'ONEPULSE';'TWOPULSE'; 'SPARSITY'
+plotName    = 'bbtimecourse';
+%trialName   = 'CRF';  %'TWOPULSE';% 'ONEPULSE';% 'SPARSITY' %
+trialName   = [whichTrials{:}]; 
 
 clear trials_out;
 for ee = 1:length(inx)
     
-    [trials_out{ee}] = ecog_plotTimecourses(trials, whichElectrodes(inx{ee}), whichTrials, specs);
+    [trials_out{ee}] = ecog_plotTimecourses(trials, gridList(inx{ee}), whichTrials, specs);
     
     if saveFigure == 1
         saveLoc     = fullfile(figPth, projectName, sprintf('sub-%s', sub_label), sprintf('ses-%s', ses_label), 'figures');
@@ -98,7 +106,7 @@ end
 %% PRF
 
 % Select a subset of electrodes to analyze
-elecIndex  = contains(trials.channels.name, 'c'); % HD grid
+elecIndex  = contains(trials.channels.name, 'GB'); % HD grid
 channels   = trials.channels(elecIndex,:);
 
 % Select the prf events
@@ -135,13 +143,13 @@ PRFbb_mean = reshape(PRFbb_mean,[size(PRFbb,1) size(PRFbb,3)/2 2]);
 %% Look at the data
 
 % Define a channel to plot:
-chanToPlot = {'chan97','chan98', 'chan99', 'chan116'};
+chanToPlot = {'GB49','GB68', 'GB2', 'GB82'};
 
 % Plot
 chanIndex = ecog_matchChannels(chanToPlot, channels.name);
 figure;hold on
 colors = {'b','r'};
-for ee = 1:length(chanToPlot{ii})
+for ee = 1:length(chanToPlot)
 	chanIndex = ecog_matchChannels(chanToPlot{ee}, channels.name);
 	subplot(2,2,ee); hold on;
     for ii = 1:size(PRFbb_mean,3)
@@ -178,17 +186,18 @@ for ii = 1:length(inx)
     figure;hold on
     
     for ee = 1:length(inx{ii})
-        chanIndex = inx{ii}(ee);
+        chanIndex = ecog_matchChannels(gridList{inx{ii}(ee)}, channels.name);
+        %chanIndex = inx{ii}(ee);
         subplot(8,8,ee); hold on;
     
         for kk = 1:size(PRFbb_mean,3)
             plot(PRFbb_mean(chanIndex,:,kk), colors{kk}, 'LineWidth', 2); 
         end
-    % Add title, axes labels, legends etc
-    %set(gca, 'XTick', 1:1:size(PRFbb_mean,2), 'XTickLabel', events.trial_name(1:size(PRFbb_mean,2)), 'XTickLabelRotation', 90, 'FontSize',8);
+        % Add title, axes labels, legends etc
+        %set(gca, 'XTick', 1:1:size(PRFbb_mean,2), 'XTickLabel', events.trial_name(1:size(PRFbb_mean,2)), 'XTickLabelRotation', 90, 'FontSize',8);
         title(channels.name{chanIndex},'FontSize',14);
         set(gca, 'XLim', [0 size(PRFbb_mean,2)+1], 'FontSize', 14)
-        set(gca, 'YLim', [0 100]);
+        %set(gca, 'YLim', [0 100]);
         if ee == 1
             xlabel('PRF stimulus',  'FontSize',14);
             ylabel('sum of broadband power','FontSize',14);
@@ -209,8 +218,10 @@ load('/Users/winawerlab/matlab/toolboxes/BAIRstimuli/stimuli/bar_apertures.mat')
 bar_apertures = imresize(bar_apertures, [100 100], 'nearest');
 
 % Inputs to analyzePRF
-stimulus = {bar_apertures,bar_apertures};
-data = {PRFbb_mean(:,:,1),PRFbb_mean(:,:,2)};
+%stimulus = {bar_apertures,bar_apertures};
+%data = {PRFbb_mean(:,:,1),PRFbb_mean(:,:,2)};
+stimulus = {bar_apertures};
+data = mean(PRFbb_mean,3);
 tr = 1;
 
 opt.hrf = 1;
@@ -227,7 +238,7 @@ set(gca, 'FontSize', 18, 'XTick', 1:8:height(channels));
 xlabel('electrode inx'); ylabel('R2');
 
 figure;histogram(results.R2, 100, 'FaceColor', 'b');
-set(gca, 'XLim', [0 10], 'FontSize', 18);
+%set(gca, 'XLim', [0 10], 'FontSize', 18);
 xlabel('R2'); ylabel('number of elecs'); 
 
 %% %% KK example code: Visualize the location of each voxel's pRF
@@ -237,26 +248,23 @@ xlabel('R2'); ylabel('number of elecs');
 % by 16.6/100.
 cfactor = 16.6/100;
 
-results.ang = resultsWOBC.ang(:,2);
-results.ecc = resultsWOBC.ecc(:,2);
-results.rfsize = resultsWOBC.rfsize(:,2);
-
 figure; hold on;
 set(gcf,'Units','points','Position',[100 100 400 400]);
 cmap = jet(size(results.ang,1));
 for p=1:size(results.ang,1)
-  if results.R2(p)>30
+  if results.R2(p)>50
       xpos = results.ecc(p) * cos(results.ang(p)/180*pi) * cfactor;
       ypos = results.ecc(p) * sin(results.ang(p)/180*pi) * cfactor;
       ang = results.ang(p)/180*pi;
       sd = results.rfsize(p) * cfactor;
-      h = k_drawellipse(xpos,ypos,ang,2*sd,2*sd);  % circle at +/- 2 pRF sizes
+      %h = k_drawellipse(xpos,ypos,ang,2*sd,2*sd);  % circle at +/- 2 pRF sizes
+      h = k_drawellipse(xpos,ypos,ang,sd,sd);  % circle at +/- 2 pRF sizes
       set(h,'Color',cmap(p,:),'LineWidth',2);
       set(scatter(xpos,ypos,'r.'),'CData',cmap(p,:));
   end
 end
 k_drawrectangle(0,0,16.6,16.6,'k-');  % square indicating stimulus extent
-axis([-20 20 -20 20]);
+axis([-10 10 -10 10]);
 straightline(0,'h','k-');       % line indicating horizontal meridian
 straightline(0,'v','k-');       % line indicating vertical meridian
 axis square;
@@ -268,9 +276,6 @@ set(gca, 'FontSize', 18);
 set(gcf, 'Position', [163   553   684   599]);
 
 %% KK example code: plot time courses with fit
-
-results = resultsWBC;
-data = dataWBC;
 
 % Define some variables
 res = [100 100];                    % row x column resolution of the stimuli
@@ -301,7 +306,7 @@ modelfun = @(pp,dd) conv2run(posrect(pp(4)) * (dd*[vflatten(placematrix(zeros(re
 % Note that a separate projection matrix is constructed for each run.
 polymatrix = {};
 for p=1:length(degs)
-  polymatrix{p} = projectionmatrix(constructpolynomialmatrix(size(data{p},2),0:degs(p)));
+  polymatrix{p} = projectionmatrix(constructpolynomialmatrix(size(data,2),0:degs(p)));
 end
 
 % Pick a channel to inspect:
@@ -319,7 +324,7 @@ vx = chanIndex;
 
 % IRIS: do not project out polynomials:
 for p=1:length(data)
-    datats{p} = data{p}(vx,:)';
+    datats{p} = data(vx,:)';
     modelts{p} = modelfun(results.params(1,:,vx),stimulusPP{p});
 end
 
@@ -338,6 +343,46 @@ legend('data', 'model prediction');
 set(gcf, 'Position', [60 300 2000 1000]);
 set(gca, 'FontSize', 18)
 
+%% Plot results as polarplot, xy
+cfactor =16.6/100;
+prf_ecc = results.ecc*cfactor;
+
+idx = results.R2 > 50;
+figure,
+%polarplot(deg2rad(results.ang), prf_ecc, 'x')
+polarplot(deg2rad(results.ang(idx)), prf_ecc(idx), 'x'); title('polar');
+rlim([0 5]);
+set(gca, 'FontSize', 18)
+
+% subplot(1,2,2); polarplot(deg2rad(channels.bensonangle+90), channels.bensoneccen, 'x')
+% hold on, polarplot(deg2rad(channels.bensonangle(idx)+90), channels.bensoneccen(idx), 'x'); title('benson14');
+% rlim([0 25])
+% set(gca, 'FontSize', 18)
+
+figure; 
+%polarplot(deg2rad(results.ang), prf_ecc, 'x')
+%scatter(squeeze(results.params(1,2,:)), squeeze(results.params(1,1,:)),'x')
+scatter(squeeze(results.params(1,2,idx)), squeeze(results.params(1,1,idx)),'x')
+axis([0 100 0 100])
+xlabel('x', 'FontSize', 28), ylabel('y', 'FontSize', 28);
+set(gca, 'FontSize', 18); title('xy');
+
+%% Plot R2 in grid layout
+
+% v = 1:16:113;
+% inx{1} = [v v+1 v+2 v+3 v+4 v+5 v+6 v+7]; % TOP HALF OF HD GRID
+% inx{2} = inx{1} + 8; % BOTTOM HALF OF HD GRID
+% test = [inx{1} inx{2}];
+
+% R2 = reshape(results.R2, [16 8]); % this doesn't work because we have missing channels
+fillIndex = setdiff(1:128,  [80 96 112 128]);
+
+R2 = nan([16 8]); 
+R2(fillIndex) = results.R2;
+figure;imagesc(rot90(R2)); caxis([-10 80]);
+c = colorbar; c.Label.String = 'R2';
+set(gca, 'FontSize', 18, 'XTick', 1:1:16);
+title('R2 grid layout');
 
 %% Plot spectra
 

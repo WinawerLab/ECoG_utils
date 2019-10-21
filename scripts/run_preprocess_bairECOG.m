@@ -10,8 +10,8 @@
 % Dataset specs
 project_name = 'visual';
 
-%sub_label    = 'som648';
-%ses_label   = {'nyuecog01'};
+sub_label    = 'som748';
+ses_label   = {'nyuecog02'};
 
 %sub_label   = 'som726'; 
 %ses_label   = {'nyuecog01','nyuecog02','nyuecog03'};
@@ -22,21 +22,22 @@ project_name = 'visual';
 %sub_label   = 'beilen'; 
 %ses_label   = {'UMCUECOGday03', 'UMCUECOGday06'};
 
-sub_label   = 'intraop015'; 
-ses_label   = {'UMCUOR'};
+%sub_label   = 'intraop015'; 
+%ses_label   = {'UMCUOR'};
 
 % PREPROCESSING SPECS
 
 % broadband
 %specs.bb_bands     = [[70 90]; [90 110]; [130 150]; [150 170]];
-specs.bb_bands     = [[60 70]; [70 80]; [80 90]; [110 120]; [120 130]; [130 140]; [160 170]];    
-%specs.bb_bands     = [[70 80]; [80 90]; [90 100]; [100 110]; [130 140]; [140 150]; [150 160]; [160 170]];
+%specs.bb_bands     = [[60 70]; [70 80]; [80 90]; [110 120]; [120 130]; [130 140]; [160 170]];    
+specs.bb_bands     = [[70 80]; [80 90]; [90 100]; [100 110]; [130 140]; [140 150]; [150 160]; [160 170]];
 %specs.bb_bands     = [[70 80]; [80 90]; [90 100]; [100 110]; [130 140]; [140 150]; [150 160]; [160 170]; [190 200]];
 specs.bb_method    = [];
+specs.bb_bands     = [[70 80]; [80 90]; [90 100]; [100 110]; [130 140]];
 
 % epochs
-%specs.epoch        = [-0.5 1.5]; % seconds
- specs.epoch      = [-0.5 1.5]; % Kenichi
+specs.epoch        = [-0.5 1.5]; % seconds
+% specs.epoch      = [-0.5 1.5]; % Kenichi
 
 % general
 specs.make_plots   = 'yes'; % 'yes', 'no'

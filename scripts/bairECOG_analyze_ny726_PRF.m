@@ -254,7 +254,7 @@ set(gca, 'FontSize', 18)
 
 %% Plot results as polarplot, xy
 
-idx = results.R2 > 30;
+idx = results.R2 > 50;
 figure, 
 subplot(1,2,1);polarplot(deg2rad(results.ang), prf_ecc, 'x')
 hold on, polarplot(deg2rad(results.ang(idx)), prf_ecc(idx), 'x'); title('analyzePRF');

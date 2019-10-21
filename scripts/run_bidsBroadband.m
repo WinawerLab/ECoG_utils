@@ -20,7 +20,7 @@ subjects = {'som648';
     
 for ii = 1:length(subjects)
     subject = subjects{ii};
-    bidsEcogBroadband(projectDir, subject, [], [], [], bands, [], [], [], [], 0);
+    bidsEcogBroadband(projectDir, subject, [], [], [], bands);
 end
 
 %function bidsEcogBroadband(projectDir, subject, sessions, tasks, runnums, ...
@@ -37,6 +37,6 @@ subjects = {'beilen';
         
 for ii = 1:length(subjects)
     subject = subjects{ii};
-    bidsEcogBroadband(projectDir, subject, [], [], [], bands, [], [], [], [], 0);
+    bidsEcogBroadband(projectDir, subject, [], [], [], bands);
 end
      
