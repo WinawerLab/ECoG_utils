@@ -17,9 +17,12 @@ if length(dataFiles) > 1
     session_inx = str2double(out{1}); 
     file_inx = [];
     for ii = 1:length(dataFiles)
-        if contains(dataFiles(ii).name, num2str(session_inx))
-            file_inx = [file_inx ii];
+        if contains(dataFiles(ii).name, sprintf('%d_512.EDF', session_inx))
+           file_inx = [file_inx ii];
         end
+%         if contains(dataFiles(ii).name, num2str(session_inx))
+%             file_inx = [file_inx ii];
+%         end
     end
     if length(file_inx) ~= 1
         error('[%s] Could not match session name %s to datafile: please check files', mfilename, ses_label);
