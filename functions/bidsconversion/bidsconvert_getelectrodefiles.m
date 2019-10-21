@@ -10,7 +10,7 @@ function [electrode_table, channel_table] = bidsconvert_getelectrodefiles(dataRe
 ElecFile = dir(fullfile(dataReadDir,'*coor_T1*.txt'));
 
 if length(ElecFile) < 1
-    fprintf('[%s] Warning: no coordinate file found!\n', mfilename) 
+    warning('no coordinate file found!\n') 
     elec_labels = hdr.label; chanNames = elec_labels;
     elec_types = hdr.chantype; chanTypes = elec_types;
     
@@ -99,7 +99,7 @@ end
 % Update electrodes.tsv to have same groups
 elec_inx = ecog_matchChannels(electrode_table.name, channel_table.name);
 if length(find(elec_inx>0)) ~= height(electrode_table)
-    error('[%s] Could not find all electrode names in channel table!', mfilename)
+    error('Could not find all electrode names in channel table!')
 end
 electrode_table.group = channel_table.group(elec_inx);
 
