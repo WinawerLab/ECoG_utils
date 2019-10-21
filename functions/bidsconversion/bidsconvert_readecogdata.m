@@ -15,10 +15,20 @@ if length(dataFiles) > 1
     % Figure out which session
     out = regexp(ses_label, '\d*', 'match');
     session_inx = str2double(out{1}); 
+    file_inx = [];
+    for ii = 1:length(dataFiles)
+        if contains(dataFiles(ii).name, num2str(session_inx))
+            file_inx = [file_inx ii];
+        end
+    end
+    if length(file_inx) ~= 1
+        error('[%s] Could not match session name %s to datafile: please check files', mfilename, ses_label);
+    end
+
 else
-    session_inx = 1;
+    file_inx = 1;
 end
-fileName = [dataFiles(session_inx).folder filesep dataFiles(session_inx).name];    
+fileName = [dataFiles(file_inx).folder filesep dataFiles(file_inx).name];    
 fprintf('[%s] Reading %s ...\n', mfilename, fileName);
 hdr = ft_read_header(fileName);
 data = ft_read_data(fileName);
