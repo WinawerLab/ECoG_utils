@@ -79,16 +79,23 @@ if max(contains(hdr.label, 'REF')) == 1
     end
 else
 	% this is a newer SOM dataset in which channels been renamed to no
-	% longer have 'REF' or dahes, but the numbering style is different in
+	% longer have 'REF' or dashes, but the numbering style is different in
 	% the elecfile and the hdr so we still need to rename. In this case
 	% we'll rename the elecList (remove the 0s):
     elecList_renamed = elecList;
     for ii = 1:length(elecList)
-        zeroIdx = strfind(elecList{ii}, '0'); % find the location of 0
-        lastIdx = length(elecList{ii}); % check if location of 0 is not at the end
-        if ~isempty(zeroIdx) & zeroIdx ~= lastIdx & isempty(str2num(elecList{ii}(zeroIdx-1)))
-            keepIdx = setdiff(1:lastIdx, zeroIdx);
-            elecList_renamed{ii} = elecList{ii}(keepIdx);
+        zeroIdx = strfind(elecList{ii}, '0'); % find the location of 0       
+        if ~isempty(zeroIdx) 
+            keepIdx = setdiff(1:length(elecList{ii}), zeroIdx);
+            % double check if we indeed want to remove these zeros or not
+            for jj = 1:length(zeroIdx)
+                % if location of 0 is at the end, do not remove
+                if zeroIdx(jj) == length(elecList{ii}), keepIdx = [keepIdx zeroIdx(jj)]; end
+                % if position before 0 is numeric and not zero, do not remove
+                tmp = str2num(elecList{ii}(zeroIdx(jj)-1));
+                if isnumeric(tmp) & tmp ~= 0, keepIdx = [keepIdx zeroIdx(jj)]; end
+            end
+            elecList_renamed{ii} = elecList{ii}(unique(keepIdx));
         end
     end
     % Now, loop across all the channels to get their elecInx
