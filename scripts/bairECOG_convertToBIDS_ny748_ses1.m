@@ -86,7 +86,7 @@ title([num2str(triggerChannel) ': ' hdr.label{triggerChannel}]);
 % PATIENTSPECIFIC HACK %%
 
 % For 748, there's a mismatch for one set of electrodes that are labeled
-% 'DMP' in the data, but 'DMPT' in the electrode coordinates provided by
+% 'DPM' in the data, but 'DPMT' in the electrode coordinates provided by
 % SoM. Hack by overwriting names in the hdr:
 INX = find(contains(hdr.label, 'DPM')); 
 for ii = 1:length(INX)

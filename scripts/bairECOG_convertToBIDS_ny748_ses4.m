@@ -18,29 +18,19 @@ patientID   = 748; % Specify patient's raw folder name here
 RawDataDir  = '/Volumes/server/Projects/BAIR/Data/Raw/ECoG/';
 BIDSDataDir = '/Volumes/server/Projects/BAIR/Data/BIDS/';
 
-% BIDS specs: assuming defaults for a first session, full visual set:
+% SIXCATLOCALIZER PILOT
 projectName = 'visual';
 sub_label   = ['som' num2str(patientID)]; 
-ses_label   = 'nyuecog03';
+ses_label   = 'nyuecog04';
 ses_labelt1 = 'som3t01';
-task_label  = {'prf',...
-               'prf', ...
-               'hrfpattern', ...
-               'temporalpattern', ...            
-               'temporalpattern', ... 
-               'spatialpattern', ...
-               'spatialpattern', ...    
-               'spatialobject', ...
-               'spatialobject', ...
-               'temporalpattern', ...            
-               'temporalpattern', ...       
-               'spatialpattern', ...
-               'spatialpattern', ...
-               'spatialobject', ...
-               'spatialobject'
-              };              
-run_label = {'01','02','01','01','02','01','02','01','02','03','04','03','04','03','04'};
-% NOTE: task and run labels should be noted in the order they were run!
+task_label  = {'sixcatloctemporal',...
+               'sixcatloctemporal', ...
+               'sixcatloctemporal', ...
+               'sixcatloctemporal', ...            
+               'sixcatloctemporal', ... 
+               'sixcatloctemporal', ...
+               };              
+run_label = {'01','02','03','04','05','06'};
 
 % Make plots?
 makePlot = 0;
@@ -71,8 +61,8 @@ figure;plot(rawdata(triggerChannel,:));
 title([num2str(triggerChannel) ': ' hdr.label{triggerChannel}]);
    
 % REMOVE the trigger test triggers
-run_start = [220000]; % Manually determined from plot of triggerchannel 
-run_end   = [1030000]; 
+run_start = [140000]; % Manually determined from plot of triggerchannel 
+run_end   = [880000]; 
 
 % Clip the data
 data = rawdata(:,run_start:run_end);
@@ -98,7 +88,7 @@ end
 t = ((0:hdr.nSamples-1)/hdr.Fs); 
 
 if makePlot
-    for cChan = 193:1:size(data,1) 
+    for cChan = 162:1:size(data,1) 
         figure;plot(t,data(cChan,:)); 
         title([num2str(cChan) ': ' hdr.label{cChan}]);
         xlabel('Time (s)'); ylabel('Raw amplitude (microV)'); set(gca,'fontsize',16); 
@@ -108,11 +98,10 @@ end
 
 %% WRITE DOWN THE FOLLOWING
 
-exclude_inx = [8 17 33 35 52 56 59 61 62 63 64,...      % GA
-               103 113 126 144 159 174 175 ...          % GB
-               189 190 191 193 201 202 204:207, ...     % strip
-               219 227:234 244 246:249 251];            % depth
-               
+exclude_inx = [8 9 17 33 34 61 62 63 64,...                    % GA
+               97 113 126 144 159 174 163 ...                  % GB
+               189 190 191 201 202 204:207 209 210 212 ...     % strip
+               219 227:234 244:252];                           % depth
 BADCHANNELS_MANUALTABLE = [num2cell(exclude_inx)' repmat({'spikes'}, [length(exclude_inx) 1])]; 
 
 %% CHECK THE CHANNEL SELECTIONS and save figures
