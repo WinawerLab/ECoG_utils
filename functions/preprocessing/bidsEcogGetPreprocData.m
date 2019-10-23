@@ -8,6 +8,7 @@ function [data, channels, events] = bidsEcogGetPreprocData(dataPath, subject, se
 % [data, channels, events, srate] = bidsEcogGetPreProcData(dataPath, subject, [sessions], [tasks], [runnums])
 
 [sessions] = bidsSpecifySessions(dataPath, subject, sessions);
+if ~iscell(sessions), sessions = {sessions}; end
 
 % Initialize
 allData = []; 

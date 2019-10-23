@@ -6,7 +6,7 @@ function [sessions] = bidsSpecifySessions(projectDir, subject, sessions)
 % Input
 %     projectDir:       path where the BIDS projects lies (string)
 %     subject:          BIDS subject name (string, all lower case)
-%     sessions:          BIDS session name (string, all lower case)
+%     sessions:         BIDS session name (string, all lower case)
 %                           default: all sessions in subject
 %
 % Output
