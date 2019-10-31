@@ -307,7 +307,7 @@ switch plotelecs
         switch plotlabel
             case 'yes'
                 for i = 1:size(elec_xyz(elec_plotindex,:),1)
-                    [x, y, z] = adjust_elec_label(elec_xyz(elec_plotindex(i),:),2);
+                    [x, y, z] = adjust_elec_label(elec_xyz(elec_plotindex(i),:),3);
                     text('Position',[x y z],'String',elec_labels(elec_plotindex(i),:),'Color','w','VerticalAlignment','top');
                 end
         end
@@ -523,13 +523,13 @@ for a = 1:length(specs.atlasNames)
             end
             
             % Plot electrodes
-            plot_electrodes(elec_xyz(elec_plotindex,:), [1 1 1]*0.2,1);
-            plot_electrodes(elec_xyz(elec_indices,:), [0 0 0],1);
+            plot_electrodes(elec_xyz(elec_plotindex,:), [1 1 1]*0.2,2);
+            plot_electrodes(elec_xyz(elec_indices,:), [0 0 0],2);
 
             switch plotlabel
                 case 'yes'
                     for i = 1:size(elec_xyz(elec_plotindex,:),1)
-                        [x, y, z] = adjust_elec_label(elec_xyz(elec_plotindex(i),:),1);
+                        [x, y, z] = adjust_elec_label(elec_xyz(elec_plotindex(i),:),3);
                         text('Position',[x y z],'String',elec_labels(elec_plotindex(i),:),'Color','w','VerticalAlignment','top');
                     end
             end
@@ -580,7 +580,7 @@ end
 
 function plot_electrodes(xyz, color, radius)   
     [x, y, z] = sphere;
-    if ~exist('radius', 'var'), radius = 2; end
+    if ~exist('radius', 'var'), radius = 3; end
         x = radius * x;
         y = radius * y;
         z = radius * z;
@@ -611,7 +611,7 @@ end
 
 function [x, y, z] = adjust_elec_label(xyz,radius)
     if ~exist('radius','var')
-        radius = 2;
+        radius = 3;
     end
     if xyz(1)>0
         x = xyz(1)+radius;
