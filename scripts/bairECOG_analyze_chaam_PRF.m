@@ -10,12 +10,16 @@ session     = 'umcuecog';
 task        = {'prf'};
 description = 'reref';
 
+% Get bar apertures (necessary for PRF fitting)
+a = load('/Volumes/GoogleDrive/My Drive/temp/bar_apertures.mat');
+
 %% Get visual area matches for this subject
 
 fprintf('Computing matches with visual atlases...\n');
 specs = [];
 specs.pID           = subject; 
-specs.plotmesh      = 'none';
+specs.plotmesh      = 'right';
+specs.atlasNames    = {'benson14_varea'};
 BIDSformatted       = 1;
 visualelectrodes    = electrode_to_nearest_node(specs, BIDSformatted);
  
@@ -27,7 +31,7 @@ srate = channels.sampling_frequency(1);
 
 %% Data preprocessing
 
-% % Shift onsets
+% % Shift onsets (estimated delay with respect to NYU data)
 fprintf('[%s] This is a umcu patient: shifting the onsets\n',mfilename);
 shiftInSeconds = 0.062; % 62 ms
 shiftInSamples = round(shiftInSeconds*srate); 
@@ -43,72 +47,45 @@ fprintf('Computing epochs...\n');
 [epochs, epoch_t] = ecog_makeEpochs(data, events.event_sample, epochTime, srate);  
 %[epochs] = ecog_normalizeEpochs(epochs, epoch_t, [-0.2 0], 'subtractwithintrial');
 
-%% %% check ERPs / normalization
-
-%chan_ind = find(contains(channels.name, 'Oc18'));
-%trial_ind = contains(events.trial_name, {'GRATING', 'CIRCULAR', 'PLAID', 'SPARSITY', 'CRF-5'});
-%figure, hold on, plot(epoch_t,epochs(:,trial_ind,chan_ind)), plot(epoch_t,mean(epochs(:,trial_ind,chan_ind),2), 'k', 'LineWidth', 2);
-%figure, hold on, plot(epoch_t,epochs_norm(:,trial_ind,chan_ind)), plot(epoch_t,mean(epochs_norm(:,trial_ind,chan_ind),2), 'k', 'LineWidth', 2);
-
-% plot ERPs
-chan_ind = find(contains(channels.name, 'Oc'));
-%chan_ind = find(contains(channels.name, {'Oc19', 'Oc24', 'Oc16', 'sT1'}));
-trial_ind = contains(events.task_name, 'prf') & ~contains(events.trial_name, 'BLANK');
-blank_ind = contains(events.task_name, 'prf') & contains(events.trial_name, 'BLANK');
-
-nChan = length(chan_ind); nSubPlot = ceil(sqrt(nChan));
-
-figure;
-for ii = 1:nChan
-    subplot(nSubPlot, nSubPlot,ii); hold on
-    plot(epoch_t, mean(epochs(:,trial_ind,chan_ind(ii)),2),'r', 'LineWidth', 2);
-	plot(epoch_t, mean(epochs(:,blank_ind,chan_ind(ii)),2),'k', 'LineWidth', 2);
-    ylimits = get(gca, 'YLim');
-    l1 = line([0 0],ylimits, 'Color', 'k', 'LineStyle', ':');
-    l2 = line(epochTime,[0 0],'Color', 'k', 'LineStyle', ':');
-    title(channels.name(chan_ind(ii))); axis tight
-end
-
 %% Compute spectra using Welch
 
-fft_w    = window(@hann,200);
-fft_ov   = 100; % overlap
-reg_erp  = 0;
-
-% stim on
-t    = [0 0.5]; 
-fft_t = epoch_t > t(1) & epoch_t < t(2); 
+fft_w    = window(@hann,500); % window for fft
+fft_ov   = 100; % window overlap
+reg_erp  = 0; 
+t        = [0 0.5]; 
+fft_t    = epoch_t > t(1) & epoch_t < t(2); 
 
 % Dora's ecog_spectra function expects channels X epochs X time
 data_epoch = permute(epochs, [3 2 1]);
 stims = ones(1,size(data_epoch,2));
 
-% compute spectra
+% Compute spectra
 [f,spectra] = ecog_spectra(data_epoch,stims,fft_w,fft_t,fft_ov,srate,reg_erp);
 
-%% plot spectra
-chan_ind = find(contains(channels.name, 'Oc'));
-%chan_ind = find(contains(channels.name, {'Oc19', 'Oc24', 'Oc16', 'sT1'}));
+%% Plot spectra
+chan_ind = find(contains(channels.name, {'Oc17', 'Oc24', 'Oc16', 'sT1'}));
+
 trial_ind = contains(events.task_name, 'prf') & ~contains(events.trial_name, 'BLANK');
 blank_ind = contains(events.task_name, 'prf') & contains(events.trial_name, 'BLANK');
 
 nChan = length(chan_ind); nSubPlot = ceil(sqrt(nChan));
 
-f_ind = 2:100;
+f_ind = 2:200;
 
 figure;
 for ii = 1:nChan
     subplot(nSubPlot, nSubPlot,ii); hold on
     chan_spectra = squeeze(spectra(chan_ind(ii),:,:));
     p1 = plot(f(f_ind), chan_spectra(trial_ind,f_ind), 'Color', [1 0.8 0.8], 'LineWidth', 1, 'LineStyle', ':');
+    for jj = 1:length(p1), p1(jj).Annotation.LegendInformation.IconDisplayStyle = 'off'; end
     p2 = plot(f(f_ind), chan_spectra(blank_ind,f_ind), 'Color', [0.8 0.8 0.8], 'LineWidth', 1, 'LineStyle', ':');
+    for jj = 1:length(p2), p2(jj).Annotation.LegendInformation.IconDisplayStyle = 'off'; end
     p1_m = plot(f(f_ind), mean(chan_spectra(trial_ind,f_ind)), 'r', 'LineWidth', 3);
     p2_m = plot(f(f_ind), mean(chan_spectra(blank_ind,f_ind)), 'k:', 'LineWidth', 3);
-    %p1.Annotation.LegendInformation.IconDisplayStyle = 'off';
-    %p2.Annotation.LegendInformation.IconDisplayStyle = 'off';
-    %legend({'PRF', 'BLANK'});
+    if ii == 1, legend({'BAR', 'BLANK'});end
     set(gca, 'YScale', 'log', 'YLim', [10^-2.5 10^2.5]);
     title(channels.name(chan_ind(ii)));
+    xlabel('frequency (Hz)'); ylabel('power spectral density estimate');
 end
 
 figure;
@@ -116,22 +93,23 @@ for ii = 1:nChan
     subplot(nSubPlot, nSubPlot,ii); hold on
     chan_spectra = squeeze(spectra(chan_ind(ii),:,:));
     plot(f(f_ind), mean(chan_spectra(trial_ind,f_ind)) - mean(chan_spectra(blank_ind,f_ind)), 'k', 'LineWidth', 2);
-    legend({'PRF-BLANK'});
+    if ii == 1, legend({'BAR-BLANK'}); end
     l1 = line([f(f_ind(1)) f(f_ind(end))],[0 0], 'Color', 'r', 'LineStyle', ':', 'LineWidth', 2);
     l1.Annotation.LegendInformation.IconDisplayStyle = 'off';
-    set(gca, 'YLim', [-10 10]);
+    set(gca, 'YLim', [-30 30]);
     title(channels.name(chan_ind(ii)));
+    xlabel('frequency (Hz)'); ylabel('power spectral density estimate difference');
+
 end
 
 %% generate PRF time series
 
-f_ind = [30:45 55:100];
-prf_ts = geomean(spectra(:, :, f_ind),3);
+f_ind = [30:45 55:95 105:145]; % skip 50 Hz
+prf_ts = geomean(spectra(:, :, f_ind),3); % take geomean to prevent bias to lower frequencies
 nEvents = height(events);
 prf_ts = reshape(prf_ts, [size(prf_ts,1) nEvents/2 2]);
 
-chan_ind = find(contains(channels.name, 'Oc'));
-%chan_ind = find(contains(channels.name, {'Oc19', 'Oc24', 'Oc16', 'sT1'}));
+chan_ind = find(contains(channels.name, {'Oc17', 'Oc24', 'Oc16', 'sT1'}));
 
 nChan = length(chan_ind); nSubPlot = ceil(sqrt(nChan));
 
@@ -139,40 +117,97 @@ figure;
 for ii = 1:nChan
     subplot(nSubPlot, nSubPlot,ii); hold on
     plot(prf_ts(chan_ind(ii),:,1), 'r', 'LineWidth', 1)
-    plot(prf_ts(chan_ind(ii),:,2), 'b', 'LineWidth', 2)
+    plot(prf_ts(chan_ind(ii),:,2), 'b', 'LineWidth', 1)
+    plot(mean(prf_ts(chan_ind(ii),:,:),3), 'k', 'LineWidth', 2)
     if ii == 1
-        legend({'run1', 'run2'});
+        legend({'run1', 'run2', 'geomean (run1 run2)'});
     end
     axis tight
     title(channels.name(chan_ind(ii)));
+    xlabel('PRF stimulus index (bar position)'); ylabel(sprintf('average power between %s - %s Hz', num2str(min(f_ind)), num2str(max(f_ind))));
 end
 
 %% fit PRF model
 
-% Get bar apertures
-load('/Users/winawerlab/matlab/toolboxes/BAIRstimuli/stimuli/bar_apertures.mat');
-bar_apertures = imresize(bar_apertures, [100 100], 'nearest');
+bar_apertures = imresize(a.bar_apertures, [100 100], 'nearest');
 
 % Inputs to analyzePRF
 stimulus = {bar_apertures};
-data = {mean(prf_ts,3)}; % average over repeats
+data = {geomean(prf_ts,3)}; % average over repeats
 tr = 1;
 
 opt.hrf = 1;
 opt.maxpolydeg = 0;
-opt.xvalmode = 0; % cross-validation across runs
+opt.xvalmode = 0; 
+opt.display = 'off';
 
 % Run analyzePRF
-results = analyzePRF(stimulus,data,tr,opt);
+results = analyzePRF(stimulus,data,tr,opt); 
+
+% Run analyzePRF bootstrap
+nboots = 100;
+clear r1 
+for ii = 1:nboots 
+    idx = randi(length(data{1}), [1 size(data{1},2)]);
+    if ii == 1
+        r1 = analyzePRF(stimulus{1}(:,:,idx),data{1}(:,idx),tr,opt); 
+    else 
+        r1(ii) = analyzePRF(stimulus{1}(:,:,idx),data{1}(:,idx),tr,opt); % WITHOUT baseline correction
+    end
+end
 
 %% Plot R2
 figure;plot(results.R2, 'LineWidth', 2);
 set(gca, 'FontSize', 18, 'XTick', 1:8:height(channels));
-xlabel('electrode inx'); ylabel('R2 (cross-validated)'); ylim([0 100]);
+xlabel('electrode inx'); ylabel('R2'); ylim([0 100]);
 
 figure;histogram(results.R2, 100, 'FaceColor', 'b');
 set(gca, 'XLim', [0 100], 'FontSize', 18);
 xlabel('R2'); ylabel('number of elecs'); 
+
+%% %% KK example code: Visualize the location of each voxel's pRF
+% The stimulus is 100 pixels (in both height and weight), and this corresponds to
+% 16.6 degrees of visual angle.  To convert from pixels to degreees, we multiply
+% by 16.6/100.
+cfactor = 16.6/100;
+clear xpos ypos ang sd rsq
+
+figure; hold on;
+
+for cc = 1:nChan
+        
+    subplot(nSubPlot, nSubPlot,cc); hold on
+    set(gcf,'Units','points','Position',[100 100 400 400]);
+
+    for ii = 1:nboots 
+
+        results = r1(ii); 
+        xpos(cc,ii) = results.ecc(chan_ind(cc)) * cos(results.ang(chan_ind(cc))/180*pi) * cfactor;
+        ypos(cc,ii) = results.ecc(chan_ind(cc)) * sin(results.ang(chan_ind(cc))/180*pi) * cfactor;
+        ang(cc,ii) = results.ang(chan_ind(cc))/180*pi;
+        sd(cc,ii) = results.rfsize(chan_ind(cc)) * cfactor;
+        h = k_drawellipse(xpos(cc,ii),ypos(cc,ii),ang(cc,ii),2*sd(cc,ii),2*sd(cc,ii));  
+        set(h,'Color',[0.5 0.5 0.5],'LineStyle', '-','LineWidth',1);
+        scatter(xpos(cc,ii),ypos(cc,ii),10,[0.5 0.5 0.5], 'o', 'filled');
+        rsq(cc,ii) = results.R2(chan_ind(cc));
+
+        % plot edits
+        k_drawrectangle(0,0,16.6,16.6,'k-');  % square indicating stimulus extent
+        axis([-20 20 -20 20]);
+        straightline(0,'h','k-');       % line indicating horizontal meridian
+        straightline(0,'v','k-');       % line indicating vertical meridian
+        axis square;
+        set(gca,'XTick',-20:2:20,'YTick',-20:2:20);
+        xlabel('X-position (deg)');
+        ylabel('Y-position (deg)');
+    end
+
+    title(sprintf('%s median R2 = %s', channels.name{chan_ind(cc)}, num2str(round(median(rsq(cc,:),2),1))));
+    h = k_drawellipse(median(xpos(cc,:),2),median(ypos(cc,:),2),median(ang(cc,:),2),median(2*sd(cc,:),2),median(2*sd(cc,:),2)); 
+    set(h,'Color','k','LineStyle', '-','LineWidth',3);
+    h = scatter(median(xpos(cc,:),2),median(ypos(cc,:),2),'ko', 'filled');
+    set(h, 'MarkerEdgeColor', 'k', 'SizeData',10);
+end
 
 %% %% KK example code: Visualize the location of each voxel's pRF
 
@@ -183,18 +218,16 @@ cfactor = 16.6/100;
 
 figure; hold on;
 set(gcf,'Units','points','Position',[100 100 400 400]);
-cmap = parula(nChan);
-for p=1:nChan%size(results.ang,1)
-  %if results.R2(p)>30
+cmap = jet(nChan);
+for p=1:nChan %size(results.ang,1)
       xpos = results.ecc(chan_ind(p)) * cos(results.ang(chan_ind(p))/180*pi) * cfactor;
       ypos = results.ecc(chan_ind(p)) * sin(results.ang(chan_ind(p))/180*pi) * cfactor;
       ang = results.ang(chan_ind(p))/180*pi;
       sd = results.rfsize(chan_ind(p)) * cfactor;
-      h = k_drawellipse(xpos,ypos,ang,2*sd,2*sd);  % circle at +/- 2 pRF sizes
+      h = k_drawellipse(xpos,ypos,ang,sd,sd);  % 
       h.Annotation.LegendInformation.IconDisplayStyle = 'off';
       set(h,'Color',cmap(p,:),'LineWidth',2);
       set(scatter(xpos,ypos,'r.'),'CData',cmap(p,:));
-  %end
 end
 k_drawrectangle(0,0,16.6,16.6,'k-');  % square indicating stimulus extent
 axis([-20 20 -20 20]);
@@ -208,11 +241,7 @@ legend(channels.name(chan_ind));
 set(gca, 'FontSize', 18);
 set(gcf, 'Position', [163   553   684   599]);
 
-
 %% KK example code: plot time courses with fit
-
-results = resultsWBC;
-data = dataWBC;
 
 % Define some variables
 res = [100 100];                    % row x column resolution of the stimuli
@@ -246,39 +275,34 @@ for p=1:length(degs)
   polymatrix{p} = projectionmatrix(constructpolynomialmatrix(size(data{p},2),0:degs(p)));
 end
 
-% Pick a channel to inspect:
-vx = chanIndex;
-
-% % For each run, collect the data and the model fit.  We project out polynomials
-% % from both the data and the model fit.  This deals with the problem of
-% % slow trends in the data.
-% datats = {};
-% modelts = {};
-% for p=1:length(data)
-%   datats{p} =  polymatrix{p}*data{p}(vx,:)';
-%   modelts{p} = polymatrix{p}*modelfun(results.params(1,:,vx),stimulusPP{p});
-% end
-
-% IRIS: do not project out polynomials:
-for p=1:length(data)
-    datats{p} = data{p}(vx,:)';
-    modelts{p} = modelfun(results.params(1,:,vx),stimulusPP{p});
-end
-
 % Visualize the results
 figure; hold on;
-set(gcf,'Units','points','Position',[100 100 1000 100]);
-plot(cat(1,datats{:}),'k-', 'LineWidth', 2);
-plot(cat(1,modelts{:}),'r-','LineWidth', 2);
-straightline(224*(1:2)+.5,'v','g-');
-xlabel('PRF stimulus','FontSize', 28);
-ylabel('Broadband response','FontSize', 28);
-ax = axis;
-%axis([.5 1200+.5 ax(3:4)]);
-legend('data', 'model prediction');
 
-set(gcf, 'Position', [60 300 2000 1000]);
-set(gca, 'FontSize', 18)
+for ii=1:nChan 
+    
+    vx = chan_ind(ii);
+    % For each run, collect the data and the model fit.  We project out polynomials
+    % from both the data and the model fit.  This deals with the problem of
+    % slow trends in the data.
+    datats = {};
+    modelts = {};
+    for p=1:length(data)
+      datats{p} =  polymatrix{p}*data{p}(vx,:)';
+      modelts{p} = polymatrix{p}*modelfun(results.params(1,:,vx),stimulusPP{p});
+    end
+ 
+    subplot(nSubPlot, nSubPlot,ii); hold on
+    set(gcf,'Units','points');
+    plot(cat(1,datats{:}),'k-', 'LineWidth', 2);
+    plot(cat(1,modelts{:}),'r-','LineWidth', 2);
+    xlabel('PRF stimulus','FontSize', 28);
+    ax = axis;
+    %axis([.5 1200+.5 ax(3:4)]);
+    if ii == 1, legend('Data', 'Model prediction'); end
+    set(gca, 'FontSize', 18)
+    title(channels.name(chan_ind(ii)));
+    axis tight
+end
 
 %% Comparison with benson
 
@@ -287,22 +311,27 @@ set(gca, 'FontSize', 18)
 % by 10/100.
 cfactor =16.6/100;
 prf_ecc = results.ecc*cfactor;
+thresh = 30;
 
-ind = results.R2>30; %& results.ecc < 20;
-corr(prf_ecc(ind), channels.bensoneccen(ind),'rows','complete')
-figure;scatter(channels.bensoneccen(ind),prf_ecc(ind), 100, 'filled');
+figure;hold on;
+
+ind = results.R2>thresh; %& results.ecc < 20;
+r = corr(prf_ecc(ind), channels.bensoneccen(ind),'rows','complete', 'Type', 'Spearman');
+subplot(2,1,1);scatter(channels.bensoneccen(ind),prf_ecc(ind), 100, 'filled');
 ylabel('eccentricity from analyzePRF');
 xlabel('eccentricity from benson template');
-set(gca, 'FontSize', 18)
+set(gca, 'FontSize', 18); 
+title(sprintf('for R2 > %d, correlation = %s',thresh, num2str(round(r,2)))); 
 
 %ang = ang + 90;%ang = mod(90-(-ang),360);
-ind = results.R2>30; %&results.ecc < 50;
-corr(results.ang(ind), channels.bensonangle(ind)+90,'rows','complete')
-figure;scatter(channels.bensonangle(ind)+90,results.ang(ind),100,'filled');
+ind = results.R2>thresh; %&results.ecc < 50;
+r = corr(results.ang(ind), channels.bensonangle(ind)+90,'rows','complete',  'Type', 'Spearman');
+subplot(2,1,2);scatter(channels.bensonangle(ind)+90,results.ang(ind),100,'filled');
 ylabel('angle from analyzePRF');
 xlabel('angle from benson template');
-axis([0 360 0 360])
-set(gca, 'FontSize', 18)
+axis([0 360 0 360]);
+set(gca, 'FontSize', 18);
+title(sprintf('for R2 > %d, correlation = %s', thresh, num2str(round(r,2)))); 
 
 %% Plot results as polarplot, xy
 
@@ -322,39 +351,5 @@ figure, scatter(squeeze(results.params(1,2,:)), squeeze(results.params(1,1,:)),'
 hold on, scatter(squeeze(results.params(1,2,idx)), squeeze(results.params(1,1,idx)),'x')
 axis([0 100 0 100])
 xlabel('x', 'FontSize', 28), ylabel('y', 'FontSize', 28);
-set(gca, 'FontSize', 18)
-
-%% Plot R2 in grid layout
-
-results.R2 = resultsWBC.R2(:,1);
-% v = 1:16:113;
-% inx{1} = [v v+1 v+2 v+3 v+4 v+5 v+6 v+7]; % TOP HALF OF HD GRID
-% inx{2} = inx{1} + 8; % BOTTOM HALF OF HD GRID
-% test = [inx{1} inx{2}];
-
-% R2 = reshape(results.R2, [16 8]); % this doesn't work because we have missing channels
-fillIndex = setdiff(1:128,  [1 2 15 16 113 114 127 128]);
-
-R2 = nan([16 8]); 
-R2(fillIndex) = results.R2;
-figure;imagesc(rot90(R2)); caxis([-10 80]);
-c = colorbar; c.Label.String = 'R2';
-set(gca, 'FontSize', 18, 'XTick', 1:1:16);
-title('R2 grid layout - first half');
-
-results.R2 = resultsWBC.R2(:,2);
-% v = 1:16:113;
-% inx{1} = [v v+1 v+2 v+3 v+4 v+5 v+6 v+7]; % TOP HALF OF HD GRID
-% inx{2} = inx{1} + 8; % BOTTOM HALF OF HD GRID
-% test = [inx{1} inx{2}];
-
-% R2 = reshape(results.R2, [16 8]); % this doesn't work because we have missing channels
-fillIndex = setdiff(1:128,  [1 2 15 16 113 114 127 128]);
-
-R2 = nan([16 8]); 
-R2(fillIndex) = results.R2;
-figure;imagesc(rot90(R2)); caxis([-10 80]);
-c = colorbar; c.Label.String = 'R2';
-set(gca, 'FontSize', 18, 'XTick', 1:1:16);
-title('R2 grid layout - second half');
+set(gca, 'FontSize', 18);
 
