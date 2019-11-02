@@ -68,6 +68,10 @@ function [out] = electrode_to_nearest_node(specs, BIDSformatted)
 %       node_angle: [106.68 178.32 177.33 136.13 80.88 0 64.06]
 %       node_sigma: [0.75 0.61 0.33 1.87 7.52 8.16 21.11]
 
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%% Check inputs %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
 if ~isfield(specs, 'dataDir') || isempty(specs.dataDir)
     rootDir = fullfile(filesep, 'Volumes', 'server', 'Projects', 'BAIR', 'Data');
     if ~exist('BIDSformatted', 'var')
@@ -111,14 +115,13 @@ if ~isfield(specs, 'plotlabel') || isempty(specs.plotlabel)
     specs.plotlabel = 'yes';
 end
 
+if ~isfield(specs, 'plotmatchednodes') || isempty(specs.plotmatchednodes)
+    specs.plotmatchednodes = 'no';
+end
+
 if ~isfield(specs, 'plotcbar') || isempty(specs.plotcbar)
     specs.plotcbar = 'yes';
 end
-
-plotmesh  = specs.plotmesh;
-plotelecs = specs.plotelecs;
-plotlabel = specs.plotlabel;
-plotcbar  = specs.plotcbar;
 
  % Do we have a patient ID?
 if ~isfield(specs, 'pID') || isempty(specs.pID)
@@ -127,9 +130,16 @@ if ~isfield(specs, 'pID') || isempty(specs.pID)
 else
     fprintf('[%s] Running electrode_to_node for patient %s...\n',mfilename,num2str(specs.pID));
 end
-        
-% Read electrode coordinate file from BAIR or RAW directory
-%fprintf('[%s] Searching for patient data in %s...\n',mfilename,num2str(specs.dataDir));
+
+plotmesh         = specs.plotmesh;
+plotelecs        = specs.plotelecs;
+plotlabel        = specs.plotlabel;
+plotcbar         = specs.plotcbar;
+plotmatchednodes = specs.plotmatchednodes;
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%% Read in files %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 if BIDSformatted
     
@@ -159,6 +169,8 @@ if BIDSformatted
         out = [];
         return
     else
+        
+        % Read electrode coordinate file
         D = dir(fullfile(patientDir, sessionList(1).name, 'ieeg', '*electrodes.tsv'));          
         if isempty(D)
             fprintf('[%s] Electrode coordinate file not found in %s - exiting [%s]. \n', ...
@@ -189,6 +201,8 @@ if BIDSformatted
                 elec_xyz(:,1) = elec_xyz(:,1)-3.4490;
                 elec_xyz(:,2) = elec_xyz(:,2)-34.6040;
                 elec_xyz(:,3) = elec_xyz(:,3)+6.2660;
+                % add to1 and to2 probability atlases
+                specs.atlasNames  = [specs.atlasNames {'to1_percent', 'to2_percent'}];
             end
         end
     end
@@ -199,10 +213,10 @@ else
     patientDir = fullfile(specs.dataDir, specs.pID);
 
     % Check whether this patient is in the RAW BAIR directory, if not find it in SoM
-    if ~isdir(patientDir)
+    if ~isfolder(patientDir)
         specs.dataDir = '/Volumes/server/Projects/BAIR/Data/Raw/ECoG/SoM/';
         patientDir = fullfile(specs.dataDir, specs.pID);
-        if ~isdir(patientDir)
+        if ~isfolder(patientDir)
             fprintf('[%s] Patient data directory not found - exiting [%s]. \n',mfilename,mfilename);
             out = [];
             return
@@ -245,6 +259,10 @@ else
     return
 end
 
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%% Match elecs to nodes %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
 % Match the electrode xyz with the nodes in the surfaces; find nearest
 [indices, bestSqDist] = nearpoints(elec_xyz', vertices'); % function from vistasoft
 
@@ -253,12 +271,16 @@ keep_idx = find(bestSqDist<specs.thresh);
 indices = indices(keep_idx);
 elec_xyz = elec_xyz(keep_idx,:);
 
-% Output
+% Initalize output
 out.patientID = specs.pID;
 
-% Generate figures
 
-% First, plot electrodes on brain without any atlases
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%% Generate figures %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+% FIRST, plot electrodes on brain without any atlas %%%%%%%%%%%%%%%%%%%%
+
 switch plotmesh
     case 'none'
         % do nothing
@@ -303,6 +325,13 @@ switch plotelecs
         plot_electrodes(elec_xyz(elec_plotindex,:), [1 1 1]*0.2,2);
         plot_electrodes(elec_xyz(elec_indices,:), [0 0 0],2);
         
+        % Plot matched nodes
+        switch plotmatchednodes
+            case 'yes'
+                plot_electrodes(vertices(indices(elec_plotindex),:), [1 1 1]*0.8, 1);
+                plot_electrodes(vertices(indices(elec_indices),:), [1 1 1], 1);
+        end
+            
         % Add electrode labels
         switch plotlabel
             case 'yes'
@@ -318,7 +347,9 @@ if exist('fig','var')
     set_view(gcf)
 end
 
-% Then, match electrodes with each atlas; make figure if requested
+% SECOND, match electrodes with each atlas %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% Make figure if requested %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
 for a = 1:length(specs.atlasNames)
     
     currentAtlas = specs.atlasNames{a};
@@ -399,6 +430,18 @@ for a = 1:length(specs.atlasNames)
             area_labels = {'V1', 'V2', 'V3'}; 
             area_cmap   = [255 255 0; 0 255 255; 0 0 255]./255;
             out.(currentAtlas).area_names   = area_labels;
+            
+        case 'to1_percent' % Wang probability
+
+            area_labels = {'TO1'}; 
+            area_cmap = autumn(64);
+            out.(currentAtlas).area_names   = area_labels;
+
+        case 'to2_percent' % Wang probability
+
+            area_labels = {'TO2'}; 
+            area_cmap = autumn(64);
+            out.(currentAtlas).area_names   = area_labels;
 
         otherwise
 
@@ -453,6 +496,13 @@ for a = 1:length(specs.atlasNames)
         case 'benson14_sigma'
             out.benson14_varea.node_sigma = round(atlas(out.benson14_varea.node_indices),2)';
             atlasUnits = 'degrees';
+            
+        case {'to1_percent', 'to2_percent'}
+            out.(currentAtlas).area_count   = length(elec_labels_found);
+            out.(currentAtlas).elec_labels  = elec_labels_found';
+            out.(currentAtlas).node_indices = node_indices;
+            out.(currentAtlas).node_values  = round(atlas(node_indices),2)';
+            atlasUnits = 'overlap (%)';
     end
   
     % Plot
@@ -526,6 +576,13 @@ for a = 1:length(specs.atlasNames)
             plot_electrodes(elec_xyz(elec_plotindex,:), [1 1 1]*0.2,2);
             plot_electrodes(elec_xyz(elec_indices,:), [0 0 0],2);
 
+            % Plot matched nodes
+            switch plotmatchednodes
+                case 'yes'
+                    plot_electrodes(vertices(indices(elec_plotindex),:), [1 1 1]*0.8, 1);
+                    plot_electrodes(vertices(indices(elec_indices),:), [1 1 1], 1);
+            end
+              
             switch plotlabel
                 case 'yes'
                     for i = 1:size(elec_xyz(elec_plotindex,:),1)
@@ -540,6 +597,11 @@ for a = 1:length(specs.atlasNames)
         set_view(gcf)
     end
 end
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%% Print and Count% %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
 
 % Print to window how many maps were found, and make a count per area (across hemispheres)
 
@@ -576,7 +638,9 @@ for a = 1:length(atlasNames)
     end
 end
 
-%%% SUBFUNCTIONS %%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%% SUBROUTINES%%%%% %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 function plot_electrodes(xyz, color, radius)   
     [x, y, z] = sphere;
