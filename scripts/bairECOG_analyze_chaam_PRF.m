@@ -90,25 +90,27 @@ for ii = 1:nChan
     title(channels.name(chan_inx(ii)));
     xlabel('frequency (Hz)'); ylabel('power spectral density estimate');
 end
+set(gcf, 'Position', [1000 500 1000 1000])
 
-figure;
-for ii = 1:nChan
-    subplot(3, 2,ii); hold on
-    chan_spectra = squeeze(spectra(chan_inx(ii),:,:));
-    plot(f(f_ind), mean(chan_spectra(trial_ind,f_ind)) - mean(chan_spectra(blank_ind,f_ind)), 'k', 'LineWidth', 2);
-    if ii == 1, legend({'BAR-BLANK'}); end
-    l1 = line([f(f_ind(1)) f(f_ind(end))],[0 0], 'Color', 'r', 'LineStyle', ':', 'LineWidth', 2);
-    l1.Annotation.LegendInformation.IconDisplayStyle = 'off';
-    set(gca, 'YLim', [-30 30]);
-    title(channels.name(chan_inx(ii)));
-    xlabel('frequency (Hz)'); ylabel('power spectral density estimate difference');
-
-end
+% figure;
+% for ii = 1:nChan
+%     subplot(3, 2,ii); hold on
+%     chan_spectra = squeeze(spectra(chan_inx(ii),:,:));
+%     plot(f(f_ind), mean(chan_spectra(trial_ind,f_ind)) - mean(chan_spectra(blank_ind,f_ind)), 'k', 'LineWidth', 2);
+%     if ii == 1, legend({'BAR-BLANK'}); end
+%     l1 = line([f(f_ind(1)) f(f_ind(end))],[0 0], 'Color', 'r', 'LineStyle', ':', 'LineWidth', 2);
+%     l1.Annotation.LegendInformation.IconDisplayStyle = 'off';
+%     set(gca, 'YLim', [-30 30]);
+%     title(channels.name(chan_inx(ii)));
+%     xlabel('frequency (Hz)'); ylabel('power spectral density estimate difference');
+% end
+% set(gcf, 'Position', [1000 500 1000 1000])
 
 %% generate PRF time series
 
-f_ind = [30:49 51:99 101:149]; % skip 100 Hz
-prf_ts = geomean(spectra(:, :, f_ind),3); % take geomean to prevent bias to lower frequencies
+%f_ind = [30:49 51:99 101:149]; % skip 100 Hz
+f_ind = [30:45 55:95 105:145 155:170];
+prf_ts = mean(spectra(:, :, f_ind),3); % take geomean to prevent bias to lower frequencies
 nEvents = height(events);
 prf_ts = reshape(prf_ts, [size(prf_ts,1) nEvents/2 2]);
 
@@ -125,14 +127,16 @@ for ii = 1:nChan
     title(channels.name(chan_inx(ii)));
     xlabel('PRF stimulus index (bar position)'); ylabel(sprintf('average power between %s - %s Hz', num2str(min(f_ind)), num2str(max(f_ind))));
 end
+set(gcf, 'Position', [1000 500 1000 1000])
 
 %% fit PRF model
 
-bar_apertures = imresize(a.bar_apertures, [100 100], 'nearest');
+bar_apertures = double(imresize(a.bar_apertures, [100 100], 'nearest'));
 
 % Inputs to analyzePRF
-stimulus = {bar_apertures};
-data = {mean(prf_ts,3)}; % average over repeats
+stimulus = {bar_apertures,bar_apertures};
+%data = {mean(prf_ts,3)}; % average over repeats
+data = {prf_ts(:,:,1), prf_ts(:,:,2)};
 tr = 1;
 
 opt.hrf = 1;
@@ -143,26 +147,102 @@ opt.display = 'off';
 % Run analyzePRF
 results = analyzePRF(stimulus,data,tr,opt); 
 
-% % Run analyzePRF bootstrap
-% nboots = 100;
-% clear r1 
-% for ii = 1:nboots 
-%     idx = randi(length(data{1}), [1 size(data{1},2)]);
-%     if ii == 1
-%         r1 = analyzePRF(stimulus{1}(:,:,idx),data{1}(:,idx),tr,opt); 
-%     else 
-%         r1(ii) = analyzePRF(stimulus{1}(:,:,idx),data{1}(:,idx),tr,opt); % WITHOUT baseline correction
-%     end
+%% %% KK example code: Visualize the location of each voxel's pRF
+% The stimulus is 100 pixels (in both height and weight), and this corresponds to
+% 16.6 degrees of visual angle.  To convert from pixels to degreees, we multiply
+% by 16.6/100.
+cfactor = 16.6/100;
+
+figure; hold on;
+
+for cc = 1:nChan
+        
+    subplot(3, 2,cc); hold on
+    set(gcf,'Units','points','Position',[100 100 400 400]);
+
+     xpos = results.ecc(chan_inx(cc)) * cos(results.ang(chan_inx(cc))/180*pi) * cfactor;
+     ypos = results.ecc(chan_inx(cc)) * sin(results.ang(chan_inx(cc))/180*pi) * cfactor;
+     ang = results.ang(chan_inx(cc))/180*pi;
+     sd = results.rfsize(chan_inx(cc)) * cfactor;
+     h = k_drawellipse(xpos,ypos,ang,sd,sd);  % 
+     h.Annotation.LegendInformation.IconDisplayStyle = 'off';
+     set(h,'Color','k','LineWidth',2);
+     set(scatter(xpos,ypos,'r.'),'CData',[0 0 0]);
+     rsq = results.R2(chan_inx(cc));
+
+     % plot edits
+     k_drawrectangle(0,0,16.6,16.6,'k-');  % square indicating stimulus extent
+     axis([-20 20 -20 20]);
+     straightline(0,'h','k-');       % line indicating horizontal meridian
+     straightline(0,'v','k-');       % line indicating vertical meridian
+     axis square;
+     set(gca,'XTick',-20:2:20,'YTick',-20:2:20);
+     xlabel('X-position (deg)');
+     ylabel('Y-position (deg)');
+
+    title(sprintf('%s R2 = %s', channels.name{chan_inx(cc)}, num2str(round(rsq,1))));
+end
+set(gcf, 'Position', [1000 500 1000 1000])
+
+% KK example code: Visualize the location of each voxel's pRF
+
+% The stimulus is 100 pixels (in both height and weight), and this corresponds to
+% 16.6 degrees of visual angle.  To convert from pixels to degreees, we multiply
+% by 16.6/100.
+% cfactor = 16.6/100;
+% 
+% figure; hold on;
+% set(gcf,'Units','points','Position',[100 100 400 400]);
+% cmap = hsv(nChan);
+% for p=1:nChan %size(results.ang,1)
+%       xpos = results.ecc(chan_inx(p)) * cos(results.ang(chan_inx(p))/180*pi) * cfactor;
+%       ypos = results.ecc(chan_inx(p)) * sin(results.ang(chan_inx(p))/180*pi) * cfactor;
+%       ang = results.ang(chan_inx(p))/180*pi;
+%       sd = results.rfsize(chan_inx(p)) * cfactor;
+%       h = k_drawellipse(xpos,ypos,ang,sd,sd);  % 
+%       h.Annotation.LegendInformation.IconDisplayStyle = 'off';
+%       set(h,'Color',cmap(p,:),'LineWidth',2);
+%       set(scatter(xpos,ypos,'r.'),'CData',cmap(p,:));
+% end
+% k_drawrectangle(0,0,16.6,16.6,'k-');  % square indicating stimulus extent
+% axis([-20 20 -20 20]);
+% straightline(0,'h','k-');       % line indicating horizontal meridian
+% straightline(0,'v','k-');       % line indicating vertical meridian
+% axis square;
+% set(gca,'XTick',-20:2:20,'YTick',-20:2:20);
+% xlabel('X-position (deg)');
+% ylabel('Y-position (deg)');
+% legend(channels.name(chan_inx));
+% set(gca, 'FontSize', 18);
+% set(gcf, 'Position', [163   553   684   599]);
+% 
+% [xx, yy] = meshgrid(linspace(-1,1,100));
+% [th, r] = cart2pol(xx, yy);
+% mask = r < 1;
+% 
+% prms = NaN(20,5);
+% imall = NaN(100,100,20);
+% for ii =1:numel(r1)
+%     p = r1(ii).params(1,:,63);
+%     prms(ii,:) = p;
+%     im = makegaussian2d(100,p(1),p(2),p(3)/sqrt(p(5)),p(3)/sqrt(p(5)));
+%     im = im .* mask;
+%     im = im / sum(im(:));
+%     imall(:,:,ii) = im;
+%      % makegaussian2d(res,r,c,sr,sc,xx,yy,ang,omitexp)
 % end
 
-%% Plot R2
-figure;plot(results.R2, 'LineWidth', 2);
-set(gca, 'FontSize', 18, 'XTick', 1:8:height(channels));
-xlabel('electrode inx'); ylabel('R2'); ylim([0 100]);
-
-figure;histogram(results.R2, 100, 'FaceColor', 'b');
-set(gca, 'XLim', [0 100], 'FontSize', 18);
-xlabel('R2'); ylabel('number of elecs'); 
+%% Run analyzePRF bootstrap
+nboots = 20;
+clear r1 
+for ii = 1:nboots 
+    idx = randi(length(data{1}), [1 size(data{1},2)]);
+    if ii == 1
+        r1 = analyzePRF(stimulus{1}(:,:,idx),data{1}(:,idx),tr,opt); 
+    else 
+        r1(ii) = analyzePRF(stimulus{1}(:,:,idx),data{1}(:,idx),tr,opt); % WITHOUT baseline correction
+    end
+end
 
 %% %% KK example code: Visualize the location of each voxel's pRF
 % The stimulus is 100 pixels (in both height and weight), and this corresponds to
@@ -175,20 +255,20 @@ figure; hold on;
 
 for cc = 1:nChan
         
-    subplot(nSubPlot, nSubPlot,cc); hold on
+    subplot(3, 2,cc); hold on
     set(gcf,'Units','points','Position',[100 100 400 400]);
 
     for ii = 1:nboots 
 
-        results = r1(ii); 
-        xpos(cc,ii) = results.ecc(chan_inx(cc)) * cos(results.ang(chan_inx(cc))/180*pi) * cfactor;
-        ypos(cc,ii) = results.ecc(chan_inx(cc)) * sin(results.ang(chan_inx(cc))/180*pi) * cfactor;
-        ang(cc,ii) = results.ang(chan_inx(cc))/180*pi;
-        sd(cc,ii) = results.rfsize(chan_inx(cc)) * cfactor;
-        h = k_drawellipse(xpos(cc,ii),ypos(cc,ii),ang(cc,ii),2*sd(cc,ii),2*sd(cc,ii));  
+        theseresults = r1(ii); 
+        xpos(cc,ii) = theseresults.ecc(chan_inx(cc)) * cos(theseresults.ang(chan_inx(cc))/180*pi) * cfactor;
+        ypos(cc,ii) = theseresults.ecc(chan_inx(cc)) * sin(theseresults.ang(chan_inx(cc))/180*pi) * cfactor;
+        ang(cc,ii) = theseresults.ang(chan_inx(cc))/180*pi;
+        sd(cc,ii) = theseresults.rfsize(chan_inx(cc)) * cfactor;
+        h = k_drawellipse(xpos(cc,ii),ypos(cc,ii),ang(cc,ii),sd(cc,ii),sd(cc,ii));  
         set(h,'Color',[0.5 0.5 0.5],'LineStyle', '-','LineWidth',1);
         scatter(xpos(cc,ii),ypos(cc,ii),10,[0.5 0.5 0.5], 'o', 'filled');
-        rsq(cc,ii) = results.R2(chan_inx(cc));
+        rsq(cc,ii) = theseresults.R2(chan_inx(cc));
 
         % plot edits
         k_drawrectangle(0,0,16.6,16.6,'k-');  % square indicating stimulus extent
@@ -202,43 +282,21 @@ for cc = 1:nChan
     end
 
     title(sprintf('%s median R2 = %s', channels.name{chan_inx(cc)}, num2str(round(median(rsq(cc,:),2),1))));
-    h = k_drawellipse(median(xpos(cc,:),2),median(ypos(cc,:),2),median(ang(cc,:),2),median(2*sd(cc,:),2),median(2*sd(cc,:),2)); 
+    h = k_drawellipse(median(xpos(cc,:),2),median(ypos(cc,:),2),median(ang(cc,:),2),median(sd(cc,:),2),median(sd(cc,:),2)); 
     set(h,'Color','k','LineStyle', '-','LineWidth',3);
     h = scatter(median(xpos(cc,:),2),median(ypos(cc,:),2),'ko', 'filled');
     set(h, 'MarkerEdgeColor', 'k', 'SizeData',10);
 end
+set(gcf, 'Position', [1000 500 1000 1000])
 
-%% %% KK example code: Visualize the location of each voxel's pRF
-
-% The stimulus is 100 pixels (in both height and weight), and this corresponds to
-% 16.6 degrees of visual angle.  To convert from pixels to degreees, we multiply
-% by 16.6/100.
-cfactor = 16.6/100;
-
-figure; hold on;
-set(gcf,'Units','points','Position',[100 100 400 400]);
-cmap = jet(nChan);
-for p=1:nChan %size(results.ang,1)
-      xpos = results.ecc(chan_inx(p)) * cos(results.ang(chan_inx(p))/180*pi) * cfactor;
-      ypos = results.ecc(chan_inx(p)) * sin(results.ang(chan_inx(p))/180*pi) * cfactor;
-      ang = results.ang(chan_inx(p))/180*pi;
-      sd = results.rfsize(chan_inx(p)) * cfactor;
-      h = k_drawellipse(xpos,ypos,ang,sd,sd);  % 
-      h.Annotation.LegendInformation.IconDisplayStyle = 'off';
-      set(h,'Color',cmap(p,:),'LineWidth',2);
-      set(scatter(xpos,ypos,'r.'),'CData',cmap(p,:));
-end
-k_drawrectangle(0,0,16.6,16.6,'k-');  % square indicating stimulus extent
-axis([-20 20 -20 20]);
-straightline(0,'h','k-');       % line indicating horizontal meridian
-straightline(0,'v','k-');       % line indicating vertical meridian
-axis square;
-set(gca,'XTick',-20:2:20,'YTick',-20:2:20);
-xlabel('X-position (deg)');
-ylabel('Y-position (deg)');
-legend(channels.name(chan_inx));
-set(gca, 'FontSize', 18);
-set(gcf, 'Position', [163   553   684   599]);
+% %% Plot R2
+% figure;plot(results.R2, 'LineWidth', 2);
+% set(gca, 'FontSize', 18, 'XTick', 1:8:height(channels));
+% xlabel('electrode inx'); ylabel('R2'); ylim([0 100]);
+% 
+% figure;histogram(results.R2, 100, 'FaceColor', 'b');
+% set(gca, 'XLim', [0 100], 'FontSize', 18);
+% xlabel('R2'); ylabel('number of elecs'); 
 
 %% KK example code: plot time courses with fit
 
@@ -290,7 +348,7 @@ for ii=1:nChan
       modelts{p} = polymatrix{p}*modelfun(results.params(1,:,vx),stimulusPP{p});
     end
  
-    subplot(nSubPlot, nSubPlot,ii); hold on
+    subplot(3, 2,ii); hold on
     set(gcf,'Units','points');
     plot(cat(1,datats{:}),'k-', 'LineWidth', 2);
     plot(cat(1,modelts{:}),'r-','LineWidth', 2);
