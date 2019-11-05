@@ -11,8 +11,8 @@ task        = {'prf'};
 description = 'reref';
 
 % Get bar apertures (necessary for PRF fitting)
-%a = load('/Volumes/GoogleDrive/My Drive/temp/bar_apertures.mat');
-a = load('/Users/winawerlab/matlab/toolboxes/BAIRstimuli/stimuli/bar_apertures.mat');
+a = load('/Volumes/GoogleDrive/My Drive/temp/bar_apertures.mat');
+%a = load('/Users/winawerlab/matlab/toolboxes/BAIRstimuli/stimuli/bar_apertures.mat');
 
 % Channels of interest
 COI = {'Oc17','Oc18', 'Oc24', 'Oc16', 'sT1', 'Oc31'}; 
@@ -28,7 +28,7 @@ chan_inx = find(contains(channels.name, COI));
 fprintf('Computing matches with visual atlases...\n');
 specs = [];
 specs.pID           = subject; 
-specs.plotmesh      = 'right';
+specs.plotmesh      = 'none';
 specs.plotlabel     = 'yes'; %specs.atlasNames    = {'benson14_varea'};
 BIDSformatted       = 1;
 visualelectrodes    = electrode_to_nearest_node(specs, BIDSformatted);
@@ -38,17 +38,18 @@ visualelectrodes    = electrode_to_nearest_node(specs, BIDSformatted);
 
 %% Data preprocessing
 
-% % Shift onsets (estimated delay with respect to NYU data)
+%% Shift onsets (estimated delay with respect to NYU data)
 fprintf('[%s] This is a umcu patient: shifting the onsets\n',mfilename);
 shiftInSeconds = 0.062; % 62 ms
 shiftInSamples = round(shiftInSeconds*srate); 
-events.onset = events.onset + shiftInSeconds;
-events.event_sample = events.event_sample + shiftInSamples; 
+newevents = events;
+newevents.onset = events.onset + shiftInSeconds;
+newevents.event_sample = events.event_sample + shiftInSamples; 
 
-% Epoch the data
+%% Epoch the data
 epochTime = [-0.3 0.85];
 fprintf('Computing epochs...\n');
-[epochs, epoch_t] = ecog_makeEpochs(data, events.event_sample, epochTime, srate);  
+[epochs, epoch_t] = ecog_makeEpochs(data, newevents.event_sample, epochTime, srate);  
 %[epochs] = ecog_normalizeEpochs(epochs, epoch_t, [-0.2 0], 'subtractwithintrial');
 
 %% Compute spectra using Welch
@@ -109,8 +110,9 @@ set(gcf, 'Position', [1000 500 1000 1000])
 %% generate PRF time series
 
 %f_ind = [30:49 51:99 101:149]; % skip 100 Hz
-f_ind = [30:45 55:95 105:145 155:170];
-prf_ts = mean(spectra(:, :, f_ind),3); % take geomean to prevent bias to lower frequencies
+%f_ind = [30:45 55:95 105:145 155:200];
+f_ind = [30:200];
+prf_ts = geomean(spectra(:, :, f_ind),3); % take geomean to prevent bias to lower frequencies
 nEvents = height(events);
 prf_ts = reshape(prf_ts, [size(prf_ts,1) nEvents/2 2]);
 
@@ -134,25 +136,29 @@ set(gcf, 'Position', [1000 500 1000 1000])
 bar_apertures = double(imresize(a.bar_apertures, [100 100], 'nearest'));
 
 % Inputs to analyzePRF
-stimulus = {bar_apertures,bar_apertures};
-%data = {mean(prf_ts,3)}; % average over repeats
-data = {prf_ts(:,:,1), prf_ts(:,:,2)};
+stimulus = {bar_apertures};
+data = {mean(prf_ts(chan_inx,:,:),3)}; % average over repeats
+%stimulus = {bar_apertures,bar_apertures};
+%data = {prf_ts(chan_inx,:,1), prf_ts(chan_inx,:,2)};
 tr = 1;
-
+opt = [];
 opt.hrf = 1;
 opt.maxpolydeg = 0;
 opt.xvalmode = 0; 
 opt.display = 'off';
+opt.typicalgain = 10;
+%opt.seedmode = -2;
 
 % Run analyzePRF
 results = analyzePRF(stimulus,data,tr,opt); 
+chanNames = channels.name(chan_inx);
 
 %% %% KK example code: Visualize the location of each voxel's pRF
 % The stimulus is 100 pixels (in both height and weight), and this corresponds to
 % 16.6 degrees of visual angle.  To convert from pixels to degreees, we multiply
 % by 16.6/100.
 cfactor = 16.6/100;
-
+%cfactor = 8.3/100;
 figure; hold on;
 
 for cc = 1:nChan
@@ -160,27 +166,27 @@ for cc = 1:nChan
     subplot(3, 2,cc); hold on
     set(gcf,'Units','points','Position',[100 100 400 400]);
 
-     xpos = results.ecc(chan_inx(cc)) * cos(results.ang(chan_inx(cc))/180*pi) * cfactor;
-     ypos = results.ecc(chan_inx(cc)) * sin(results.ang(chan_inx(cc))/180*pi) * cfactor;
-     ang = results.ang(chan_inx(cc))/180*pi;
-     sd = results.rfsize(chan_inx(cc)) * cfactor;
-     h = k_drawellipse(xpos,ypos,ang,sd,sd);  % 
-     h.Annotation.LegendInformation.IconDisplayStyle = 'off';
-     set(h,'Color','k','LineWidth',2);
-     set(scatter(xpos,ypos,'r.'),'CData',[0 0 0]);
-     rsq = results.R2(chan_inx(cc));
+    xpos = results.ecc(cc) * cos(results.ang(cc)/180*pi) * cfactor;
+    ypos = results.ecc(cc) * sin(results.ang(cc)/180*pi) * cfactor;
+    ang = results.ang(cc)/180*pi;
+    sd = results.rfsize(cc) * cfactor;
+    h = k_drawellipse(xpos,ypos,ang,sd,sd);  % 
+    h.Annotation.LegendInformation.IconDisplayStyle = 'off';
+    set(h,'Color','k','LineWidth',2);
+    set(scatter(xpos,ypos,'r.'),'CData',[0 0 0]);
+    rsq = results.R2(cc);
 
      % plot edits
-     k_drawrectangle(0,0,16.6,16.6,'k-');  % square indicating stimulus extent
-     axis([-20 20 -20 20]);
-     straightline(0,'h','k-');       % line indicating horizontal meridian
-     straightline(0,'v','k-');       % line indicating vertical meridian
-     axis square;
-     set(gca,'XTick',-20:2:20,'YTick',-20:2:20);
-     xlabel('X-position (deg)');
-     ylabel('Y-position (deg)');
+    k_drawrectangle(0,0,16.6,16.6,'k-');  % square indicating stimulus extent
+    axis([-20 20 -20 20]);
+    straightline(0,'h','k-');       % line indicating horizontal meridian
+    straightline(0,'v','k-');       % line indicating vertical meridian
+    axis square;
+    set(gca,'XTick',-20:2:20,'YTick',-20:2:20);
+    xlabel('X-position (deg)');
+    ylabel('Y-position (deg)');
 
-    title(sprintf('%s R2 = %s', channels.name{chan_inx(cc)}, num2str(round(rsq,1))));
+    title(sprintf('%s R2 = %s', chanNames{cc}, num2str(round(rsq,2))));
 end
 set(gcf, 'Position', [1000 500 1000 1000])
 
