@@ -57,6 +57,8 @@ electrode_table.x = elec_xyz(elecInx,1);
 electrode_table.y = elec_xyz(elecInx,2);
 electrode_table.z = elec_xyz(elecInx,3);
 electrode_table.type = elec_types(elecInx);
+electrode_table.hemisphere(electrode_table.x <0) = {'L'};
+electrode_table.hemisphere(electrode_table.x >0) = {'R'};
 
 % Generate a channel table with SOM defaults 
 [channel_table] = createBIDS_ieeg_channels_tsv_nyuSOM(length(chanNames));
@@ -96,7 +98,7 @@ for ii = 1:length(INX)
     end
 end
 
-% Update electrodes.tsv to have same groups
+% Update electrodes.tsv to have same groups as channel table
 elec_inx = ecog_matchChannels(electrode_table.name, channel_table.name);
 if length(find(elec_inx>0)) ~= height(electrode_table)
     error('Could not find all electrode names in channel table!')
