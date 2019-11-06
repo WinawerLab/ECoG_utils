@@ -49,14 +49,16 @@ epochs = permute(epochs, [3 2 1]);
 
 % normalize
 for ii = 1:length(runs)
-    idx = (idx == runs(ii));
+    idx_i = (idx == runs(ii));
     
     switch description
         case 'percentsignalchange'
-            m_base     = squeeze(median(mean(epochs(:,idx,base_range),3, 'omitnan'), 2, 'omitnan'));
-            epochs(:,idx,:) = epochs(:,idx,:)./m_base-1;
+            m_base     = squeeze(median(mean(epochs(:,idx_i,base_range),3, 'omitnan'), 2, 'omitnan'));
+            epochs(:,idx_i,:) = epochs(:,idx_i,:)./m_base-1;
         case 'subtractwithintrial'
-            epochs(:,idx,:) = epochs(:,idx,:) - mean(epochs(:,idx,base_range),3, 'omitnan');
+            epochs(:,idx_i,:) = epochs(:,idx_i,:) - mean(epochs(:,idx_i,base_range),3, 'omitnan');
+            % debug: compare with Dora's function:
+            %epochs(:,idx_i,:) = ecog_baselinesubtract(epochs(:,idx_i,:),base_range);
         otherwise
             error('unknown normalization calculation')
     end
