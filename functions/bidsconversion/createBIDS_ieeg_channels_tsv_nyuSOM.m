@@ -5,7 +5,7 @@ function [channel_table] = createBIDS_ieeg_channels_tsv_nyuSOM(n)
 %
 % IGroen, 2018
 
-%% Template Matlab script to create an BIDS compatible electrodes.tsv file
+%% Template Matlab script to create an BIDS compatible channels.tsv file
 % This example lists all required and optional fields.
 % When adding additional metadata please use CamelCase 
 %

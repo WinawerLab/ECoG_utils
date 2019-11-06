@@ -35,7 +35,7 @@ group = repmat({'n/a'}, n, 1); % Optional field to specify the group that the el
 % the iEEGElectrodeGroups field. )
 
 hemisphere = repmat({'n/a'}, n, 1); % Optional field to specify the hemisphere in which the 
-% electrode is placed, one of [?L? or ?R?] (use capital).
+% electrode is placed, one of [L or R] (use capital).
 
 %tissue = repmat('n/a', n, 1); % If a clinician has made an observation about the tissue 
 % underneath the electrode  (e.g. epilepsy, tumor, if nothing state n/a)
