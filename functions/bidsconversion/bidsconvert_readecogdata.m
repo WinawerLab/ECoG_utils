@@ -17,7 +17,7 @@ if length(dataFiles) > 1
     session_inx = str2double(out{1}); 
     file_inx = [];
     for ii = 1:length(dataFiles)
-        if contains(dataFiles(ii).name, sprintf('%d_512.EDF', session_inx))
+        if contains(dataFiles(ii).name, sprintf('%d_512.EDF', session_inx)) || contains(dataFiles(ii).name, sprintf('512_%d.EDF', session_inx))
            file_inx = [file_inx ii];
         end
 %         if contains(dataFiles(ii).name, num2str(session_inx))
