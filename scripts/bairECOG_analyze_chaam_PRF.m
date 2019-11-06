@@ -3,6 +3,7 @@
 
 % Input path
 dataPth     = '/Volumes/server/Projects/BAIR/Data/BIDS/visual/derivatives/ECoGCAR';
+savePth     = '/Volumes/server/Projects/BAIR/Analyses/visual/sub-chaam/analyzePRF_nyu/';
 
 % Dataset specs
 subject     = 'chaam'; 
@@ -11,11 +12,11 @@ task        = {'prf'};
 description = 'reref';
 
 % Get bar apertures (necessary for PRF fitting)
-a = load('/Volumes/GoogleDrive/My Drive/temp/bar_apertures.mat');
-%a = load('/Users/winawerlab/matlab/toolboxes/BAIRstimuli/stimuli/bar_apertures.mat');
+%a = load('/Volumes/GoogleDrive/My Drive/temp/bar_apertures.mat');
+a = load('/Users/winawerlab/matlab/toolboxes/BAIRstimuli/stimuli/bar_apertures.mat');
 
 % Channels of interest
-COI = {'Oc17','Oc18', 'Oc24', 'Oc16', 'sT1', 'Oc31'}; 
+COI = {'Oc17', 'Oc18', 'Oc24', 'Oc16', 'sT1', 'Oc31'}; 
 
 %% Get the data
 fprintf('Reading in the data...\n');
@@ -93,25 +94,12 @@ for ii = 1:nChan
 end
 set(gcf, 'Position', [1000 500 1000 1000])
 
-% figure;
-% for ii = 1:nChan
-%     subplot(3, 2,ii); hold on
-%     chan_spectra = squeeze(spectra(chan_inx(ii),:,:));
-%     plot(f(f_ind), mean(chan_spectra(trial_ind,f_ind)) - mean(chan_spectra(blank_ind,f_ind)), 'k', 'LineWidth', 2);
-%     if ii == 1, legend({'BAR-BLANK'}); end
-%     l1 = line([f(f_ind(1)) f(f_ind(end))],[0 0], 'Color', 'r', 'LineStyle', ':', 'LineWidth', 2);
-%     l1.Annotation.LegendInformation.IconDisplayStyle = 'off';
-%     set(gca, 'YLim', [-30 30]);
-%     title(channels.name(chan_inx(ii)));
-%     xlabel('frequency (Hz)'); ylabel('power spectral density estimate difference');
-% end
-% set(gcf, 'Position', [1000 500 1000 1000])
-
 %% generate PRF time series
 
 %f_ind = [30:49 51:99 101:149]; % skip 100 Hz
-%f_ind = [30:45 55:95 105:145 155:200];
-f_ind = [30:200];
+%f_ind = [30:45 55:95 105:145 155:200]; % skip 100 Hz
+f_ind = [30:49 51:99 101:149 151:200]; % skip 100 Hz
+%f_ind = [30:200];
 prf_ts = geomean(spectra(:, :, f_ind),3); % take geomean to prevent bias to lower frequencies
 nEvents = height(events);
 prf_ts = reshape(prf_ts, [size(prf_ts,1) nEvents/2 2]);
@@ -121,7 +109,7 @@ for ii = 1:nChan
     subplot(3,2,ii); hold on
     plot(prf_ts(chan_inx(ii),:,1), 'r', 'LineWidth', 1)
     plot(prf_ts(chan_inx(ii),:,2), 'b', 'LineWidth', 1)
-    plot(mean(prf_ts(chan_inx(ii),:,:),3), 'k', 'LineWidth', 2)
+    plot(mean(prf_ts(chan_inx(ii),:,:),3), 'k:', 'LineWidth', 3)
     if ii == 1
         legend({'run1', 'run2', 'mean (run1 run2)'});
     end
@@ -138,32 +126,53 @@ bar_apertures = double(imresize(a.bar_apertures, [100 100], 'nearest'));
 % Inputs to analyzePRF
 stimulus = {bar_apertures};
 data = {mean(prf_ts(chan_inx,:,:),3)}; % average over repeats
-%stimulus = {bar_apertures,bar_apertures};
-%data = {prf_ts(chan_inx,:,1), prf_ts(chan_inx,:,2)};
 tr = 1;
+
 opt = [];
 opt.hrf = 1;
 opt.maxpolydeg = 0;
 opt.xvalmode = 0; 
 opt.display = 'off';
-opt.typicalgain = 10;
+opt.typicalgain = 1;
 %opt.seedmode = -2;
 
 % Run analyzePRF
-results = analyzePRF(stimulus,data,tr,opt); 
+results = analyzePRF_bounds(stimulus,data,tr,opt); 
 chanNames = channels.name(chan_inx);
 
-%% %% KK example code: Visualize the location of each voxel's pRF
+% Run analyzePRF bootstrap
+nboots = 100;
+
+clear results_boot 
+for ii = 1:nboots 
+    idx = randi(length(data{1}), [1 size(data{1},2)]);
+    if ii == 1
+        results_boot = analyzePRF_bounds(stimulus{1}(:,:,idx),data{1}(:,idx),tr,opt); 
+    else 
+        results_boot(ii) = analyzePRF_bounds(stimulus{1}(:,:,idx),data{1}(:,idx),tr,opt); 
+    end
+end
+
+%% Save the results
+save(fullfile(savePth, 'chaam_analyzePRF_results_ecog'), 'results', 'results_boot', 'chanNames');
+
+
+
+%% %%%%%%%%%%%%%%%%%%
+
+
+%% Visualize the location of each voxel's pRF
+
 % The stimulus is 100 pixels (in both height and weight), and this corresponds to
-% 16.6 degrees of visual angle.  To convert from pixels to degreees, we multiply
-% by 16.6/100.
+% 16.6 degrees of visual angle:
 cfactor = 16.6/100;
-%cfactor = 8.3/100;
+
+% Plot each electrode in separate subplots:
 figure; hold on;
 
 for cc = 1:nChan
         
-    subplot(3, 2,cc); hold on
+    subplot(3,2,cc); hold on
     set(gcf,'Units','points','Position',[100 100 400 400]);
 
     xpos = results.ecc(cc) * cos(results.ang(cc)/180*pi) * cfactor;
@@ -171,16 +180,16 @@ for cc = 1:nChan
     ang = results.ang(cc)/180*pi;
     sd = results.rfsize(cc) * cfactor;
     h = k_drawellipse(xpos,ypos,ang,sd,sd);  % 
-    h.Annotation.LegendInformation.IconDisplayStyle = 'off';
     set(h,'Color','k','LineWidth',2);
     set(scatter(xpos,ypos,'r.'),'CData',[0 0 0]);
     rsq = results.R2(cc);
 
-     % plot edits
-    k_drawrectangle(0,0,16.6,16.6,'k-');  % square indicating stimulus extent
+    % plot edits
+    h = k_drawellipse(0,0,0,8.3,8.3); % circle indicating stimulus extent
+    set(h,'Color',[0.5 0.5 0.5],'LineWidth',1, 'LineStyle', ':');
     axis([-20 20 -20 20]);
-    straightline(0,'h','k-');       % line indicating horizontal meridian
-    straightline(0,'v','k-');       % line indicating vertical meridian
+    straightline(0,'h','k:');       % line indicating horizontal meridian
+    straightline(0,'v','k:');       % line indicating vertical meridian
     axis square;
     set(gca,'XTick',-20:2:20,'YTick',-20:2:20);
     xlabel('X-position (deg)');
@@ -190,38 +199,36 @@ for cc = 1:nChan
 end
 set(gcf, 'Position', [1000 500 1000 1000])
 
-% KK example code: Visualize the location of each voxel's pRF
+% All in one plot 
 
-% The stimulus is 100 pixels (in both height and weight), and this corresponds to
-% 16.6 degrees of visual angle.  To convert from pixels to degreees, we multiply
-% by 16.6/100.
-% cfactor = 16.6/100;
-% 
-% figure; hold on;
-% set(gcf,'Units','points','Position',[100 100 400 400]);
-% cmap = hsv(nChan);
-% for p=1:nChan %size(results.ang,1)
-%       xpos = results.ecc(chan_inx(p)) * cos(results.ang(chan_inx(p))/180*pi) * cfactor;
-%       ypos = results.ecc(chan_inx(p)) * sin(results.ang(chan_inx(p))/180*pi) * cfactor;
-%       ang = results.ang(chan_inx(p))/180*pi;
-%       sd = results.rfsize(chan_inx(p)) * cfactor;
-%       h = k_drawellipse(xpos,ypos,ang,sd,sd);  % 
-%       h.Annotation.LegendInformation.IconDisplayStyle = 'off';
-%       set(h,'Color',cmap(p,:),'LineWidth',2);
-%       set(scatter(xpos,ypos,'r.'),'CData',cmap(p,:));
-% end
-% k_drawrectangle(0,0,16.6,16.6,'k-');  % square indicating stimulus extent
-% axis([-20 20 -20 20]);
-% straightline(0,'h','k-');       % line indicating horizontal meridian
-% straightline(0,'v','k-');       % line indicating vertical meridian
-% axis square;
-% set(gca,'XTick',-20:2:20,'YTick',-20:2:20);
-% xlabel('X-position (deg)');
-% ylabel('Y-position (deg)');
-% legend(channels.name(chan_inx));
-% set(gca, 'FontSize', 18);
-% set(gcf, 'Position', [163   553   684   599]);
-% 
+figure; hold on;
+set(gcf,'Units','points','Position',[100 100 400 400]);
+cmap = hsv(nChan);
+for cc = 1:nChan 
+      xpos = results.ecc(cc) * cos(results.ang(cc)/180*pi) * cfactor;
+      ypos = results.ecc(cc) * sin(results.ang(cc)/180*pi) * cfactor;
+      ang = results.ang(cc)/180*pi;
+      sd = results.rfsize(cc) * cfactor;
+      h = k_drawellipse(xpos,ypos,ang,sd,sd);  % 
+      h.Annotation.LegendInformation.IconDisplayStyle = 'off';
+      set(h,'Color',cmap(cc,:),'LineWidth',2);
+      set(scatter(xpos,ypos,'r.'),'CData',cmap(cc,:));
+end
+h = k_drawellipse(0,0,0,8.3,8.3); % circle indicating stimulus extent
+set(h,'Color',[0.5 0.5 0.5],'LineWidth',1, 'LineStyle', ':');
+h.Annotation.LegendInformation.IconDisplayStyle = 'off';
+axis([-20 20 -20 20]);
+straightline(0,'h','k-');       % line indicating horizontal meridian
+straightline(0,'v','k-');       % line indicating vertical meridian
+axis square;
+set(gca,'XTick',-20:2:20,'YTick',-20:2:20);
+xlabel('X-position (deg)');
+ylabel('Y-position (deg)');
+legend(channels.name(chan_inx));
+set(gca, 'FontSize', 18);
+set(gcf, 'Position', [163   553   684   599]);
+
+% Alternative visualization: plot the gaussian itself
 % [xx, yy] = meshgrid(linspace(-1,1,100));
 % [th, r] = cart2pol(xx, yy);
 % mask = r < 1;
@@ -238,62 +245,80 @@ set(gcf, 'Position', [1000 500 1000 1000])
 %      % makegaussian2d(res,r,c,sr,sc,xx,yy,ang,omitexp)
 % end
 
-%% Run analyzePRF bootstrap
-nboots = 20;
-clear r1 
-for ii = 1:nboots 
-    idx = randi(length(data{1}), [1 size(data{1},2)]);
-    if ii == 1
-        r1 = analyzePRF(stimulus{1}(:,:,idx),data{1}(:,idx),tr,opt); 
-    else 
-        r1(ii) = analyzePRF(stimulus{1}(:,:,idx),data{1}(:,idx),tr,opt); % WITHOUT baseline correction
-    end
-end
+%% Visualize the location of each voxel's pRF BOOTSTRAPS
 
-%% %% KK example code: Visualize the location of each voxel's pRF
 % The stimulus is 100 pixels (in both height and weight), and this corresponds to
-% 16.6 degrees of visual angle.  To convert from pixels to degreees, we multiply
-% by 16.6/100.
+% 16.6 degrees of visual angle:
 cfactor = 16.6/100;
 clear xpos ypos ang sd rsq
 
+% Plot each electrode in separate subplots:
 figure; hold on;
 
 for cc = 1:nChan
         
-    subplot(3, 2,cc); hold on
+    subplot(3,2,cc); hold on
     set(gcf,'Units','points','Position',[100 100 400 400]);
 
     for ii = 1:nboots 
 
-        theseresults = r1(ii); 
-        xpos(cc,ii) = theseresults.ecc(chan_inx(cc)) * cos(theseresults.ang(chan_inx(cc))/180*pi) * cfactor;
-        ypos(cc,ii) = theseresults.ecc(chan_inx(cc)) * sin(theseresults.ang(chan_inx(cc))/180*pi) * cfactor;
-        ang(cc,ii) = theseresults.ang(chan_inx(cc))/180*pi;
-        sd(cc,ii) = theseresults.rfsize(chan_inx(cc)) * cfactor;
+        theseresults = results_boot(ii); 
+        
+        xpos(cc,ii) = theseresults.ecc(cc) * cos(theseresults.ang(cc)/180*pi) * cfactor;
+        ypos(cc,ii)= theseresults.ecc(cc) * sin(theseresults.ang(cc)/180*pi) * cfactor;
+        ang(cc,ii) = theseresults.ang(cc)/180*pi;
+        sd(cc,ii) = theseresults.rfsize(cc) * cfactor;
         h = k_drawellipse(xpos(cc,ii),ypos(cc,ii),ang(cc,ii),sd(cc,ii),sd(cc,ii));  
         set(h,'Color',[0.5 0.5 0.5],'LineStyle', '-','LineWidth',1);
         scatter(xpos(cc,ii),ypos(cc,ii),10,[0.5 0.5 0.5], 'o', 'filled');
-        rsq(cc,ii) = theseresults.R2(chan_inx(cc));
-
-        % plot edits
-        k_drawrectangle(0,0,16.6,16.6,'k-');  % square indicating stimulus extent
-        axis([-20 20 -20 20]);
-        straightline(0,'h','k-');       % line indicating horizontal meridian
-        straightline(0,'v','k-');       % line indicating vertical meridian
-        axis square;
-        set(gca,'XTick',-20:2:20,'YTick',-20:2:20);
-        xlabel('X-position (deg)');
-        ylabel('Y-position (deg)');
+        rsq(cc,ii) = theseresults.R2(cc);
     end
-
+    
     title(sprintf('%s median R2 = %s', channels.name{chan_inx(cc)}, num2str(round(median(rsq(cc,:),2),1))));
     h = k_drawellipse(median(xpos(cc,:),2),median(ypos(cc,:),2),median(ang(cc,:),2),median(sd(cc,:),2),median(sd(cc,:),2)); 
     set(h,'Color','k','LineStyle', '-','LineWidth',3);
     h = scatter(median(xpos(cc,:),2),median(ypos(cc,:),2),'ko', 'filled');
     set(h, 'MarkerEdgeColor', 'k', 'SizeData',10);
+    
+    % plot edits
+    h = k_drawellipse(0,0,0,8.3,8.3); % circle indicating stimulus extent
+    set(h,'Color',[0.5 0.5 0.5],'LineWidth',1, 'LineStyle', ':');
+    axis([-20 20 -20 20]);
+    straightline(0,'h','k:');       % line indicating horizontal meridian
+    straightline(0,'v','k:');       % line indicating vertical meridian
+    axis square;
+    set(gca,'XTick',-20:2:20,'YTick',-20:2:20);
+    xlabel('X-position (deg)');
+    ylabel('Y-position (deg)');
+
 end
 set(gcf, 'Position', [1000 500 1000 1000])
+
+%% All in one plot  BOOTSTRAPS
+
+figure; hold on;
+set(gcf,'Units','points','Position',[100 100 400 400]);
+cmap = hsv(nChan);
+for cc = 1:nChan 
+      h = k_drawellipse(median(xpos(cc,:),2),median(ypos(cc,:),2),median(ang(cc,:),2),median(sd(cc,:),2),median(sd(cc,:),2));
+      h.Annotation.LegendInformation.IconDisplayStyle = 'off';
+      set(h,'Color',cmap(cc,:),'LineWidth',2);
+      set(scatter(median(xpos(cc,:),2),median(ypos(cc,:),2),'r.'),'CData',cmap(cc,:));
+      set(h,'Color',cmap(cc,:));
+end
+h = k_drawellipse(0,0,0,8.3,8.3); % circle indicating stimulus extent
+set(h,'Color',[0.5 0.5 0.5],'LineWidth',1, 'LineStyle', ':');
+h.Annotation.LegendInformation.IconDisplayStyle = 'off';
+axis([-20 20 -20 20]);
+straightline(0,'h','k-');       % line indicating horizontal meridian
+straightline(0,'v','k-');       % line indicating vertical meridian
+axis square;
+set(gca,'XTick',-20:2:20,'YTick',-20:2:20);
+xlabel('X-position (deg)');
+ylabel('Y-position (deg)');
+legend(channels.name(chan_inx));
+set(gca, 'FontSize', 18);
+set(gcf, 'Position', [163   553   684   599]);
 
 % %% Plot R2
 % figure;plot(results.R2, 'LineWidth', 2);
@@ -317,9 +342,9 @@ degs = results.options.maxpolydeg;  % vector of maximum polynomial degrees used 
 
 % Prepare the stimuli for use in the model
 stimulusPP = {};
-for p=1:length(stimulus)
-  stimulusPP{p} = squish(stimulus{p},2)';  % this flattens the image so that the dimensionality is now frames x pixels
-  stimulusPP{p} = [stimulusPP{p} p*ones(size(stimulusPP{p},1),1)];  % this adds a dummy column to indicate run breaks
+for cc=1:length(stimulus)
+  stimulusPP{cc} = squish(stimulus{cc},2)';  % this flattens the image so that the dimensionality is now frames x pixels
+  stimulusPP{cc} = [stimulusPP{cc} cc*ones(size(stimulusPP{cc},1),1)];  % this adds a dummy column to indicate run breaks
 end
 
 % Define the model function.  This function takes parameters and stimuli as input and
@@ -334,8 +359,8 @@ modelfun = @(pp,dd) conv2run(posrect(pp(4)) * (dd*[vflatten(placematrix(zeros(re
 % Construct projection matrices that fit and remove the polynomials.
 % Note that a separate projection matrix is constructed for each run.
 polymatrix = {};
-for p=1:length(degs)
-  polymatrix{p} = projectionmatrix(constructpolynomialmatrix(size(data{p},2),0:degs(p)));
+for cc=1:length(degs)
+  polymatrix{cc} = projectionmatrix(constructpolynomialmatrix(size(data{cc},2),0:degs(cc)));
 end
 
 % Visualize the results
@@ -349,9 +374,9 @@ for ii=1:nChan
     % slow trends in the data.
     datats = {};
     modelts = {};
-    for p=1:length(data)
-      datats{p} =  polymatrix{p}*data{p}(vx,:)';
-      modelts{p} = polymatrix{p}*modelfun(results.params(1,:,vx),stimulusPP{p});
+    for cc=1:length(data)
+      datats{cc} =  polymatrix{cc}*data{cc}(vx,:)';
+      modelts{cc} = polymatrix{cc}*modelfun(results.params(1,:,vx),stimulusPP{cc});
     end
  
     subplot(3, 2,ii); hold on
