@@ -1,0 +1,31 @@
+
+%% Formatted ideosyncratically (pilot)
+bairECOG_convertToBIDS_ny648
+bairECOG_convertToBIDS_ny661
+
+%% Formatted according to template
+bairECOG_convertToBIDS_ny674; close all; 
+bairECOG_convertToBIDS_ny682
+bairECOG_convertToBIDS_ny692
+bairECOG_convertToBIDS_ny708_ses1
+bairECOG_convertToBIDS_ny708_ses2
+bairECOG_convertToBIDS_ny709
+bairECOG_convertToBIDS_ny718
+bairECOG_convertToBIDS_ny723_ses1
+bairECOG_convertToBIDS_ny723_ses2
+bairECOG_convertToBIDS_ny723_ses1
+bairECOG_convertToBIDS_ny726_ses1 % HD
+bairECOG_convertToBIDS_ny726_ses2 % HD
+bairECOG_convertToBIDS_ny726_ses3 % HD
+bairECOG_convertToBIDS_ny748_ses1 % HD
+bairECOG_convertToBIDS_ny748_ses2 % HD
+bairECOG_convertToBIDS_ny748_ses3 % HD
+bairECOG_convertToBIDS_ny748_ses4 % HD
+
+%% Unfinished/To fix?
+bairECOG_convertToBIDS_ny668_ses1
+bairECOG_convertToBIDS_ny668
+
+%% MOTOR -- check if up to date
+bairECOG_convertToBIDS_ny705_ses1 % HD
+bairECOG_convertToBIDS_ny705_ses2 % HD

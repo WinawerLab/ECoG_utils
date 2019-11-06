@@ -11,6 +11,8 @@ if ~exist('createBIDS_ieeg_json_nyuSOM.m')
     tbUse ECoG_utils;
 end
 
+makePlot = 0;
+
 %% Define paths and BIDS specs %%
 
 % Input paths specs
@@ -31,9 +33,6 @@ task_label  = {'sixcatloctemporal',...
                'sixcatloctemporal', ...
                };              
 run_label = {'01','02','03','04','05','06'};
-
-% Make plots?
-makePlot = 0;
 
 %% DEFINE PATHS AND DATA
 
@@ -57,7 +56,7 @@ makePlot = 0;
 % first run (prf), see recording notes on wiki
 triggerChannelName = 'DC1';
 triggerChannel = find(strcmp(triggerChannelName,hdr.label));
-figure;plot(rawdata(triggerChannel,:)); 
+if makePlot, figure;plot(rawdata(triggerChannel,:)); end
 title([num2str(triggerChannel) ': ' hdr.label{triggerChannel}]);
    
 % REMOVE the trigger test triggers
@@ -68,9 +67,10 @@ run_end   = [880000];
 data = rawdata(:,run_start:run_end);
 hdr.nSamples = size(data,2);
 
-figure;plot(data(triggerChannel,:)); 
-title([num2str(triggerChannel) ': ' hdr.label{triggerChannel}]);
-
+if makePlot
+    figure;plot(data(triggerChannel,:)); 
+    title([num2str(triggerChannel) ': ' hdr.label{triggerChannel}]);
+end
 % PATIENTSPECIFIC HACK %%
 
 % For 748, there's a mismatch for one set of electrodes that are labeled

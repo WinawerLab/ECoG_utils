@@ -11,6 +11,8 @@ if ~exist('createBIDS_ieeg_json_nyuSOM.m')
     tbUse ECoG_utils;
 end
 
+makePlot = 0;
+
 %% Define paths and BIDS specs %%
 
 % Input paths specs
@@ -40,12 +42,6 @@ task_label  = {'prf',...
                'spatialobject'
               };              
 run_label = {'01','02','01','01','02','01','02','01','02','03','04','03','04','03','04'};
-% NOTE: task and run labels should be noted in the order they were run!
-
-% Make plots?
-makePlot = 0;
-% NOTE: Figures will be saved into
-% derivatives/preprocessed/sub-label/ses-label/figures/bidsconversion
 
 %% DEFINE PATHS AND DATA
 
@@ -69,7 +65,7 @@ makePlot = 0;
 % Define the trigger channel name (probably a 'DC' channel, see hdr.label).
 triggerChannelName = 'DC1';
 triggerChannel = find(strcmp(triggerChannelName,hdr.label));
-figure;plot(rawdata(triggerChannel,:)); 
+if makePlot, figure;plot(rawdata(triggerChannel,:)); end
 title([num2str(triggerChannel) ': ' hdr.label{triggerChannel}]);
         
 run_start = [160000]; % Manually determined from plot of triggerchannel 
@@ -80,8 +76,10 @@ data = rawdata(:,run_start:run_end);
 hdr.nSamples = size(data,2);
 
 % Check if we have all the triggers we want
-figure;plot(data(triggerChannel,:)); 
-title([num2str(triggerChannel) ': ' hdr.label{triggerChannel}]);
+if makePlot
+    figure;plot(data(triggerChannel,:)); 
+    title([num2str(triggerChannel) ': ' hdr.label{triggerChannel}]);
+end
 
 % PATIENTSPECIFIC HACK %%
 

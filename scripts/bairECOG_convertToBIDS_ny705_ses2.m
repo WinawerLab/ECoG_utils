@@ -11,6 +11,8 @@ if ~exist('createBIDS_ieeg_json_nyuSOM.m')
     tbUse ECoG_utils;
 end
 
+makePlot = 0;
+
 %% Define paths and BIDS specs %%
 
 % Input paths specs
@@ -26,12 +28,6 @@ ses_labelt1 = 'som3t01';
 task_label  = {'boldhand'
                }; %   
 run_label = {'01'}; 
-% NOTE: task and run labels should be noted in the order they were run!
-
-% Make plots?
-makePlot = 1;
-% NOTE: Figures will be saved into
-% derivatives/preprocessed/sub-label/ses-label/figures/bidsconversion
 
 %% DEFINE PATHS AND DATA
 

@@ -340,6 +340,8 @@ electrode_table.x = elec_xyz(elecInx,1);
 electrode_table.y = elec_xyz(elecInx,2);
 electrode_table.z = elec_xyz(elecInx,3);
 electrode_table.type = elec_types(elecInx);
+electrode_table.hemisphere(electrode_table.x <0) = {'L'};
+electrode_table.hemisphere(electrode_table.x >0) = {'R'};
 
 % Update electrodes.tsv to have same groups as channels.tsv
 elec_inx = ecog_matchChannels(electrode_table.name, channel_table.name);
