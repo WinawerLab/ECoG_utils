@@ -316,17 +316,16 @@ end
 % define the model (parameters are R C S G N)
 modelfun = @(pp,dd) conv2run(posrect(pp(4)) * (dd*[vflatten(placematrix(zeros(res),makegaussian2d(resmx,pp(1),pp(2),abs(pp(3)),abs(pp(3)),xx,yy,0,0) / (2*pi*abs(pp(3))^2))); 0]) .^ posrect(pp(5)),options.hrf,dd(:,prod(res)+1));
 % model = {{[] [1-res(1)+1 1-res(2)+1 0    0   NaN;
-%               2*res(1)-1 2*res(2)-1 Inf  Inf Inf] modelfun} ...
-%          {@(ss)ss [1-res(1)+1 1-res(2)+1 0    0   0;
-%                    2*res(1)-1 2*res(2)-1 Inf  Inf Inf] @(ss)modelfun}};
-% 
-%                
+%                2*res(1)-1 2*res(2)-1 Inf  Inf Inf] modelfun} ...
+%           {@(ss)ss [1-res(1)+1 1-res(2)+1 0    0   0;
+%                     2*res(1)-1 2*res(2)-1 Inf  Inf Inf] @(ss)modelfun}};
+ 
+model = {{[] [1-0.5*res(1)+1 1-0.5*res(2)+1 0    0   NaN;
+                1.5*res(1)-1 1.5*res(2)-1 Inf  Inf Inf] modelfun} ...
+           {@(ss)ss [1-0.5*res(1)+1 1-0.5*res(2)+1 0    0   0;
+                     1.5*res(1)-1 1.5*res(2)-1 Inf  Inf Inf] @(ss)modelfun}};                
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% PREPARE SEEDS
-model = {{[] [1-0.6*res(1)+1 1-0.6*res(2)+1 0    0   NaN;
-              0.6*res(1)-1 0.6*res(2)-1 200  Inf Inf] modelfun} ...
-         {@(ss)ss [1-0.6*res(1)+1 1-0.6*res(2)+1 0    0   0;
-                   0.6*res(1)-1 0.6*res(2)-1 200 Inf Inf] @(ss)modelfun}};
-               
+                
 % init
 seeds = [];
 
