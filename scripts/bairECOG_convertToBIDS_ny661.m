@@ -190,7 +190,7 @@ end
 
 stimDir = fullfile(RawDataDir,num2str(patientID), 'stimdata');
 stimFiles = dir(fullfile(stimDir, sprintf('*%s*.mat', num2str(patientID))));
-
+clear stimData
 for ii = 1:length(stimFiles)
     fileName = [stimDir filesep stimFiles(ii).name];
     stimData(ii) = load(fileName) ;    
