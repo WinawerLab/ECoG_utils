@@ -29,7 +29,7 @@ end
 
 subjectDir = fullfile(projectDir, sprintf('sub-%s', subject));
 if ~exist(subjectDir, 'dir')
-    error('subject dir not found: %s', subjectDir); 
+    error('subject dir not found: %s. Is the server mapped?', subjectDir); 
 end
 
 %% Set the optional inputs

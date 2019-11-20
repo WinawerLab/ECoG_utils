@@ -4,6 +4,9 @@ function bidsEcogBroadband(projectDir, subject, sessions, tasks, runnums, ...
 % data, and writes out the broadband time course data of equal length to
 % the input data to an output folder in the bids derivatives folder.
 %
+% bidsEcogBroadband(projectDir, subject, sessions, tasks, runnums, ...
+%    bands, method, inputFolder, outputFolder, description, savePlot)
+%
 % Notes:
 % Since one typically wants to do some preprocessing on the raw data (e.g.
 % rereferencing) before computing broadband, the inputdata is assumed to

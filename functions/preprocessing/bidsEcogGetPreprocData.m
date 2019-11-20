@@ -1,11 +1,22 @@
-
 function [data, channels, events] = bidsEcogGetPreprocData(dataPath, subject, sessions, tasks, runnums, description)
-
-% get timeseries, channels, events, concatenated for subset of tasks
-% should get timeseries, events and channel info for a subset of
-% tasks and runnums(optional) for a given data folder.
-    
+% Reads in timeseries data, channels and events from a BIDS directory with
+% ECoG data. 
+%   
 % [data, channels, events, srate] = bidsEcogGetPreProcData(dataPath, subject, [sessions], [tasks], [runnums])
+%
+% Inputs
+%   dataPath:   path to folder containing preprocessed data
+%   dataStr:    text string to specify filename for data
+%   tasks:      BIDS tasks, in cell array
+%   runnums:    cell array of runnumbers, equal in length to tasks
+%
+% Output
+%   data:       the time-series data for each run with dimensions
+%                X x Y x Z x time
+%   info:       nifti header for each run
+%   fullFile:   The (nifti) time-series data including header information
+%
+% Example:
 
 [sessions] = bidsSpecifySessions(dataPath, subject, sessions);
 if ~iscell(sessions), sessions = {sessions}; end
