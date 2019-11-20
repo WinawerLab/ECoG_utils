@@ -26,6 +26,6 @@ bairECOG_convertToBIDS_ny748_ses4 % HD
 bairECOG_convertToBIDS_ny668_ses1
 bairECOG_convertToBIDS_ny668
 
-%% MOTOR -- check if up to date
+%% MOTOR 
 bairECOG_convertToBIDS_ny705_ses1 % HD
 bairECOG_convertToBIDS_ny705_ses2 % HD
