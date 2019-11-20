@@ -16,7 +16,8 @@ description = 'reref';
 a = load('/Users/winawerlab/matlab/toolboxes/BAIRstimuli/stimuli/bar_apertures.mat');
 
 % Channels of interest
-COI = {'Oc17', 'Oc18', 'Oc24', 'Oc16', 'sT1', 'Oc31'}; 
+%COI = {'Oc17', 'Oc18', 'Oc24', 'Oc16', 'sT1', 'Oc31'}; 
+COI = {'Oc7', 'Oc8', 'Oc15', 'Oc16', 'Oc23', 'Oc24', 'Oc31', 'Oc32', 'T16', 'T08'}; 
 
 %% Get the data
 fprintf('Reading in the data...\n');
@@ -79,7 +80,7 @@ f_ind = 2:200;
 
 figure;
 for ii = 1:nChan
-    subplot(3, 2,ii); hold on
+    subplot(5, 2,ii); hold on
     chan_spectra = squeeze(spectra(chan_inx(ii),:,:));
     p1 = plot(f(f_ind), chan_spectra(trial_ind,f_ind), 'Color', [1 0.8 0.8], 'LineWidth', 1, 'LineStyle', ':');
     for jj = 1:length(p1), p1(jj).Annotation.LegendInformation.IconDisplayStyle = 'off'; end
@@ -106,7 +107,7 @@ prf_ts = reshape(prf_ts, [size(prf_ts,1) nEvents/2 2]);
 
 figure;
 for ii = 1:nChan
-    subplot(3,2,ii); hold on
+    subplot(5,2,ii); hold on
     plot(prf_ts(chan_inx(ii),:,1), 'r', 'LineWidth', 1)
     plot(prf_ts(chan_inx(ii),:,2), 'b', 'LineWidth', 1)
     plot(mean(prf_ts(chan_inx(ii),:,:),3), 'k:', 'LineWidth', 3)
@@ -140,18 +141,18 @@ opt.typicalgain = 1;
 results = analyzePRF_bounds(stimulus,data,tr,opt); 
 chanNames = channels.name(chan_inx);
 
-% Run analyzePRF bootstrap
-nboots = 100;
-
-clear results_boot 
-for ii = 1:nboots 
-    idx = randi(length(data{1}), [1 size(data{1},2)]);
-    if ii == 1
-        results_boot = analyzePRF_bounds(stimulus{1}(:,:,idx),data{1}(:,idx),tr,opt); 
-    else 
-        results_boot(ii) = analyzePRF_bounds(stimulus{1}(:,:,idx),data{1}(:,idx),tr,opt); 
-    end
-end
+% % Run analyzePRF bootstrap
+% nboots = 20;
+% 
+% clear results_boot 
+% for ii = 1:nboots 
+%     idx = randi(length(data{1}), [1 size(data{1},2)]);
+%     if ii == 1
+%         results_boot = analyzePRF_bounds(stimulus{1}(:,:,idx),data{1}(:,idx),tr,opt); 
+%     else 
+%         results_boot(ii) = analyzePRF_bounds(stimulus{1}(:,:,idx),data{1}(:,idx),tr,opt); 
+%     end
+% end
 
 %% Save the results
 save(fullfile(savePth, 'chaam_analyzePRF_results_ecog'), 'results', 'results_boot', 'chanNames');
@@ -170,9 +171,11 @@ cfactor = 16.6/100;
 % Plot each electrode in separate subplots:
 figure; hold on;
 
+plotPos = [12 9 1 2 4 5 7 8 10 11];
+    
 for cc = 1:nChan
         
-    subplot(3,2,cc); hold on
+    subplot(4,3,plotPos(cc)); hold on
     set(gcf,'Units','points','Position',[100 100 400 400]);
 
     xpos = results.ecc(cc) * cos(results.ang(cc)/180*pi) * cfactor;
@@ -199,7 +202,7 @@ for cc = 1:nChan
 end
 set(gcf, 'Position', [1000 500 1000 1000])
 
-% All in one plot 
+%% All in one plot 
 
 figure; hold on;
 set(gcf,'Units','points','Position',[100 100 400 400]);
