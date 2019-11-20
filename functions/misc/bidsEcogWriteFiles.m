@@ -1,7 +1,6 @@
 function [fname_out] = bidsEcogWriteFiles(dataPath, subject, session, task, runnum, description, ...
     data, channels, events, ieeg_json, hdr)
-% Writes out ECoG data files to dataPath with bidsfilename formatted as:
-% sub-<subject>_ses-<session>_task-<task>_run-<runnum>_desc-<description>.
+% Writes out ECoG data files to dataPath in BIDS format.
 %
 % [fname_out] = bidsEcogWriteFiles(dataPath, subject, session, task, ...
 %    runnum, description, data, channels, events, ieeg_json, hdr)
@@ -18,7 +17,8 @@ function [fname_out] = bidsEcogWriteFiles(dataPath, subject, session, task, runn
 %     channels:         A table with channel information
 %     events:           A table with events information
 %     ieeg_json:        A struct with the ECoG meta data
-%     hdr:              The data header as provided by Fieldtrip
+%     hdr:              The data header as provided by Fieldtrip (required
+%                       in order to write data files)
 %
 % Output
 %     fname_out:        The bidsname used to name the data files.

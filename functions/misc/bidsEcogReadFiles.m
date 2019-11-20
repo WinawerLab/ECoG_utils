@@ -1,6 +1,5 @@
 function [data, channels, events, ieeg_json, hdr] = bidsEcogReadFiles(dataPath, subject, session, task, runnum, description)
-% Reads in ECoG data files from dataPath with bidsfilename formatted as:
-% sub-<subject>_ses-<session>_task-<task>_run-<runnum>_desc-<description>.
+% Reads in ECoG data files from dataPath with BIDS formatted data. 
 %
 % [data, channels, events, ieeg_json, hdr] = bidsEcogReadFiles(dataPath, ...
 %     subject, session, task, runnum, [description])
@@ -12,8 +11,8 @@ function [data, channels, events, ieeg_json, hdr] = bidsEcogReadFiles(dataPath, 
 %     task:             BIDS task name (string, all lower case)                           
 %     runnum:           BIDS run number (string, all lower case)
 %     description:      String for the BIDS 'desc-' label in the bidsname
-%                       [optional], if not providedor empty, 'desc-' is not
-%                       added to bidsname.
+%                       [optional], if not provided or empty, 'desc-' is 
+%                       not added to bidsname.
 %
 % Output
 %     data:             A 2D matrix with ECoG data (channels x time)
@@ -24,10 +23,9 @@ function [data, channels, events, ieeg_json, hdr] = bidsEcogReadFiles(dataPath, 
 %
 % Note
 % This function uses FieldTrips ft_read_data.m and ft_read_hdr.m to read in
-% the ECOG data. In addition, Expected meta-data files are a channels file
+% the ECOG data. Additional expected meta-data files are a channels file
 % (<bidsfilename>_channels.tsv), an events file (<bidsfilename>_events.tsv)
-% and a json file (<bidsfilename>_ieeg.json). Missing files result in
-% errors.
+% and a json sidecar (<bidsfilename>_ieeg.json). 
 %
 % Example
 % projectDir = '/Volumes/server/Projects/BAIR/Data/BIDS/visual';
