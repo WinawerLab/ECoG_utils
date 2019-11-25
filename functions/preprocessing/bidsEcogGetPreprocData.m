@@ -27,10 +27,12 @@ allEvents = [];
 samplesToAdd = 0;
 secondsToAdd = 0;
 
+if isempty(runnums), getRunsPerSession = 1; end
 runCount = 0;
 for ii = 1:length(sessions)
 
     % bidsSpecifyData
+    if getRunsPerSession, runnums = []; end
     [session, tasks, runnums] = bidsSpecifyData(dataPath, subject, sessions{ii}, tasks, runnums);
      
     for jj = 1:length(tasks)
