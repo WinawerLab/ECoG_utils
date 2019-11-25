@@ -65,10 +65,10 @@ run_label = {'01','02','01','01','02','01','02','01','02','03','04','03','04','0
 % Define the trigger channel name (probably a 'DC' channel, see hdr.label).
 triggerChannelName = 'DC1';
 triggerChannel = find(strcmp(triggerChannelName,hdr.label));
-if makePlot, figure;plot(rawdata(triggerChannel,:)); end
+if makePlot, figure; plot(rawdata(triggerChannel,:)); end
 title([num2str(triggerChannel) ': ' hdr.label{triggerChannel}]);
         
-run_start = [160000]; % Manually determined from plot of triggerchannel 
+run_start = [160001]; % Manually determined from plot of triggerchannel 
 run_end   = [1060000]; 
 
 % Clip the data
@@ -81,7 +81,7 @@ if makePlot
     title([num2str(triggerChannel) ': ' hdr.label{triggerChannel}]);
 end
 
-% PATIENTSPECIFIC HACK %%
+% PATIENTSPECIFIC HACKS %%
 
 % For 748, there's a mismatch for one set of electrodes that are labeled
 % 'DPM' in the data, but 'DPMT' in the electrode coordinates provided by
@@ -92,6 +92,15 @@ for ii = 1:length(INX)
     newlabel = [oldlabel(1:3) 'T' oldlabel(4:end)];
     hdr.label{INX(ii)} = newlabel;
 end
+% One of the DC channels is present in ses-01-02 but not in
+% the other two sessions. Remove DC6 to prevent concatenation issues later
+% on in data processing.
+INX = ~contains(hdr.label, 'DC6'); 
+data = data(INX,:);
+hdr.label = hdr.label(INX);
+hdr.nChans = length(hdr.label);
+hdr.chanunit = hdr.chanunit(INX);
+hdr.chantype = hdr.chantype(INX);
 
 %% CHANNEL IDENTIFICATION
 
@@ -104,7 +113,7 @@ t = ((0:hdr.nSamples-1)/hdr.Fs);
 
 % Plot the raw voltage time course of each channel
 if makePlot
-    for cChan = 20:1:size(data,1) 
+    for cChan = 1:1:size(data,1) 
         figure;plot(t,data(cChan,:)); 
         title([num2str(cChan) ': ' hdr.label{cChan}]);
         xlabel('Time (s)'); ylabel('Raw amplitude (microV)'); set(gca,'fontsize',16); 
