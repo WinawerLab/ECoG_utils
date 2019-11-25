@@ -62,8 +62,8 @@ end
 fprintf('[%s] Adding visual matches to channel table...\n',mfilename);
 
 % Add area matches to channel table
-channels.wangarea    = wang;
 channels.bensonarea  = benson;
+channels.wangarea    = wang;
 channels.bensoneccen = benson_eccen;
 channels.bensonangle = benson_angle;
 channels.bensonsigma = benson_sigma;
