@@ -5,7 +5,7 @@ function [epochs] = ecog_normalizeEpochs(epochs, t, baselineTime, description, i
 % simple subtraction of the baseline within the epoch itself (appropriate
 % for ERPs).
 %
-% [epochs] = ecog_normalizeEpochs(epochs, t, baselineTime, description, idx)
+% [epochs] = ecog_normalizeEpochs(epochs, t, baselineTime, baselineType, idx)
 %
 % Input
 %   epochs:             3D array containing epoched time series (samples x
@@ -13,8 +13,8 @@ function [epochs] = ecog_normalizeEpochs(epochs, t, baselineTime, description, i
 %   t:                  1D array of length samples indicating time relative 
 %                       to stimulus onset (in seconds)
 %   baselineTime:       time window over which to compute the baseline
-%                       signal (in seconds), e.g [-0.2 1];
-%   normDescription:    string describing the normalization procedure, 
+%                       signal (in seconds), e.g [-0.2 0];
+%   baselineType:       string describing the normalization procedure, 
 %                       which should be one of the following:
 %                           - percentsignalchange (default)
 %                           - subtractwithintrial 
@@ -30,8 +30,8 @@ function [epochs] = ecog_normalizeEpochs(epochs, t, baselineTime, description, i
 %
 % See also ecog_makeEpochs.m
 
-if ~exist('calc', 'var') || isempty(description)
-    description = 'percentsignalchange';
+if ~exist('baselineType', 'var') || isempty(baselineType)
+    baselineType = 'percentsignalchange';
 end
 
 if ~exist('idx', 'var') || isempty(idx)
@@ -51,7 +51,7 @@ epochs = permute(epochs, [3 2 1]);
 for ii = 1:length(runs)
     idx_i = (idx == runs(ii));
     
-    switch description
+    switch baselineType
         case 'percentsignalchange'
             %m_base     = squeeze(median(mean(epochs(:,idx_i,base_range),3, 'omitnan'), 2, 'omitnan'));
             m_base     = squeeze(mean(mean(epochs(:,idx_i,base_range),3, 'omitnan'), 2, 'omitnan'));
