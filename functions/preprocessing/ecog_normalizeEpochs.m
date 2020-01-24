@@ -1,4 +1,4 @@
-function [epochs] = ecog_normalizeEpochs(epochs, t, baselineTime, description, idx)
+function [epochs] = ecog_normalizeEpochs(epochs, t, baselineTime, baselineType, idx)
 % Applies a normalization to the epoched time courses based on a specified
 % time interval within the epoch. The normalization can be either a
 % conversion to percent signal change (appropriate for broadband) or a
