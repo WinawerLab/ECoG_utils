@@ -97,6 +97,6 @@ if ~exist('runnums', 'var') || isempty(runnums)
         end
     end
 end
-if ~iscell(runnums), runnums = {runnums}; end
+if ~iscell(runnums), runnums = {{runnums}}; end
 
 end

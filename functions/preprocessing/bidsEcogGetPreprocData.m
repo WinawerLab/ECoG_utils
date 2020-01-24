@@ -27,7 +27,7 @@ allEvents = [];
 samplesToAdd = 0;
 secondsToAdd = 0;
 
-if isempty(runnums), getRunsPerSession = 1; end
+if isempty(runnums), getRunsPerSession = 1; else, getRunsPerSession = 0; end
 runCount = 0;
 for ii = 1:length(sessions)
 
