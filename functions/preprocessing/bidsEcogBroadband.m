@@ -4,43 +4,42 @@ function bidsEcogBroadband(projectDir, subject, sessions, tasks, runnums, ...
 % data, and writes out the broadband time course data of equal length to
 % the input data to an output folder in the bids derivatives folder.
 %
-% bidsEcogBroadband(projectDir, subject, sessions, tasks, runnums, ...
-%    bands, method, inputFolder, outputFolder, description, savePlot)
+% bidsEcogBroadband(projectDir, subject, [sessions], [tasks], [runnums], ...
+%    [bands], [method], [inputFolder], [outputFolder], [description], [savePlot])
 %
 % Notes:
 % Since one typically wants to do some preprocessing on the raw data (e.g.
 % rereferencing) before computing broadband, the inputdata is assumed to
 % be located in the derivatives folder and have a 'desc' field in the name.
 %
-% TO DO Save out a readme?
-%
 % Input
 %     projectDir:       path where the BIDS project lies (string)
 %     subject:          BIDS subject name (string, all lower case)
 %     sessions:         BIDS session name (string, all lower case)
 %                           default: all sessions with 'ecog' in the name
-%     tasks:            one or more BIDS tasks (string or cell array of strings)
+%     tasks:            One or more BIDS tasks (string or cell array of strings)
 %                           default: all tasks in session
 %     runnums:          BIDS run numbers (vector or cell array of vectors)
 %                           default: all runs for specified tasks
-%     bands:            band-pass filter frequencies, formatted as a matrix 
+%     bands:            Band-pass filter frequencies, formatted as a matrix 
 %                       (number of bands x 2) or a cell array {[lb,ub], width}, 
 %                       (see ecog_extractBroadband.m)
 %                       default: {[60 200], 20}
-%     method:           method for computing broadband, formatted as a
+%     method:           Method for computing broadband, formatted as a
 %                       function handle (see ecog_extractBroadband.m)
 %                           default: @(bp) geomean(abs(hilbert(bp)).^2)
-%     inputFolder:      Name of a data folder where broadband is
+%     inputFolder:      Name of a derivatives folder where broadband is
 %                           to be computed on (e.g., rereferenced data)
-%                           default: 'ECoGCAR'                            
-%     outputFolder:     Name of folder where broadband data is placed
-%                           default: 'ECoGBroadband'
+%                           default: ECoGCAR                           
+%     outputFolder:     Name of a derivatives folder where broadband data 
+%                           is placed
+%                           default: ECoGBroadband
 %     description:      String stating the 'desc-' label in the name of
 %                       the input data files
 %                           default: 'reref' 
-%     savePlot:         generate plots of timecourse and spectra for a
-%                       sample electrode before and after CAR in a separate 
-%                       'figures' folder in the derivatives folder 
+%     savePlot:         Flag indicating whether to generate plots of the 
+%                       broadband timecourse in a separate 'figures' folder 
+%                       within the derivatives/<outputFolder>
 %                           default: true
 %
 % Example 1
