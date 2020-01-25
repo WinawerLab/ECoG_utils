@@ -27,28 +27,34 @@ function bidsEcogPlotTrials(projectDir, subject, sessions, tasks, runnums, ...
 %                        - epoch_t: Epoch window, default: [-0.5 1];
 %                        - base_t:  Baseline time window, e.g. [-0.2 0]. 
 %                                           default: all t<0 in epochTime.
-%                        - chan_names:  Cell array with channel names to be plotted.
+%                        - chan_names: Cell array with channel names to be plotted.
 %                                           default: all channels                            
-%                        - stim_names:Name of stimulus conditions to plot
+%                        - stim_names: Name of stimulus conditions to plot
 %                                           default: all conditions                            
 %                        - plot_type: single trial, average, averageSE
-%                        - plot_colors:
-%                        - plot_ylim: 
+%                        - plot_colors: colormap name or RGB array
+%                        - plot_ylim: scale of y axis
 %                        - add_max:
 %                        - add_atlas:
 %                       
-%     savePlot:         Flag indicating whether to generate plots of the 
-%                       broadband timecourse in derivatives/ECoGfigures
+%     savePlot:         Flag indicating whether to save the plots in 
+%                       derivatives/ECoGfigures
 %                           default: true
 %
-% Example 1
-% This example computes broadband timecourses for all the data for all
-% sessions, tasks, and runs found for this subject, using default settings 
-%     projectDir        = '/Volumes/server/Projects/BAIR/Data/BIDS/visual'; 
-%     subject           = 'som648';
-%     bidsEcogBroadband(projectDir, subject)
+% Example
+% projectDir        = '/Volumes/server/Projects/BAIR/Data/BIDS/visual'; 
+% subject           = 'som748';
+% session           = 'nyuecog04';
+% task              = [];
+% runnums           = '01';
+% inputFolder       = 'ECoGBroadband';
+% description       = 'broadband';
+% specs.chan_names  = 'GB';
 % 
-% See also bidsSpecifySessions.m bidsSpecifyData.m ecog_extractBroadband.m
+% bidsEcogPlotTrials(projectDir, subject, session, task, runnums, ...
+%     inputFolder, description, specs);
+% 
+% See also bidsEcogGetPreprocData.m bidsECoGBroadband.m
 
 % <projectDir>
 if ~exist('projectDir', 'var') || isempty(projectDir)
@@ -76,12 +82,12 @@ end
 
 % <specs>
 if ~exist('specs', 'var') || isempty(specs), specs = struct(); end
-if ~isfield(specs,'epoch_t') || isempty(specs.epoch_t), specs.epoch_t = [-0.2 1];end
+if ~isfield(specs,'epoch_t') || isempty(specs.epoch_t), specs.epoch_t = [-0.2 1.2];end
 if ~isfield(specs,'base_t') || isempty(specs.base_t), specs.base_t = [min(specs.epoch_t) 0];end
 if ~isfield(specs,'chan_names'), specs.chan_names = []; end
 if ~isfield(specs,'stim_names'), specs.stim_names = []; end
-if ~isfield(specs,'plot_type') || isempty(specs.plot_type), specs.plot_type = 'average'; end
-if ~isfield(specs,'plot_cmap') || isempty(specs.plot_cmap), specs.plot_cmap = 'copper'; end
+if ~isfield(specs,'plot_type') || isempty(specs.plot_type), specs.plot_type = 'averageSE'; end
+if ~isfield(specs,'plot_cmap') || isempty(specs.plot_cmap), specs.plot_cmap = 'jet'; end
 if ~isfield(specs,'plot_ylim'), specs.plot_ylim = []; end
 
 % <plot save>
@@ -97,31 +103,34 @@ writePath = fullfile(projectDir, 'derivatives', 'ECoGFigures');
 [data, channels, events] = bidsEcogGetPreprocData(dataPath, subject, sessions, tasks, runnums, description);
                                           
 % Select channels
-if isempty(specs.chan_names) 
+chan_names = specs.chan_names;
+if ~iscell(chan_names), chan_names = {chan_names}; end
+if isempty(chan_names) 
     chan_idx = contains(channels.type, {'ecog', 'seeg'}); 
 else
-    %chan_idx = ecog_matchChannels(specs.chan_names, channels.name);
-    chan_idx = contains(channels.name, specs.chan_names);
+    chan_idx = contains(channels.name, chan_names);
 end
 
 data = data(chan_idx,:);
 channels = channels(chan_idx,:);
 
 % Select trials
-if isempty(specs.stim_names)
-    specs.stim_names = unique(events.trial_type);
+stim_names = specs.stim_names;
+if ~iscell(stim_names), stim_names = {stim_names}; end
+if isempty(stim_names)
+    stim_names = unique(events.trial_name);
 end
-stim_idx = cell(length(specs.stim_names),1);
+stim_idx = cell(length(stim_names),1);
 
-for ii = 1:length(specs.stim_names)
-    if ~isnumeric(specs.stim_names)
-        stim_idx{ii} = find(contains(events.trial_name, specs.stim_names{ii}));
+for ii = 1:length(stim_names)
+    if ~isnumeric(stim_names)
+        stim_idx{ii} = find(contains(events.trial_name, stim_names{ii}));        
     else
-        stim_idx{ii} = find(events.trial_type == specs.stim_names(ii));
+        stim_idx{ii} = find(events.trial_type == stim_names(ii));
     end
 end
 
-events = events(vertcat(stim_idx{:}),:);
+% events = events(vertcat(stim_idx{:}),:);
 
 % Epoch the data
 [epochs, t] = ecog_makeEpochs(data, events.onset, specs.epoch_t, channels.sampling_frequency(1));  
@@ -138,33 +147,7 @@ end
 [epochs] = ecog_normalizeEpochs(epochs, t, specs.base_t, baseType);
 fprintf('[%s] Baseline correcting epochs using %s \n', mfilename, baseType);
             
-%% MAKE PLOT
-
-% Determine how many figures to make
-elec_groups = unique(channels.group);
-
-% Get electrode indices for each group; check if this patient has a HD
-% grid, if so, reorder channels and make separate plots for bottom and top
-group_names = []; 
-chan_idx = []; 
-c = 1;
-for ii = length(elec_groups)
-    if contains(elec_groups{ii}, {'gridB', 'HDgrid'})
-        chan_idx_HD = find(contains(channels.group, elec_groups{ii}));
-        [grid_idx, gridPlotNames] = ecog_sortElecsOnHDGrid(channels.name(chan_idx_HD));
-        chan_idx{c} = chan_idx_HD(grid_idx{1});
-        chan_idx{c+1} = chan_idx_HD(grid_idx{2});
-        group_names{c} = sprintf('%s %s', elec_groups{ii}, gridPlotNames{1});
-        group_names{c+1} = sprintf('%s %s', elec_groups{ii}, gridPlotNames{2});
-        c = c+2;
-    else 
-        chan_idx{c}   = find(contains(channels.group, elec_group));
-        chan_names{c} = channels.name(chan_idx{c});
-        group_names{c} = elec_groups{ii};
-    end
-end
-
-
+%% MAKE PLOTS
 
 % Set plot settings
 if ischar(specs.plot_cmap)
@@ -174,17 +157,42 @@ else
     colors = specs.plot_cmap(1:length(stim_idx),:);
 end
 
-nFig = length(group_names);
+% Determine how many figures to make
+groups = unique(channels.group);
+nGroups = length(groups);
+chan_groups = []; c = 1;
+plotNames = [];
 
-for ii = 1:nFig
+% Get electrode indices for each group 
+for ii = 1:nGroups
     
-    figureName = sprintf('%s %s %s %s', subject, group_names{ii}, tasks, specs.stim_names);
+    % Check if group is a HD grid, if so, reorder channels 
+    % and make separate plots for bottom and top
+    if contains(groups{ii}, {'gridB', 'HDgrid'}) && height(channels) > 64
+        grid_idx = find(contains(channels.group, groups{ii}));
+        [inx, inxNames] = ecog_sortElecsOnHDGrid(channels,grid_idx);
+        chan_groups{c} = inx{1};
+        chan_groups{c+1} = inx{2};
+        plotNames{c} = sprintf('%s %s', groups{ii}, inxNames{1}); 
+        plotNames{c+1} = sprintf('%s %s', groups{ii}, inxNames{2}); 
+        c = c+2;
+    else      
+        chan_groups{c} = find(contains(channels.group, groups{ii}));
+        plotNames{c} = groups{ii};
+        c = c+1;
+    end
+end
+
+for ii = 1:length(chan_groups)
+
+    figureName = sprintf('%s %s %s %s %s', subject, plotNames{ii}, [stim_names{:}], description, specs.plot_type);
+
     figure('Name', figureName);
     set(gcf, 'Position', [400 200 1800 1200]);
     
+    chan_idx = chan_groups{ii};
     
-    % Determine number of subplots
-    % Decide how many subplots are needed
+    % Determine how many subplots to make
     nPlot = length(chan_idx);
     nRow  = ceil(sqrt(nPlot));
     nCol  = ceil(sqrt(nPlot));
@@ -192,47 +200,54 @@ for ii = 1:nFig
         nRow = nRow-1;
     end
     
+    hasLegend = 0;
+
     % Loop over electrodes
     for ee = 1:length(chan_idx)
         
-        % Add axis labels and 
-        if ee == 1
-            legend(specs.stim_names);
-            yLabel = sprintf('%s (%s)', description, channels.units{1}); 
-        else
-            yLabel = [];
-        end
+        if ~isnan(chan_idx(ee))
 
-        subplot(nRow, nCol, ee);
-        plotTitle = channels.name(chan_idx(ee));
-        
-        % Loop over trial types
-        for ss = 1:length(stim_idx)
-            
-            this_epoch = epochs(:,stim_idx{ss}, chan_idx(ee));
-            CI = [];
-            
-            % Determine plot type
-            switch specs.plot_type
-                
-                case 'singletrial'
-                    this_trial = this_epoch; 
-                    
-                case 'average'                    
-                    this_trial = mean(this_epoch,2, 'omitnan');
-                    
-                case 'averageSE'
-                    this_trial = mean(this_epoch,2, 'omitnan');
-                    llim = this_trial - std(this_trial,0,2, 'omitnan')/sqrt(length(stim_idx{ss}));
-                    ulim = this_trial + std(this_trial,0,2, 'omitnan')/sqrt(length(stim_idx{ss}));
-                    CI = [llim ulim];     
+            subplot(nRow, nCol, ee);
+            plotTitle = channels.name(chan_idx(ee));
+
+            % Loop over trial types
+            for ss = 1:length(stim_idx)
+
+                this_epoch = epochs(:,stim_idx{ss}, chan_idx(ee));
+                CI = [];
+
+                % Determine plot type
+                switch specs.plot_type
+
+                    case 'singletrial'
+                        this_trial = this_epoch; 
+
+                    case 'average'                    
+                        this_trial = mean(this_epoch,2, 'omitnan');
+
+                    case 'averageSE'
+                        this_trial = mean(this_epoch,2, 'omitnan');
+                        llim = this_trial - std(this_epoch,0,2, 'omitnan')/sqrt(length(stim_idx{ss}));
+                        ulim = this_trial + std(this_epoch,0,2, 'omitnan')/sqrt(length(stim_idx{ss}));
+                        CI = [llim ulim];     
+                end
+
+                % Plot
+                ecog_plotSingleTimeCourse(t, this_trial, CI, colors(ss,:));
             end
             
-            % Plot
-            ecog_plotSingleTimeCourse(t, this_trial, CI, colors(ss,:), plotTitle, yLabel, specs.plot_ylim, [])
-            
-        end    
+            % Add axis labels and legend
+            if ~hasLegend
+                legend(stim_names); hasLegend = 1;
+                ylabel(sprintf('%s (%s)', description, channels.units{1}));
+                %xlabel('Time (s)');
+            end
+            title(plotTitle);
+            if ~isempty(specs.plot_ylim), ylim(specs.plot_ylim);end
+
+        end
     end
+
     
     %% save Plot?
 
@@ -244,7 +259,7 @@ for ii = 1:nFig
        end    
 
        fprintf('[%s] Saving figures to %s \n',mfilename, figSaveDir);
-       saveas(gcf, figureName, 'png');
+       saveas(gcf, fullfile(figSaveDir, figureName), 'png');
 
     end
 end

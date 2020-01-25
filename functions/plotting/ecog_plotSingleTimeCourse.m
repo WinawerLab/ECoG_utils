@@ -15,7 +15,7 @@ function ecog_plotSingleTimeCourse(t, timecourse, CI, lineSpec, plotTitle, yLabe
 %   plotTitle:      (optional) title of plot
 %   yLabel:         (optional) y-axis label
 %   yLim:           (optional) min and max of y-axis
-%   xLabel:         (optional) x-axis label, default 'Time (s)'
+%   xLabel:         (optional) x-axis label
 %   xLim:           (optional) min and max of x-axis
 
 
@@ -24,7 +24,7 @@ if ~exist('lineSpec', 'var') || isempty(lineSpec), lineSpec = 'k'; end
 if ~exist('plotTitle', 'var'), plotTitle= []; end
 if ~exist('yLabel', 'var'), yLabel = []; end
 if ~exist('yLim', 'var'), yLim = []; end
-if ~exist('xLabel', 'var'), xLabel = 'Time (s)'; end
+if ~exist('xLabel', 'var'), xLabel = []; end
 if ~exist('xLim', 'var'), xLim = []; end
 
 % Check if CI is formatted correctly
@@ -67,10 +67,10 @@ set(get(get(l2,'Annotation'),'LegendInformation'),'IconDisplayStyle','off');
 
 % Add labels
 if ~isempty(xLabel), xlabel(xLabel); end
-if ~isempty(yLabel), xlabel(yLabel); end
+if ~isempty(yLabel), ylabel(yLabel); end
 if ~isempty(plotTitle), title(plotTitle); end
 
-set(gca, 'fontsize', 12);
+set(gca, 'fontsize',10);
  
 
 
