@@ -105,7 +105,7 @@ writePath = fullfile(projectDir, 'derivatives', 'ECoGFigures');
 % Select channels
 chan_names = specs.chan_names;
 if ~iscell(chan_names), chan_names = {chan_names}; end
-if isempty(chan_names) 
+if isempty([chan_names{:}]) 
     chan_idx = contains(channels.type, {'ecog', 'seeg'}); 
 else
     chan_idx = contains(channels.name, chan_names);
@@ -113,24 +113,6 @@ end
 
 data = data(chan_idx,:);
 channels = channels(chan_idx,:);
-
-% Select trials
-stim_names = specs.stim_names;
-if ~iscell(stim_names), stim_names = {stim_names}; end
-if isempty(stim_names)
-    stim_names = unique(events.trial_name);
-end
-stim_idx = cell(length(stim_names),1);
-
-for ii = 1:length(stim_names)
-    if ~isnumeric(stim_names)
-        stim_idx{ii} = find(contains(events.trial_name, stim_names{ii}));        
-    else
-        stim_idx{ii} = find(events.trial_type == stim_names(ii));
-    end
-end
-
-% events = events(vertcat(stim_idx{:}),:);
 
 % Epoch the data
 [epochs, t] = ecog_makeEpochs(data, events.onset, specs.epoch_t, channels.sampling_frequency(1));  
@@ -146,7 +128,23 @@ switch description
 end       
 [epochs] = ecog_normalizeEpochs(epochs, t, specs.base_t, baseType);
 fprintf('[%s] Baseline correcting epochs using %s \n', mfilename, baseType);
-            
+ 
+% Select trials
+stim_names = specs.stim_names;
+if ~iscell(stim_names), stim_names = {stim_names}; end
+if isempty(stim_names{:})
+    stim_names = unique(events.trial_name);
+end
+stim_idx = cell(length(stim_names),1);
+
+for ii = 1:length(stim_names)
+    if ~isnumeric(stim_names)
+        stim_idx{ii} = find(contains(events.trial_name, stim_names{ii}));        
+    else
+        stim_idx{ii} = find(events.trial_type == stim_names(ii));
+    end
+end
+
 %% MAKE PLOTS
 
 % Set plot settings
@@ -161,7 +159,7 @@ end
 groups = unique(channels.group);
 nGroups = length(groups);
 chan_groups = []; c = 1;
-plotNames = [];
+groupNames = [];
 
 % Get electrode indices for each group 
 for ii = 1:nGroups
@@ -173,19 +171,19 @@ for ii = 1:nGroups
         [inx, inxNames] = ecog_sortElecsOnHDGrid(channels,grid_idx);
         chan_groups{c} = inx{1};
         chan_groups{c+1} = inx{2};
-        plotNames{c} = sprintf('%s %s', groups{ii}, inxNames{1}); 
-        plotNames{c+1} = sprintf('%s %s', groups{ii}, inxNames{2}); 
+        groupNames{c} = sprintf('%s %s', groups{ii}, inxNames{1}); 
+        groupNames{c+1} = sprintf('%s %s', groups{ii}, inxNames{2}); 
         c = c+2;
     else      
         chan_groups{c} = find(contains(channels.group, groups{ii}));
-        plotNames{c} = groups{ii};
+        groupNames{c} = groups{ii};
         c = c+1;
     end
 end
 
 for ii = 1:length(chan_groups)
 
-    figureName = sprintf('%s %s %s %s %s', subject, plotNames{ii}, [stim_names{:}], description, specs.plot_type);
+    figureName = sprintf('sub %s %s %s %s %s', subject, groupNames{ii}, [stim_names{:}], description, specs.plot_type);
 
     figure('Name', figureName);
     set(gcf, 'Position', [400 200 1800 1200]);
