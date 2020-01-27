@@ -26,6 +26,10 @@ end
 %function bidsEcogBroadband(projectDir, subject, sessions, tasks, runnums, ...
 %    bands, method, inputFolder, outputFolder, description, savePlot)
 
+%%
+subject = 'som748';
+session = 'nyuecog04';
+bidsEcogBroadband(projectDir, subject, session, [], [], bands);
  
 %% UMCU patients - line noise at 50 hz
 
@@ -39,4 +43,5 @@ for ii = 1:length(subjects)
     subject = subjects{ii};
     bidsEcogBroadband(projectDir, subject, [], [], [], bands);
 end
+
      

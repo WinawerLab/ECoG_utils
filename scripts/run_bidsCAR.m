@@ -1,6 +1,6 @@
 %% projectDir        
 projectDir = '/Volumes/server/Projects/BAIR/Data/BIDS/visual'; 
-
+%%
 subjects = {'som648'; 
             'som661'; 
             'som674'; 
@@ -22,3 +22,6 @@ for ii = 1:length(subjects)
 end
 
 %%
+subject = 'som748';
+session = 'nyuecog04';
+bidsEcogRereference(projectDir, subject, session);

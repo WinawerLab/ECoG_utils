@@ -24,7 +24,7 @@ function bidsEcogPlotTrials(projectDir, subject, sessions, tasks, runnums, ...
 %                           default: ...
 %     specs:            A struct specifying instructions for what to plot,
 %                       with the following fields:
-%                        - epoch_t: Epoch window, default: [-0.5 1];
+%                        - epoch_t: Epoch window, default: [-0.2 1.2];
 %                        - base_t:  Baseline time window, e.g. [-0.2 0]. 
 %                                           default: all t<0 in epochTime.
 %                        - chan_names: Cell array with channel names to be plotted.
@@ -132,7 +132,7 @@ fprintf('[%s] Baseline correcting epochs using %s \n', mfilename, baseType);
 % Select trials
 stim_names = specs.stim_names;
 if ~iscell(stim_names), stim_names = {stim_names}; end
-if isempty(stim_names{:})
+if isempty([stim_names{:}])
     stim_names = unique(events.trial_name);
 end
 stim_idx = cell(length(stim_names),1);
