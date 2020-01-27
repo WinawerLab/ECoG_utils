@@ -87,9 +87,9 @@ if ~isfield(specs,'base_t') || isempty(specs.base_t), specs.base_t = [min(specs.
 if ~isfield(specs,'chan_names'), specs.chan_names = []; end
 if ~isfield(specs,'stim_names'), specs.stim_names = []; end
 if ~isfield(specs,'plot_type') || isempty(specs.plot_type), specs.plot_type = 'averageSE'; end
-if ~isfield(specs,'plot_cmap') || isempty(specs.plot_cmap), specs.plot_cmap = 'jet'; end
+if ~isfield(specs,'plot_cmap') || isempty(specs.plot_cmap), specs.plot_cmap = 'parula'; end
 if ~isfield(specs,'plot_ylim'), specs.plot_ylim = []; end
-
+if ~isfield(specs, 'average_stims'), specs.average_stims = 0; end
 % <plot save>
 if ~exist('savePlot', 'var') || isempty(savePlot), savePlot = true; end
 
@@ -144,6 +144,7 @@ for ii = 1:length(stim_names)
         stim_idx{ii} = find(events.trial_type == stim_names(ii));
     end
 end
+if specs.average_stims, stim_idx = {vertcat(stim_idx{:})}; stim_names = {[stim_names{:}]}; end
 
 %% MAKE PLOTS
 
@@ -231,7 +232,7 @@ for ii = 1:length(chan_groups)
                 end
 
                 % Plot
-                ecog_plotSingleTimeCourse(t, this_trial, CI, colors(ss,:));
+                ecog_plotSingleTimeCourse(t, this_trial, CI, colors(ss,:), [], [], specs.plot_ylim);
             end
             
             % Add axis labels and legend
@@ -241,7 +242,6 @@ for ii = 1:length(chan_groups)
                 %xlabel('Time (s)');
             end
             title(plotTitle);
-            if ~isempty(specs.plot_ylim), ylim(specs.plot_ylim);end
 
         end
     end

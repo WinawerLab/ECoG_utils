@@ -32,7 +32,7 @@ if size(CI,2) ~= 2
     CI = CI';
 end
 
-% Plot standard errors firsrt
+% Plot standard errors first
 if ~isempty(CI)
     h = ciplot(CI(:,1),CI(:,2),t,lineSpec, 0.25);
     h.Annotation.LegendInformation.IconDisplayStyle = 'off';
