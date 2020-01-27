@@ -30,7 +30,12 @@ end
 subject = 'som748';
 session = 'nyuecog04';
 bidsEcogBroadband(projectDir, subject, session, [], [], bands);
- 
+
+projectDir = '/Volumes/server/Projects/BAIR/Data/BIDS/motor'; 
+subject = 'som756';
+session = 'nyuecog01';
+bidsEcogBroadband(projectDir, subject, session, [], [], bands);
+
 %% UMCU patients - line noise at 50 hz
 
 bands             = [[60 70]; [70 80]; [80 90]; [110 120]; [120 130]; [130 140]; [160 170]; [170 180]; [180 190]];

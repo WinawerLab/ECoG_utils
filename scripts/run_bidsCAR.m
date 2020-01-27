@@ -25,3 +25,9 @@ end
 subject = 'som748';
 session = 'nyuecog04';
 bidsEcogRereference(projectDir, subject, session);
+
+%% 
+projectDir = '/Volumes/server/Projects/BAIR/Data/BIDS/motor'; 
+subject = 'som756';
+session = 'nyuecog01';
+bidsEcogRereference(projectDir, subject, session);
