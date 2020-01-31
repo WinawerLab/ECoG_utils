@@ -203,6 +203,8 @@ if BIDSformatted
                 elec_xyz(:,3) = elec_xyz(:,3)+6.2660;
                 % add to1 and to2 probability atlases
                 specs.atlasNames  = [specs.atlasNames {'to1_percent', 'to2_percent'}];
+                % add glasser atlas
+                specs.atlasNames  = [specs.atlasNames 'glasser16_atlas'];
             end
         end
     end
@@ -245,8 +247,10 @@ else
 end
 
 % Read surface reconstructions from Freesurfer_subjects directory
+if contains(specs.fsDir, 'BIDS'); specs.pID = sprintf('sub-%s', specs.pID);end
 surf_file_rh = fullfile(specs.fsDir, specs.pID, 'surf', 'rh.pial');
 surf_file_lh = fullfile(specs.fsDir, specs.pID, 'surf', 'lh.pial');
+
 if exist(surf_file_rh, 'file') && exist(surf_file_lh, 'file')
     fprintf('[%s] Reading Freesurfer pial surface file %s ...\n',mfilename, surf_file_rh);
     [vertices_r, faces_r] = read_surf(surf_file_rh);
@@ -274,7 +278,8 @@ elec_xyz = elec_xyz(keep_idx,:);
 % Initalize output
 out.patientID = specs.pID;
 
-
+%global cmapHasZeroIndex 
+%cmapHasZeroIndex = true;  
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%% Generate figures %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -352,8 +357,7 @@ end
 
 for a = 1:length(specs.atlasNames)
     
-    currentAtlas = specs.atlasNames{a};
-    
+    currentAtlas = specs.atlasNames{a};  
     % Get atlases for this subject
     %fullfile(specs.fsDir, specs.pID, 'surf', 'rh.pial');
     atlas_file_rh = fullfile(specs.fsDir, specs.pID, 'surf', sprintf('rh.%s.mgz', currentAtlas));
@@ -442,7 +446,24 @@ for a = 1:length(specs.atlasNames)
             area_labels = {'TO2'}; 
             area_cmap = autumn(64);
             out.(currentAtlas).area_names   = area_labels;
+            
+        case 'glasser16_atlas' % Wang probability
 
+            area_labels = num2cell(1:180);
+            %area_cmap = jet(180);
+            area_cmap = repmat([1 1 1]*.7, [180 1]);
+            area_cmap(2,:) = [1 0 0]; % MST
+            area_cmap(23,:) = [1 0.5 0]; % MT
+            area_cmap(137,:) = [0 1 0]; % PHT
+            area_cmap(138,:) = [0 1 1]; % PH
+            area_cmap(139,:) = [1 0.6 0.6]; % TPOJ1
+            area_cmap(140,:) = [1 0.8 0.6]; % TPOJ2
+            area_cmap(141,:) = [1 1 0.6]; % TPOJ3
+            area_cmap(143,:) = [0 0.25 0.2]; %PGp
+            area_cmap(156,:) = [0 0.5 1]; %v4t
+            area_cmap(157,:) = [0.6 0.6 0]; %FST
+            out.(currentAtlas).area_names   = area_labels;
+            %cmapHasZeroIndex = true;
         otherwise
 
             switch specs.plotmesh
@@ -503,6 +524,13 @@ for a = 1:length(specs.atlasNames)
             out.(currentAtlas).node_indices = node_indices;
             out.(currentAtlas).node_values  = round(atlas(node_indices),2)';
             atlasUnits = 'overlap (%)';
+            
+        case {'glasser16_atlas'}
+            atlasUnits = 'glasser parcellation';
+            out.(currentAtlas).area_count   = length(elec_labels_found);
+            out.(currentAtlas).elec_labels  = elec_labels_found';
+            out.(currentAtlas).node_indices = node_indices;
+            out.(currentAtlas).node_values  = round(atlas(node_indices),2)';
     end
   
     % Plot
@@ -658,7 +686,11 @@ function plot_mesh(faces, vertices, atlas, area_cmap)
     t = trimesh(faces+1, vertices(:,1), vertices(:,2), vertices(:,3), atlas, 'FaceColor', 'flat'); 
     t.LineStyle = 'none';    
 	axis equal; hold on;
-    cmap = [[1 1 1]*.7; area_cmap];
+    %if cmapHasZeroIndex
+        cmap = [[1 1 1]*.7; area_cmap];
+    %else
+    %    cmap = area_cmap;
+    %end
     colormap(gcf,cmap);    
 end
 
