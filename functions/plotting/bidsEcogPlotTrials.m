@@ -1,4 +1,4 @@
-function bidsEcogPlotTrials(projectDir, subject, sessions, tasks, runnums, ...
+function  bidsEcogPlotTrials(projectDir, subject, sessions, tasks, runnums, ...
     inputFolder, description, specs, savePlot)
 
 % Plots a time-varying plot of bids-formatted ECoG data; will epoch into
@@ -234,6 +234,7 @@ for ii = 1:length(chan_groups)
                 % Plot
                 ecog_plotSingleTimeCourse(t, this_trial, CI, colors(ss,:), [], [], specs.plot_ylim);
             end
+            c = c+1;
             
             % Add axis labels and legend
             if ~hasLegend
@@ -241,11 +242,11 @@ for ii = 1:length(chan_groups)
                 ylabel(sprintf('%s (%s)', description, channels.units{1}));
                 %xlabel('Time (s)');
             end
+            
             title(plotTitle);
-
+            
         end
     end
-
     
     %% save Plot?
 

@@ -7,8 +7,8 @@ end
 
 specs = [];
 
-specs.pID           = '726'; % patient ID 
-specs.atlasNames    = [];%{'wang2015_atlas','wang15_mplbl','benson14_varea', 'benson14_eccen'}; 
+specs.pID           = 'som726'; % patient ID 
+specs.atlasNames    =  {'benson14_varea', 'wang15_mplbl'};%{'glasser16_atlas'};%{'wang2015_atlas','wang15_mplbl','benson14_varea', 'benson14_eccen'}; 
                         % default is all of these maps: 
                         % {'wang2015_atlas', ...
                         % 'benson14_varea', ...
@@ -18,11 +18,11 @@ specs.atlasNames    = [];%{'wang2015_atlas','wang15_mplbl','benson14_varea', 'be
                         % 'template_areas'};
                         % NOTE: including benson14_varea is required to
                         % be able to obtain benson14_eccen, angle and sigma
-specs.plotmesh      = 'both';
+specs.plotmesh      = 'right';
 specs.plotelecs     = 'yes';
 specs.plotlabel     = 'yes';
-
-out = electrode_to_nearest_node(specs);
+%specs.fsDir         = '/Volumes/server/Projects/BAIR/Data/BIDS/visual_old/derivatives/freesurfer/';
+out = electrode_to_nearest_node(specs,1);
 
 %% to change one of the output figs to an 'empty' brain:
 

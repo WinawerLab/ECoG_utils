@@ -40,3 +40,7 @@ savePlot = 0;
     bidsEcogPlotTrials(projectDir, subject, session, task, runnums, ...
         inputFolder, description, specs, savePlot);
 % end    
+
+
+
+

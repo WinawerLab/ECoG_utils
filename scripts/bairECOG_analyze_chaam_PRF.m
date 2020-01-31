@@ -142,17 +142,17 @@ results = analyzePRF_bounds(stimulus,data,tr,opt);
 chanNames = channels.name(chan_inx);
 
 % % Run analyzePRF bootstrap
-% nboots = 20;
-% 
-% clear results_boot 
-% for ii = 1:nboots 
-%     idx = randi(length(data{1}), [1 size(data{1},2)]);
-%     if ii == 1
-%         results_boot = analyzePRF_bounds(stimulus{1}(:,:,idx),data{1}(:,idx),tr,opt); 
-%     else 
-%         results_boot(ii) = analyzePRF_bounds(stimulus{1}(:,:,idx),data{1}(:,idx),tr,opt); 
-%     end
-% end
+nboots = 20;
+
+clear results_boot 
+for ii = 1:nboots 
+    idx = randi(length(data{1}), [1 size(data{1},2)]);
+    if ii == 1
+        results_boot = analyzePRF_bounds(stimulus{1}(:,:,idx),data{1}(:,idx),tr,opt); 
+    else 
+        results_boot(ii) = analyzePRF_bounds(stimulus{1}(:,:,idx),data{1}(:,idx),tr,opt); 
+    end
+end
 
 %% Save the results
 save(fullfile(savePth, 'chaam_analyzePRF_results_ecog'), 'results', 'results_boot', 'chanNames');
