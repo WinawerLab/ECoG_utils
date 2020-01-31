@@ -10,7 +10,7 @@ function [electrode_table, channel_table] = bidsconvert_getelectrodefiles(dataRe
 ElecFile = dir(fullfile(dataReadDir,'*coor_T1*.txt'));
 
 if length(ElecFile) < 1
-    warning('no coordinate file found!\n') 
+    warning('No coordinate file found!') 
     elec_labels = hdr.label; chanNames = elec_labels;
     elec_types = hdr.chantype; chanTypes = elec_types;
     

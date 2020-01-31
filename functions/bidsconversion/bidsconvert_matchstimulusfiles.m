@@ -60,7 +60,7 @@ end
 % that were detected in the trigger channel?
 fprintf('[%s] Asserting that number of triggers match requested number \n', mfilename);
 foundTriggerCount = length(trigger_onsets);
-%assert(isequal(requestedTriggerCount, length(trigger_onsets)), 'Found triggers do not match requested triggers!!!');
+assert(isequal(requestedTriggerCount,foundTriggerCount ), 'Found triggers do not match requested triggers!!!');
 if isequal(requestedTriggerCount, foundTriggerCount)
     triggersAreMatched = 1;
 else

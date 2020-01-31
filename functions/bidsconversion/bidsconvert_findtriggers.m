@@ -1,7 +1,7 @@
 function [trigger_onsets,t] = bidsconvert_findtriggers(data, hdr, triggerChannel, makePlot, triggerIndex, peakOpts)
 
 if nargin < 6
-    peakOpts.minPeakHeight = 0.8;
+    peakOpts.minPeakHeight = 0.5;
     peakOpts.minPeakDistance = 0.5;
 end
 
