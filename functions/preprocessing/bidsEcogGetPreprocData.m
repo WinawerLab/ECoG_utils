@@ -110,3 +110,5 @@ for ii = 1:length(sessions)
 end
 data = allData;
 events = allEvents;
+channels.subject_name = repmat({subject},[height(channels) 1]);
+end

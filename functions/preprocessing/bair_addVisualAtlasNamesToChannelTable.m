@@ -42,24 +42,26 @@ if hasVisualElecs
     for ii = 1:length(viselec)
 
         elInx = ecog_matchChannels(viselec{ii}, channels.name)';
-        %name{ii} = viselec{ii};
-        wangInx = strmatch(viselec{ii}, viselec_wang, 'exact');
-        if ~isempty(wangInx)
-            wang{elInx} = visarea_wang{wangInx(1)};
-            matched_node(elInx) = matchednodes_wang(wangInx(1));           
-        end
-        bensonInx = strmatch(viselec{ii}, viselec_benson, 'exact');
-        if ~isempty(bensonInx)
-            benson{elInx} = visualelectrodes.benson14_varea.area_labels{bensonInx};
-            benson_eccen(elInx) = visualelectrodes.benson14_varea.node_eccen(bensonInx);
-            benson_angle(elInx) = visualelectrodes.benson14_varea.node_angle(bensonInx);
-            benson_sigma(elInx) = visualelectrodes.benson14_varea.node_sigma(bensonInx);
-            matched_node(elInx) = visualelectrodes.benson14_varea.node_indices(bensonInx);
+        if elInx>0
+            %name{ii} = viselec{ii};
+            wangInx = strmatch(viselec{ii}, viselec_wang, 'exact');
+            if ~isempty(wangInx)
+                wang{elInx} = visarea_wang{wangInx(1)};
+                matched_node(elInx) = matchednodes_wang(wangInx(1));           
+            end
+            bensonInx = strmatch(viselec{ii}, viselec_benson, 'exact');
+            if ~isempty(bensonInx)
+                benson{elInx} = visualelectrodes.benson14_varea.area_labels{bensonInx};
+                benson_eccen(elInx) = visualelectrodes.benson14_varea.node_eccen(bensonInx);
+                benson_angle(elInx) = visualelectrodes.benson14_varea.node_angle(bensonInx);
+                benson_sigma(elInx) = visualelectrodes.benson14_varea.node_sigma(bensonInx);
+                matched_node(elInx) = visualelectrodes.benson14_varea.node_indices(bensonInx);
+            end
         end
     end
 end
 
-fprintf('[%s] Adding visual matches to channel table...\n',mfilename);
+fprintf('[%s] Adding visual matches to channel table\n',mfilename);
 
 % Add area matches to channel table
 channels.bensonarea  = benson;
