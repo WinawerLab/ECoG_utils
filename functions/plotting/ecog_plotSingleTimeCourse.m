@@ -59,11 +59,14 @@ else
     ylim(yLim);
 end
 
-% Add stim onset and zero lines
-l1 = line([0 0], yLim,'LineStyle', ':', 'Color', 'k');
-set(get(get(l1,'Annotation'),'LegendInformation'),'IconDisplayStyle','off'); 
-l2 = line([t(1) t(end)], [0 0],'LineStyle', ':', 'Color', 'k');
-set(get(get(l2,'Annotation'),'LegendInformation'),'IconDisplayStyle','off'); 
+% Plot stim onset and zero lines
+h = get(gcf);
+if isempty(h.CurrentObject)
+    l1 = line([0 0], yLim,'LineStyle', ':', 'Color', 'k');
+    set(get(get(l1,'Annotation'),'LegendInformation'),'IconDisplayStyle','off'); 
+    l2 = line([t(1) t(end)], [0 0],'LineStyle', ':', 'Color', 'k');
+    set(get(get(l2,'Annotation'),'LegendInformation'),'IconDisplayStyle','off'); 
+end
 
 % Add labels
 if ~isempty(xLabel), xlabel(xLabel); end
