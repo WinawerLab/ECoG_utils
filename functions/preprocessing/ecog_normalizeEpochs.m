@@ -13,13 +13,14 @@ function [epochs] = ecog_normalizeEpochs(epochs, t, baselineTime, baselineType, 
 %   t:                  1D array of length samples indicating time relative 
 %                       to stimulus onset (in seconds)
 %   baselineTime:       time window over which to compute the baseline
-%                       signal (in seconds), e.g [-0.2 0];
+%                       signal (in seconds), e.g [-0.2 0]; 
+%                       default: all t smaller than 0
 %   baselineType:       string describing the normalization procedure, 
 %                       which should be one of the following:
 %                           - percentsignalchange (default)
 %                           - subtractwithintrial 
-%   idx:                vector of length epochs indicating subgroups for
-%                       which to apply normalization separately (e.g.,
+%   idx:                vector equal to number of epochs indicating subgroups 
+%                       for which to apply normalization separately (e.g.,
 %                       individual runs).
 %                           default: vector of ones (no subgroups).
 %
@@ -30,6 +31,7 @@ function [epochs] = ecog_normalizeEpochs(epochs, t, baselineTime, baselineType, 
 %
 % See also ecog_makeEpochs.m
 
+
 if ~exist('baselineType', 'var') || isempty(baselineType)
     baselineType = 'percentsignalchange';
 end
@@ -39,7 +41,11 @@ if ~exist('idx', 'var') || isempty(idx)
 end
 
 % define the baseline window
-base_range = (t >= baselineTime(1) & t < baselineTime(2));
+if ~exist('baselineTime', 'var') || isempty(baselineTime)
+    base_range = (t < 0);
+else
+    base_range = (t >= baselineTime(1) & t < baselineTime(2));
+end
 
 % determine how many runs we need to normalize for
 runs = unique(idx);
