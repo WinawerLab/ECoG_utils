@@ -12,6 +12,7 @@ if ~isfield(specs.plot, 'addEccToTitle') || isempty(specs.plot.addEccToTitle), s
 if ~isfield(specs.plot, 'fontSize') || isempty(specs.plot.fontSize), specs.plot.fontSize = 12; end
 if ~isfield(specs.plot, 'XLim') || isempty(specs.plot.XLim), specs.plot.XLim = [1 200];end
 if ~isfield(specs.plot, 'YLim'), specs.plot.YLim = [];end
+if ~isfield(specs.plot, 'XScale') || isempty(specs.plot.XScale), specs.plot.XScale = 'linear';end
 
 out = struct;
 
@@ -183,10 +184,9 @@ for ee = 1:length(elInx)
         else
             ylim = specs.plot.YLim;
         end
-        set(gca, 'Yscale', 'log','YLim', ylim);
-        %set(gca,'YLim', ylim);
+        set(gca, 'YScale', 'log','YLim', ylim);
         % Set x-axis limits
-        set(gca, 'XLim', specs.plot.XLim);
+        set(gca, 'XScale', specs.plot.XScale, 'XLim', specs.plot.XLim);
         
         % Add legend
         if hasLegend == 0
