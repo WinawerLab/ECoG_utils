@@ -203,14 +203,15 @@ for d = 1:length(specs.dataTypes)
         
         % Check if these electrodes have matches with visual atlases, if so, add
         % that to the plot title
+        isTableCol = @(t, thisCol) ismember(thisCol, t.Properties.VariableNames);
         if iscell(whichElectrodes)
             electrodeName = whichElectrodes{ii};
         else
             electrodeName = whichElectrodes;
         end
         viselec_name = [];
-        for atlas = {'wang2015_atlas','benson14_varea', 'wang15_mplbl'}
-            if isfield(trials, 'viselec')
+        if isfield(trials, 'viselec')
+            for atlas = {'wang2015_atlas','benson14_varea', 'wang15_mplbl'}
                 if ~isempty(trials.viselec)
                     if ~isempty(trials.viselec.(atlas{:}))
                         %viselec = contains(trials.viselec.(atlas{:}).elec_labels, electrodeName);
@@ -228,6 +229,26 @@ for d = 1:length(specs.dataTypes)
                                      end
                             end                         
                         end
+                    end
+                end
+            end
+        else
+            for atlas = {'wangarea','bensonarea'}
+                if isTableCol(trials.channels,atlas{:})
+                    viselec = find(strcmp(electrodeName,trials.channels.name));
+                    visarea = trials.channels.(atlas{:}){viselec};
+                    if ~isempty(visarea)&&~strcmp(visarea,'none')
+                        atlasstr = strsplit(atlas{:},'_');
+                        viselec_name = [viselec_name atlasstr{1}(1) ':' visarea ' '];
+                        switch atlas{:}
+                            case 'bensonarea'
+                                switch specs.plot.addEccToTitle
+                                    case 'yes'
+                                        if isTableCol(trials.channels,'bensoneccen')
+                                            viselec_name = [viselec_name sprintf('[ecc = %0.1f] ', trials.channels.bensoneccen{viselec})];
+                                        end
+                                end
+                        end                         
                     end
                 end
             end

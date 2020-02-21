@@ -41,13 +41,13 @@ end
 
 % Plot settings
 cmap = eval(specs.plot.colorMap);
-if max(contains(trialType, 'BLANK') >0)
-    nCond = length(trial_index)-1; 
-else
-    nCond = length(trial_index); 
-end
+nCond = length(trial_index);
 colors = cmap(1:round((length(cmap)/nCond)):length(cmap),:);
 %colors = sortrows(colors,'descend');
+if max(contains(trialType, 'BLANK') >0)
+    nCond = nCond-1; 
+    colors(1,:) = [];
+end
 
 out.elecs = whichElectrodes;
 out.titles = cell(size(out.elecs));
@@ -123,25 +123,48 @@ for ee = 1:length(elInx)
               
         % Check if these electrodes have matches with visual atlases, if so, add
         % that to the plot title
+        isTableCol = @(t, thisCol) ismember(thisCol, t.Properties.VariableNames);
         if iscell(whichElectrodes)
             electrodeName = whichElectrodes{ee};
         else
             electrodeName = whichElectrodes;
         end
         viselec_name = [];
-        for atlas = {'wang2015_atlas','benson14_varea', 'wang15_mplbl'}
-            if ~isempty(spectra.viselec)
-                if ~isempty(spectra.viselec.(atlas{:}))
-                    viselec = find(strcmp(electrodeName,spectra.viselec.(atlas{:}).elec_labels));
-                    if any(viselec)
+        if isfield(spectra, 'viselec')
+            for atlas = {'wang2015_atlas','benson14_varea', 'wang15_mplbl'}
+                if ~isempty(spectra.viselec)
+                    if ~isempty(spectra.viselec.(atlas{:}))
+                        viselec = find(strcmp(electrodeName,spectra.viselec.(atlas{:}).elec_labels));
+                        if any(viselec)
+                            atlasstr = strsplit(atlas{:},'_');
+                            viselec_name = [viselec_name atlasstr{1}(1) ':' spectra.viselec.(atlas{:}).area_labels{viselec} ' '];
+                            switch atlas{:}
+                                case 'benson14_varea'
+                                    switch specs.plot.addEccToTitle
+                                        case 'yes'
+                                            viselec_name = [viselec_name sprintf('[ecc = %0.1f] ', spectra.viselec.benson14_varea.node_eccen(viselec))];
+                                     end
+                            end                         
+                        end
+                    end
+                end
+            end
+        else
+            for atlas = {'wangarea','bensonarea'}
+                if isTableCol(spectra.channels,atlas{:})
+                    viselec = find(strcmp(electrodeName,spectra.channels.name));
+                    visarea = spectra.channels.(atlas{:}){viselec};
+                    if ~isempty(visarea)&&~strcmp(visarea,'none')
                         atlasstr = strsplit(atlas{:},'_');
-                        viselec_name = [viselec_name atlasstr{1}(1) ':' spectra.viselec.(atlas{:}).area_labels{viselec} ' '];
+                        viselec_name = [viselec_name atlasstr{1}(1) ':' visarea ' '];
                         switch atlas{:}
-                            case 'benson14_varea'
+                            case 'bensonarea'
                                 switch specs.plot.addEccToTitle
                                     case 'yes'
-                                        viselec_name = [viselec_name sprintf('[ecc = %0.1f] ', spectra.viselec.benson14_varea.node_eccen(viselec))];
-                                 end
+                                        if isTableCol(spectra.channels,'bensoneccen')
+                                            viselec_name = [viselec_name sprintf('[ecc = %0.1f] ', spectra.channels.bensoneccen{viselec})];
+                                        end
+                                end
                         end                         
                     end
                 end
@@ -155,7 +178,7 @@ for ee = 1:length(elInx)
         
         % Set y-axis limits
         if isempty(specs.plot.YLim)
-            lim = [min(toplot(:)) max(toplot(:))];
+            lim = [min(mnToPlot(:)) max(mnToPlot(:))];
             ylim = [lim(1)-(0.2*lim(1)*sign(lim(1))) lim(2)+(0.2*lim(2)*sign(lim(2)))];
         else
             ylim = specs.plot.YLim;
