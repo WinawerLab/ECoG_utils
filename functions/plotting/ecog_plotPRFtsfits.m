@@ -1,14 +1,19 @@
-function ecog_plotPRFtsfits(data,results,tr, opt,channels)
+function ecog_plotPRFtsfits(data, stimulus, results, channels)
 
+% Plot PRF timecourses data and fits
+% Using example code from Kendrick Kays website
+if ~iscell(data), data = {data}; end
+if ~iscell(stimulus), stimulus = {stimulus}; end
 
 % Define some variables
-res = [100 100];                    % row x column resolution of the stimuli
-resmx = 100;                        % maximum resolution (along any dimension)
-hrf = results.options.hrf;          % HRF that was used in the model
-degs = results.options.maxpolydeg;  % vector of maximum polynomial degrees used in the model
+nPixels = size(stimulus{1}, 1);
+res = [nPixels nPixels];                % row x column resolution of the stimuli
+resmx = nPixels;                        % maximum resolution (along any dimension)
+hrf = results.options.hrf;              % HRF that was used in the model
+degs = results.options.maxpolydeg;      % vector of maximum polynomial degrees used in the model
 
 % Pre-compute cache for faster execution
-[d,xx,yy] = makegaussian2d(resmx,2,2,2,2);
+[~,xx,yy] = makegaussian2d(resmx,2,2,2,2);
 
 % Prepare the stimuli for use in the model
 stimulusPP = {};
@@ -33,19 +38,24 @@ for cc=1:length(degs)
   polymatrix{cc} = projectionmatrix(constructpolynomialmatrix(size(data{cc},2),0:degs(cc)));
 end
 
+figure; hold on
+nChans = size(results.ang,1);
+
+plotDim1 = round(sqrt(nChans)); plotDim2 = ceil((nChans)/plotDim1);
+
+
 for el = 1:nChans
     subplot(plotDim1,plotDim2,el); hold on
     plotTitle = sprintf('%s %s %s ', channels.name{el}, channels.bensonarea{el}, channels.wangarea{el});        
 
-    vx = el;
     % For each run, collect the data and the model fit.  We project out polynomials
     % from both the data and the model fit.  This deals with the problem of
     % slow trends in the data.
     datats = {};
     modelts = {};
     for cc=1:length(data)
-      datats{cc} =  polymatrix{cc}*data{cc}(vx,:)';
-      modelts{cc} = polymatrix{cc}*modelfun(results.params(1,:,vx),stimulusPP{cc});
+      datats{cc} =  polymatrix{cc}*data{cc}(el,:)';
+      modelts{cc} = polymatrix{cc}*modelfun(results.params(1,:,el),stimulusPP{cc});
     end
 
     set(gcf,'Units','points');

@@ -1,56 +1,76 @@
-function ecog_plotPRFs(channels, results, stimulus, coloropt)  
+function ecog_plotPRFs(results, stimulus, channels, degPerPix, colorOpt)  
+
+if ~exist('degPerPix', 'var') || isempty(degPerPix)
+    % The stimulus is 100 pixels (in both height and weight), and this corresponds to
+    % 16.6 degrees of visual angle:
+    degPerPix= 16.6/100;
+end
+
+if ~exist('colorOpt', 'var') || isempty(colorOpt)
+    colorOpt = 0; % 0 = gray, 1 = parula 
+end
+    
+if ~iscell(stimulus), stimulus = {stimulus}; end
 
 % PRFs
-res_in_pix = size(stimulus{1},1);
-% define pix center
+stimRes = size(stimulus{1},1);
+% draw the prfs at 3x the screen size (adjust axes later)
+drawRes = stimRes * 3;
+% define center pix 
+centerPix = drawRes/2;
+
+figure; hold on
+nChans = size(results.ang,1);
+
+plotDim1 = round(sqrt(nChans)); plotDim2 = ceil((nChans)/plotDim1);
 
 for el = 1:nChans
     
     subplot(plotDim1,plotDim2,el); hold on
-    plotTitle = sprintf('%s %s %s ', channels.name{el}, channels.bensonarea{el}, channels.wangarea{el});        
-
+    plotTitle = sprintf('%s %s %s R2: %0.1f ecc: %0.1f ang: %0.1f', channels.name{el}, channels.bensonarea{el}, channels.wangarea{el}, ...
+        results.R2(el), results.ecc(el)*degPerPix, results.ang(el)*degPerPix);        
+    
     sd = results.rfsize(el);
     %[xx, yy] = meshgrid(linspace(-1,1,res));
     %[th, r] = cart2pol(xx, yy);
     p = results.params(1,:,el);
-    im = makegaussian2d(250,p(1)+75,p(2)+75,p(3)/sqrt(p(5)),p(3)/sqrt(p(5))); 
+    im = makegaussian2d(drawRes,p(1)+stimRes,p(2)+stimRes,p(3)/sqrt(p(5)),p(3)/sqrt(p(5))); 
 
     % plot pRF
     imagesc(im);
-    if coloropt == 1
+    if colorOpt == 1
         colormap(parula)
     else
         colormap(1-gray)
     end
 
     % draw stimulus
-    h1 = k_drawellipse(125,125,0,50,50); % circle indicating stimulus extent
+    h1 = k_drawellipse(centerPix,centerPix,0,drawRes/6,drawRes/6); % circle indicating stimulus extent
     set(h1,'Color',[0 0 0],'LineWidth',1, 'LineStyle', ':');
-    h2 = straightline(125,'h','k:');     % line indicating horizontal meridian
-    h3 = straightline(125,'v','k:');     % line indicating vertical meridian
-    if coloropt == 1
+    h2 = straightline(centerPix,'h','k:');     % line indicating horizontal meridian
+    h3 = straightline(centerPix,'v','k:');     % line indicating vertical meridian
+    if colorOpt == 1
         set(h1,'Color',[1 1 1]);
         set(h2,'Color',[1 1 1]);
         set(h3,'Color',[1 1 1]);
     end
     % plot pRF center and sd  
-    h1 = k_drawellipse(p(2)+75,p(1)+75,0,sd,sd);      % 
-    h2 = k_drawellipse(p(2)+75,p(1)+75,0,2*sd,2*sd);  % 
+    h1 = k_drawellipse(p(2)+centerPix,p(1)+centerPix,0,sd,sd);      % 
+    h2 = k_drawellipse(p(2)+centerPix,p(1)+centerPix,0,2*sd,2*sd);  % 
     set(h1,'Color', [0 0 0],'LineWidth',2,'LineStyle', '-');
     set(h2,'Color', [0 0 0],'LineWidth',2,'LineStyle', '-');
-    h3 = scatter(p(2)+75,p(1)+75,'wo','filled');
-    if coloropt == 1
+    h3 = scatter(p(2)+centerPix/2,p(1)+centerPix/2,'wo','filled');
+    if colorOpt == 1
         set(h3,'CData',[1 0 0]);
     end
 
     axis square;
-    set(gca, 'XTick', [1 25:25:250], 'XTickLabel', round(([1 25:25:250]*0.16)-20));
-    set(gca, 'YTick', [1 25:25:250], 'YTickLabel', round(([1 25:25:250]*0.16)-20));
+    set(gca, 'XTick', [0:drawRes/6:drawRes], 'XTickLabel', round(([1:drawRes/6:drawRes]*degPerPix)-centerPix*degPerPix));
+    set(gca, 'YTick', [1:drawRes/6:drawRes], 'YTickLabel', round(([1:drawRes/6:drawRes]*degPerPix)-centerPix*degPerPix));
     xlabel('X-position (deg)');
     ylabel('Y-position (deg)');
     title(plotTitle);
-    set(gca, 'XLim', [25 225],'YLim',[25 225])
+    set(gca, 'XLim', [0 drawRes],'YLim',[0 drawRes])
 end
-saveas(gcf, fullfile(plotSaveDir,'modelfits', figureName), 'png'); close;
 
 end
