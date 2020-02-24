@@ -55,8 +55,8 @@ for el = 1:nChans
         set(h3,'Color',[1 1 1]);
     end
     % plot pRF center and sd  
-    h1 = k_drawellipse(p(2)+centerPix,p(1)+centerPix,0,sd,sd);      % 
-    h2 = k_drawellipse(p(2)+centerPix,p(1)+centerPix,0,2*sd,2*sd);  % 
+    h1 = k_drawellipse(p(2)+stimRes,p(1)+stimRes,0,sd,sd);      % 
+    h2 = k_drawellipse(p(2)+stimRes,p(1)+stimRes,0,2*sd,2*sd);  % 
     set(h1,'Color', [0 0 0],'LineWidth',2,'LineStyle', '-');
     set(h2,'Color', [0 0 0],'LineWidth',2,'LineStyle', '-');
     h3 = scatter(p(2)+centerPix/2,p(1)+centerPix/2,'wo','filled');
@@ -70,7 +70,7 @@ for el = 1:nChans
     xlabel('X-position (deg)');
     ylabel('Y-position (deg)');
     title(plotTitle);
-    set(gca, 'XLim', [0 drawRes],'YLim',[0 drawRes])
+    set(gca, 'XLim', [stimRes/2 drawRes-stimRes/2],'YLim',[stimRes/2 drawRes-stimRes/2])
 end
 
 end
