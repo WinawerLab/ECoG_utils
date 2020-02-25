@@ -28,7 +28,7 @@ for el = 1:nChans
     
     subplot(plotDim1,plotDim2,el); hold on
     plotTitle = sprintf('%s %s %s R2: %0.1f ecc: %0.1f ang: %0.1f', channels.name{el}, channels.bensonarea{el}, channels.wangarea{el}, ...
-        results.R2(el), results.ecc(el)*degPerPix, results.ang(el)*degPerPix);        
+        results.R2(el), results.ecc(el)*degPerPix, results.ang(el));        
     
     sd = results.rfsize(el);
     %[xx, yy] = meshgrid(linspace(-1,1,res));
