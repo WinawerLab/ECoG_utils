@@ -59,7 +59,7 @@ for el = 1:nChans
     h2 = k_drawellipse(p(2)+stimRes,p(1)+stimRes,0,2*sd,2*sd);  % 
     set(h1,'Color', [0 0 0],'LineWidth',2,'LineStyle', '-');
     set(h2,'Color', [0 0 0],'LineWidth',2,'LineStyle', '-');
-    h3 = scatter(p(2)+centerPix/2,p(1)+centerPix/2,'wo','filled');
+    h3 = scatter(p(2)+stimRes/2,p(1)+stimRes/2,'wo','filled');
     if colorOpt == 1
         set(h3,'CData',[1 0 0]);
     end
