@@ -29,3 +29,38 @@ specs.chan_names  = {'G1', 'G2', 'PT2', 'PT4'};
 
 bidsEcogPlotTrials(projectDir, subject, session, task, [], [], [], specs, 1);
 %bidsEcogPlotTrials(projectDir, subject, session, task);
+
+
+%% fit PRFs
+
+
+% Load and epoch the data
+recomputeFlag = true;
+subjects      = {subject};
+tasks         = {'prf'};
+epochTime     = [-0.2 0.6];
+saveStr       = 'prfdata';
+saveDir       = fullfile(projectDir, 'derivatives', 'ECoGPRF', sprintf('sub-%s', subject), session);
+[data] = tde_getData(recomputeFlag, subjects, [], tasks, [], epochTime, [], saveStr, saveDir);
+
+
+% Compute the PRF timecourses
+doPlots     = true;
+plotSaveDir = fullfile(projectDir, 'derivatives', 'ECoGFigures', sprintf('sub-%s', subject), 'prfs');
+[data]      = tde_computePRFtimecourses(data, [], [], doPlots, plotSaveDir);
+
+% Load the stimulus apertures
+stimName = fullfile(tdeRootPath, 'prf_apertures', 'bar_apertures.mat');
+load(stimName, 'bar_apertures');
+
+%% 2: Model fitting
+
+% Fit the PRF time courses with analyzePRF
+tr             = 1;
+opt.hrf        = 1;
+opt.maxpolydeg = 0;
+opt.xvalmode   = 0; 
+opt.display    = 'off';
+
+doPlots = true;
+[results] = tde_fitPRFs(data, bar_apertures, opt, doPlots, saveDir, [], plotSaveDir);

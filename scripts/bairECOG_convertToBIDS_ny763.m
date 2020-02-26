@@ -79,6 +79,18 @@ hdr.nSamples = size(data,2);
 figure;plot(data(triggerChannel,:)); 
 title([num2str(triggerChannel) ': ' hdr.label{triggerChannel}]);
 
+% PATIENTSPECIFIC HACK %%
+
+% For 763, there's a mismatch for electrodes that are labeled 'DAMT'
+% 'DPMT' in the data, but 'DPA' and 'DPM' in the electrode coordinates provided by
+% SoM. Hack by overwriting names in the hdr:
+INX = find(contains(hdr.label, {'DPMT', 'DAMT'})); 
+for ii = 1:length(INX)
+    oldlabel = hdr.label{INX(ii)};
+    newlabel = [oldlabel(1:3) oldlabel(5:end)];
+    hdr.label{INX(ii)} = newlabel;
+end
+
 %% CHANNEL IDENTIFICATION
 
 % Manually click through each channel to identify to trigger channel, as
