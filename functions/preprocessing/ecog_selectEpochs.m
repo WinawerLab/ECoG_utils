@@ -14,7 +14,6 @@ max_epochs = squeeze(max(epochs,[],1));
 max_epochs_stim_on = squeeze(max(epochs(stim_on_idx,:,:),[],1));
 
 % Put all epochs with max higher than outlier_thresh * median to nans
-%for jj = 1:size(epochs,3)
 outlier_thresh = thresh * median(max_epochs_stim_on);
 outlier_idx = max_epochs > outlier_thresh;             
 epochs(:,outlier_idx) = nan;
