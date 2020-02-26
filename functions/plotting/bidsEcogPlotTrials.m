@@ -108,7 +108,8 @@ if ~iscell(chan_names), chan_names = {chan_names}; end
 if isempty([chan_names{:}]) 
     chan_idx = contains(channels.type, {'ecog', 'seeg'}); 
 else
-    chan_idx = contains(channels.name, chan_names);
+    %chan_idx = contains(channels.name, chan_names);
+    chan_idx = ecog_matchChannels(chan_names, channels.name);
 end
 
 data = data(chan_idx,:);
@@ -182,12 +183,13 @@ for ii = 1:nGroups
     end
 end
 
+if ~iscell(tasks), tasks = {tasks}; end
+
 for ii = 1:length(chan_groups)
 
-    figureName = sprintf('sub %s %s %s %s %s', subject, groupNames{ii}, [stim_names{:}], description, specs.plot_type);
+    figureName = sprintf('sub %s %s %s %s %s %s', subject, groupNames{ii}, [tasks{:}], [stim_names{:}], description, specs.plot_type);
 
     figure('Name', figureName);
-    set(gcf, 'Position', [400 200 1800 1200]);
     
     chan_idx = chan_groups{ii};
     
@@ -198,7 +200,12 @@ for ii = 1:length(chan_groups)
     if nPlot <= (nRow*nCol)-nCol
         nRow = nRow-1;
     end
-    
+    if nPlot > 2
+        set(gcf, 'Position', [400 200 1800 1200]);
+    else
+        set(gcf, 'Position', [400 200 1800 1200/2]);
+    end
+
     hasLegend = 0;
 
     % Loop over electrodes
@@ -242,7 +249,7 @@ for ii = 1:length(chan_groups)
                 ylabel(sprintf('%s (%s)', description, channels.units{1}));
                 %xlabel('Time (s)');
             end
-            
+            set(gca, 'FontSize', 14);
             title(plotTitle);
             
         end

@@ -14,7 +14,7 @@ end
 %% Define paths and BIDS specs %%
 
 % Input paths specs
-patientID   = []; % Specify patient's raw folder name here
+patientID   = 763; % Specify patient's raw folder name here
 RawDataDir  = '/Volumes/server/Projects/BAIR/Data/Raw/ECoG/';
 BIDSDataDir = '/Volumes/server/Projects/BAIR/Data/BIDS/';
 
@@ -23,27 +23,22 @@ projectName = 'visual';
 sub_label   = ['som' num2str(patientID)]; 
 ses_label   = 'nyuecog01';
 ses_labelt1 = 'som3t01';
-task_label  = {'prf',...
-               'prf', ...
-               'hrfpattern', ...
-               'temporalpattern', ...            
-               'temporalpattern', ... 
-               'spatialpattern', ...
-               'spatialpattern', ...    
-               'spatialobject', ...
-               'spatialobject', ...
-               'temporalpattern', ...            
-               'temporalpattern', ...       
-               'spatialpattern', ...
-               'spatialpattern', ...
-               'spatialobject', ...
-               'spatialobject'
+task_label  = {'sixcatloctemporal',...
+               'sixcatlocisidiff', ...
+               'sixcatloctemporal',...
+               'sixcatlocisidiff', ...
+               'sixcatloctemporal',...
+               'sixcatlocisidiff', ...
+               'sixcatloctemporal',...
+               'sixcatlocisidiff', ...
+               'prf',...
+               'prf'
               };              
-run_label = {'01','02','01','01','02','01','02','01','02','03','04','03','04','03','04'};
+run_label = {'01','01','02','02','03','03','04','04','01','02'};
 % NOTE: task and run labels should be noted in the order they were run!
 
 % Make plots?
-makePlot = 1;
+makePlot = 0;
 % NOTE: Figures will be saved into
 % derivatives/preprocessed/<sub-label>/<ses-label>/figures/bidsconversion
 
@@ -67,13 +62,14 @@ makePlot = 1;
 %% DATA TRIM (PATIENT- and SESSION-SPECIFIC)
 
 % Define the trigger channel name (probably a 'DC' channel, see hdr.label).
-triggerChannelName = 'DC1';
+triggerChannelName = 'DC1'; % using audio triggers for now, photodiode triggers on DC3
 triggerChannel = find(strcmp(triggerChannelName,hdr.label));
 figure;plot(rawdata(triggerChannel,:)); 
 title([num2str(triggerChannel) ': ' hdr.label{triggerChannel}]);
-        
-run_start = []; % Manually determined from plot of triggerchannel 
-run_end   = []; 
+
+% Removing the trigger test data 
+run_start = [180000]; % Manually determined from plot of triggerchannel 
+run_end   = [1490000]; 
 
 % Clip the data
 data = rawdata(:,run_start:run_end);
@@ -106,7 +102,7 @@ end
 
 % This is a list of to be excluded channels from CAR; will be labeled as
 % 'bad' in the channels tsv file
-exclude_inx = []; % e.g. 6 12 13 87
+exclude_inx = [59 65 76]; % e.g. 6 12 13 87
 
 % Specify reasons for marked as bad, e.g. spikes, elipeptic,
 % outlierspectrum, lowfreqdrift
@@ -119,7 +115,7 @@ badChannels = [];
 
 % Generate spectral plot; check command window output for outliers; 
 if makePlot 
-    inx_notEEGchans = [find(contains(hdr.chantype, 'ecg')); find(contains(hdr.label, {'DC', 'SG', 'Pleth', 'PR', 'OSAT', 'TRIG'}))];
+    inx_notEEGchans = [find(contains(hdr.chantype, 'ecg')); find(contains(hdr.label, {'DC', 'SG', 'Pleth', 'PR', 'OSAT', 'TRIG', 'EKG', 'ECG'}))];
     chansToPlot = setdiff(1:length(hdr.label),[inx_notEEGchans; badChannels]);
     [outliers] = ecog_plotChannelSpectra(data, chansToPlot, hdr); title('All channels spectra');
     saveas(gcf, fullfile(preprocDir, 'figures', 'bidsconversion', sprintf('%s-%s-spectra_allchannels',sub_label, ses_label)), 'epsc');
@@ -158,7 +154,7 @@ badChannelsDescriptions = BADCHANNELS_MANUALTABLE(:,2);
 
 % Generate spectral plot; check command window output for outliers; 
 if makePlot 
-    inx_notEEGchans = [find(contains(hdr.chantype, 'ecg')); find(contains(hdr.label, {'DC', 'SG', 'Pleth', 'PR', 'OSAT', 'TRIG'}))];
+    inx_notEEGchans = [find(contains(hdr.chantype, 'ecg')); find(contains(hdr.label, {'DC', 'SG', 'Pleth', 'PR', 'OSAT', 'TRIG', 'EKG', 'ECG'}))];
     chansToPlot = setdiff(1:length(hdr.label),[inx_notEEGchans; badChannels]);
     [outliers] = ecog_plotChannelSpectra(data, chansToPlot, hdr); title('Good channels spectra');
     saveas(gcf, fullfile(preprocDir, 'figures', 'bidsconversion', sprintf('%s-%s-spectra_goodchannels',sub_label, ses_label)), 'epsc');
