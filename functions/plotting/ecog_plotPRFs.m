@@ -23,12 +23,13 @@ figure; hold on
 nChans = size(results.ang,1);
 
 plotDim1 = round(sqrt(nChans)); plotDim2 = ceil((nChans)/plotDim1);
-
+%tiledlayout(plotDim1, plotDim2, 'TileSpacing','compact'); % Matlab 2019B
 for el = 1:nChans
-    
+    %nexttile
     subplot(plotDim1,plotDim2,el); hold on
-    plotTitle = sprintf('%s %s %s R2: %0.1f ecc: %0.1f ang: %0.1f', channels.name{el}, channels.bensonarea{el}, channels.wangarea{el}, ...
-        results.R2(el), results.ecc(el)*degPerPix, results.ang(el));        
+    %plotTitle = sprintf('%s %s %s R2: %0.1f ecc: %0.1f ang: %0.1f', channels.name{el}, channels.bensonarea{el}, channels.wangarea{el}, ...
+    %    results.R2(el), results.ecc(el)*degPerPix, results.ang(el));        
+    plotTitle = sprintf('%s R2 %0.1f ecc %0.1f ang %d', channels.name{el}, results.R2(el), results.ecc(el)*degPerPix, round(results.ang(el)));        
     
     sd = results.rfsize(el);
     %[xx, yy] = meshgrid(linspace(-1,1,res));
@@ -63,14 +64,25 @@ for el = 1:nChans
     if colorOpt == 1
         set(h3,'CData',[1 0 0]);
     end
-
-    axis square;
-    set(gca, 'XTick', [0:drawRes/6:drawRes], 'XTickLabel', round(([1:drawRes/6:drawRes]*degPerPix)-centerPix*degPerPix));
-    set(gca, 'YTick', [1:drawRes/6:drawRes], 'YTickLabel', round(([1:drawRes/6:drawRes]*degPerPix)-centerPix*degPerPix));
-    xlabel('X-position (deg)');
-    ylabel('Y-position (deg)');
+    
+    % format axes
     title(plotTitle);
+    axis square;
+    set(gca, 'XTick', [0:drawRes/6:drawRes], 'XTickLabel', round(([0:drawRes/6:drawRes]*degPerPix)-centerPix*degPerPix));
+    set(gca, 'YTick', [0:drawRes/6:drawRes], 'YTickLabel', round(([0:drawRes/6:drawRes]*degPerPix)-centerPix*degPerPix));
+    %if el == 1; xlabel('X-position (deg)'); ylabel('Y-position (deg)');end
+    
+    set(gca, 'XTickLabel', [], 'YTickLabel', []);
     set(gca, 'XLim', [stimRes/2 drawRes-stimRes/2],'YLim',[stimRes/2 drawRes-stimRes/2])
+    ax = gca;
+    outerpos = ax.OuterPosition;
+    ti = ax.TightInset; 
+    left = outerpos(1) + ti(1);
+    bottom = outerpos(2) + ti(2);
+    ax_width = outerpos(3) - ti(1) - ti(3);
+    ax_height = outerpos(4) - ti(2) - ti(4);
+    ax.Position = [left bottom ax_width ax_height];
+    set(gca, 'FontSize', 14)
 end
 
 end

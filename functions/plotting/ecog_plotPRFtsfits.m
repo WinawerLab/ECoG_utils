@@ -61,11 +61,20 @@ for el = 1:nChans
     set(gcf,'Units','points');
     plot(cat(1,datats{:}),'k-', 'LineWidth', 2);
     plot(cat(1,modelts{:}),'r-','LineWidth', 2);
-    xlabel('PRF stimulus','FontSize', 28);
     if el == 1, legend('Data', 'Model prediction'); end
-    set(gca, 'FontSize', 18)
+    %if el == 1, xlabel('PRF stimulus'); ylabel('Broadband response');end
+    set(gca, 'FontSize', 14)
+    set(gca, 'XTickLabel', []);
     title(plotTitle);
     axis tight
+    ax = gca;
+    outerpos = ax.OuterPosition;
+    ti = ax.TightInset; 
+    left = outerpos(1) + ti(1);
+    bottom = outerpos(2) + ti(2);
+    ax_width = outerpos(3) - ti(1) - ti(3);
+    ax_height = outerpos(4) - ti(2) - ti(4);
+    ax.Position = [left bottom ax_width ax_height];
 end
 
 end
