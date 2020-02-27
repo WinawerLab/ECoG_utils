@@ -111,6 +111,7 @@ else
     %chan_idx = contains(channels.name, chan_names);
     chan_idx = ecog_matchChannels(chan_names, channels.name);
 end
+if ~any(chan_idx), error('Did not find any matching channels! Please check channel names.'), end
 
 data = data(chan_idx,:);
 channels = channels(chan_idx,:);
@@ -126,11 +127,12 @@ switch description
         baseType = 'subtractwithintrial';
     case 'broadband'
         baseType = 'percentsignalchange';
-end       
-[epochs] = ecog_normalizeEpochs(epochs, t, specs.base_t, baseType);
+end
 fprintf('[%s] Baseline correcting epochs using %s \n', mfilename, baseType);
+[epochs] = ecog_normalizeEpochs(epochs, t, specs.base_t, baseType);
  
 % Select trials
+fprintf('[%s] Selecting stimulus conditions... %s \n', mfilename, baseType);
 stim_names = specs.stim_names;
 if ~iscell(stim_names), stim_names = {stim_names}; end
 if isempty([stim_names{:}])
@@ -144,6 +146,7 @@ for ii = 1:length(stim_names)
     else
         stim_idx{ii} = find(events.trial_type == stim_names(ii));
     end
+    fprintf('[%s] Found %d trials for condition %s \n', mfilename, length(stim_idx{ii}), stim_names{ii});
 end
 if specs.average_stims, stim_idx = {vertcat(stim_idx{:})}; stim_names = {[stim_names{:}]}; end
 
