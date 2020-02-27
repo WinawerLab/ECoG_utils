@@ -1,4 +1,10 @@
-function ecog_plotPRFs(results, stimulus, channels, degPerPix, colorOpt)  
+function ecog_plotPRFs(results, stimulus, channels, chan_ind, degPerPix, colorOpt)  
+
+if ~exist('chan_ind', 'var') || isempty(chan_ind)
+    % The stimulus is 100 pixels (in both height and weight), and this corresponds to
+    % 16.6 degrees of visual angle:
+    chan_ind = 1:height(channels);
+end
 
 if ~exist('degPerPix', 'var') || isempty(degPerPix)
     % The stimulus is 100 pixels (in both height and weight), and this corresponds to
@@ -20,13 +26,16 @@ drawRes = stimRes * 3;
 centerPix = drawRes/2;
 
 figure; hold on
-nChans = size(results.ang,1);
+nChans = length(chan_ind);
 
 plotDim1 = round(sqrt(nChans)); plotDim2 = ceil((nChans)/plotDim1);
 %tiledlayout(plotDim1, plotDim2, 'TileSpacing','compact'); % Matlab 2019B
-for el = 1:nChans
+for ii = 1:nChans
+    
     %nexttile
-    subplot(plotDim1,plotDim2,el); hold on
+    el = chan_ind(ii);
+    
+    subplot(plotDim1,plotDim2,ii); hold on
     %plotTitle = sprintf('%s %s %s R2: %0.1f ecc: %0.1f ang: %0.1f', channels.name{el}, channels.bensonarea{el}, channels.wangarea{el}, ...
     %    results.R2(el), results.ecc(el)*degPerPix, results.ang(el));        
     plotTitle = sprintf('%s R2 %0.1f ecc %0.1f ang %d', channels.name{el}, results.R2(el), results.ecc(el)*degPerPix, round(results.ang(el)));        
@@ -60,7 +69,7 @@ for el = 1:nChans
     h2 = k_drawellipse(p(2)+stimRes,p(1)+stimRes,0,2*sd,2*sd);  % 
     set(h1,'Color', [0 0 0],'LineWidth',2,'LineStyle', '-');
     set(h2,'Color', [0 0 0],'LineWidth',2,'LineStyle', '-');
-    h3 = scatter(p(2)+stimRes/2,p(1)+stimRes/2,'wo','filled');
+    h3 = scatter(p(2)+stimRes,p(1)+stimRes,'wo','filled');
     if colorOpt == 1
         set(h3,'CData',[1 0 0]);
     end
