@@ -48,28 +48,27 @@ bidsEcogPlotTrials(projectDir, subject, session, task, [], [], [], specs, 0);
 
 % Load and epoch the data
 dataDir       = fullfile(projectDir, 'derivatives', 'ECoGBroadband');
+plotSaveDir   = fullfile(projectDir, 'derivatives', 'ECoGFigures', sprintf('sub-%s', subject), 'prfs');
+
 session       = 'nyuecog01';
 tasks         = 'prf';
 description   = 'broadband';
 epochTime     = [-0.2 0.6];
+pRRFtime_win  = [0.05 0.55];
 
 [data, channels, events] = bidsEcogGetPreprocData(dataDir, subject, session, tasks, [], description);
+[channels]  = bair_addVisualAtlasNamesToChannelTable(channels,[]);
 [epochs, t] = ecog_makeEpochs(data, events.onset, epochTime, channels.sampling_frequency(1));  
 
-[epochs]    = ecog_averageEpochs(epochs, events, stim_names); 
+% Convert to PRF timeseries
+ts = ecog_createPRFtimeseries(epochs,t,pRRFtime_win,unique(events.stim_file_index), 1);
 
-saveStr       = 'prfdata';
-saveDir       = fullfile(projectDir, 'derivatives', 'ECoGPRF', sprintf('sub-%s', subject), session);
-
-
-% Compute the PRF timecourses
-doPlots     = false;
-plotSaveDir = fullfile(projectDir, 'derivatives', 'ECoGFigures', sprintf('sub-%s', subject), 'prfs');
-[data]      = tde_computePRFtimecourses(data, [], 1, doPlots, plotSaveDir);
+%%%  TO DO make separate plot function for PRF single trials and timeseries
 
 % Load the stimulus apertures
 stimName = fullfile(tdeRootPath, 'prf_apertures', 'bar_apertures.mat');
 load(stimName, 'bar_apertures');
+bar_apertures = imresize(bar_apertures, [100 100], 'nearest');
 
 %% 2: Model fitting
 
@@ -86,9 +85,14 @@ opt.prfmodel        = 'fixexpt';
 opt.typicalexpt     = 0.05;
 opt.forcebounds     = 1;
 
-doPlots = true;
+% Reformat data and apertues into cells inputs for analyzePRF
+data2fit = []; stimulus = [];
+for jj = 1:size(ts,3)
+    data2fit{jj} = ts(:,:,jj);
+    stimulus{jj} = double(bar_apertures);
+end
 
-[results] = tde_fitPRFs(data, bar_apertures, opt, doPlots, saveDir, [], plotSaveDir);
+results = analyzePRFdog(stimulus, data2fit, tr, opt);
 
 %%
 %load('/Volumes/server/Projects/BAIR/Data/BIDS/visual/derivatives/ECoGPRF/sub-som763/nyuecog01/sub-som763_prffits.mat');
@@ -99,20 +103,20 @@ doPlots = true;
 %load('/Volumes/server/Projects/BAIR/Data/BIDS/visual/derivatives/ECoGPRF/sub-som763/nyuecog01/sub-som763_prffits_20200226T150544.mat')
 
 %chan_ind = ecog_matchChannels({'G1', 'G2', 'G9', 'G17', 'AT4', 'PT2', 'PT3', 'PT4'}, results.channels.name);
-chan_ind = ecog_matchChannels({'G1', 'G2', 'PT2', 'PT3'}, results.channels.name);
-%chan_ind = [];
+%chan_ind = ecog_matchChannels({'G1', 'G2', 'PT2', 'PT3'}, results.channels.name);
+chan_ind = [];
 
 coloropt = 1;
 figureName = sprintf('%s_prftimecoursefits', subject);
-ecog_plotPRFtsfits(data2fit, stimulus, results, results.channels, chan_ind)
-%set(gcf, 'Position', get(0,'screensize'));
+ecog_plotPRFtsfits(data2fit, stimulus, results, channels, chan_ind)
+set(gcf, 'Position', get(0,'screensize'));
 set(findall(gcf,'-property','FontSize'),'FontSize',14)
-%saveas(gcf, fullfile(plotSaveDir, figureName), 'png'); close;
+saveas(gcf, fullfile(plotSaveDir, figureName), 'png'); close;
 
 figureName = sprintf('%s_prfs', subject);
-ecog_plotPRFs(results, stimulus, results.channels,chan_ind,[],coloropt)  
-%set(gcf, 'Position', get(0,'screensize'));
+ecog_plotPRFs(results, stimulus, channels,chan_ind,[],coloropt)  
+set(gcf, 'Position', get(0,'screensize'));
 set(findall(gcf,'-property','FontSize'),'FontSize',14)
-%saveas(gcf, fullfile(plotSaveDir, figureName), 'png'); close;
+saveas(gcf, fullfile(plotSaveDir, figureName), 'png'); close;
 
 
