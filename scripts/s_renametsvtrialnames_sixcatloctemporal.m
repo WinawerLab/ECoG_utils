@@ -7,8 +7,8 @@ projectDir        = '/Volumes/server/Projects/BAIR/Data/BIDS/visual';
 subject           = 'som763';
 %session           = 'nyuecog04';
 session           = 'nyuecog01';
-%task              = 'sixcatloctemporal';
-task              = 'sixcatlocisidiff';
+task              = 'sixcatloctemporal';
+%task              = 'sixcatlocisidiff';
 
 overwrite         = 1; % SET TO ZERO TO CHECK/DEBUG, 1 TO CHANGE FILES
 
@@ -39,9 +39,13 @@ for ii = 1:length(d)
         % for ISIdiff task, add info about category repeat to task name:
         if isfield(summary(events), 'category_repeat')
             category_repeat = events.category_repeat(jj);
-            newname = sprintf('%s-%d-%d-%s', condition_name, condition_type,category_repeat,category_name);
+            if category_repeat == 1
+                newname = sprintf('%s-SAME%s-%d', category_name, condition_name, condition_type);
+            else
+                newname = sprintf('%s-DIFF%s-%d', category_name, condition_name, condition_type);
+            end
         else
-            newname = sprintf('%s-%d-%s', condition_name, condition_type,category_name);
+            newname = sprintf('%s-%s-%d', category_name, condition_name, condition_type);
         end
         newtrialnames{jj} = newname;
     end
