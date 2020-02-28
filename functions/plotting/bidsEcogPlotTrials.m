@@ -111,7 +111,6 @@ else
     %chan_idx = contains(channels.name, chan_names);
     chan_idx = ecog_matchChannels(chan_names, channels.name);
 end
-if ~any(chan_idx), error('Did not find any matching channels! Please check channel names.'), end
 
 data = data(chan_idx,:);
 channels = channels(chan_idx,:);
@@ -127,12 +126,11 @@ switch description
         baseType = 'subtractwithintrial';
     case 'broadband'
         baseType = 'percentsignalchange';
-end
-fprintf('[%s] Baseline correcting epochs using %s \n', mfilename, baseType);
+end       
 [epochs] = ecog_normalizeEpochs(epochs, t, specs.base_t, baseType);
+fprintf('[%s] Baseline correcting epochs using %s \n', mfilename, baseType);
  
 % Select trials
-fprintf('[%s] Selecting stimulus conditions... %s \n', mfilename, baseType);
 stim_names = specs.stim_names;
 if ~iscell(stim_names), stim_names = {stim_names}; end
 if isempty([stim_names{:}])
@@ -146,7 +144,6 @@ for ii = 1:length(stim_names)
     else
         stim_idx{ii} = find(events.trial_type == stim_names(ii));
     end
-    fprintf('[%s] Found %d trials for condition %s \n', mfilename, length(stim_idx{ii}), stim_names{ii});
 end
 if specs.average_stims, stim_idx = {vertcat(stim_idx{:})}; stim_names = {[stim_names{:}]}; end
 
@@ -206,7 +203,6 @@ for ii = 1:length(chan_groups)
     if nPlot > 2
         %set(gcf, 'Position', [400 200 1800 1200]);
         set(gcf, 'Position', get(0, 'Screensize'));
-
     else
         set(gcf, 'Position', [400 200 1800 1200/2]);
     end
@@ -250,13 +246,13 @@ for ii = 1:length(chan_groups)
             
             % Add axis labels and legend
             if ~hasLegend
-                legend(stim_names, 'Location', 'best'); hasLegend = 1;
+                legend(stim_names); hasLegend = 1;
                 ylabel(sprintf('%s (%s)', description, channels.units{1}));
                 %xlabel('Time (s)');
             end
-            setsubplotaxes();
             set(gca, 'FontSize', 14);
-            title(plotTitle);          
+            title(plotTitle);
+            
         end
     end
     

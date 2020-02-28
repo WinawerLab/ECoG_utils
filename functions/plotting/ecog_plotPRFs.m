@@ -83,15 +83,7 @@ for ii = 1:nChans
     
     set(gca, 'XTickLabel', [], 'YTickLabel', []);
     set(gca, 'XLim', [stimRes/2 drawRes-stimRes/2],'YLim',[stimRes/2 drawRes-stimRes/2])
-    ax = gca;
-    outerpos = ax.OuterPosition;
-    ti = ax.TightInset; 
-    left = outerpos(1) + ti(1);
-    bottom = outerpos(2) + ti(2);
-    ax_width = outerpos(3) - ti(1) - ti(3);
-    ax_height = outerpos(4) - ti(2) - ti(4);
-    ax.Position = [left bottom ax_width ax_height];
-    set(gca, 'FontSize', 14)
+    setsubplotaxes();
 end
 
 end
