@@ -1,4 +1,10 @@
-function ecog_plotPRFtsfits(data, stimulus, results, channels)
+function ecog_plotPRFtsfits(data, stimulus, results, channels, chan_ind)
+
+if ~exist('chan_ind', 'var') || isempty(chan_ind)
+    % The stimulus is 100 pixels (in both height and weight), and this corresponds to
+    % 16.6 degrees of visual angle:
+    chan_ind = 1:height(channels);
+end
 
 % Plot PRF timecourses data and fits
 % Using example code from Kendrick Kays website
@@ -39,13 +45,16 @@ for cc=1:length(degs)
 end
 
 figure; hold on
-nChans = size(results.ang,1);
+nChans = length(chan_ind);
 
 plotDim1 = round(sqrt(nChans)); plotDim2 = ceil((nChans)/plotDim1);
 
 
-for el = 1:nChans
-    subplot(plotDim1,plotDim2,el); hold on
+for ii  = 1:nChans
+    
+    el = chan_ind(ii);
+
+    subplot(plotDim1,plotDim2,ii); hold on
     plotTitle = sprintf('%s %s %s ', channels.name{el}, channels.bensonarea{el}, channels.wangarea{el});        
 
     % For each run, collect the data and the model fit.  We project out polynomials
@@ -67,14 +76,7 @@ for el = 1:nChans
     set(gca, 'XTickLabel', []);
     title(plotTitle);
     axis tight
-    ax = gca;
-    outerpos = ax.OuterPosition;
-    ti = ax.TightInset; 
-    left = outerpos(1) + ti(1);
-    bottom = outerpos(2) + ti(2);
-    ax_width = outerpos(3) - ti(1) - ti(3);
-    ax_height = outerpos(4) - ti(2) - ti(4);
-    ax.Position = [left bottom ax_width ax_height];
+    setsubplotaxes();
 end
 
 end

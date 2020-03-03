@@ -72,7 +72,6 @@ for ii = 1:length(sessions)
                     events.stim_file = repmat({'n/a'}, [height(events) 1]);
                 end
 
-
                 % Check if there are sample indices and ISIs:
                 if ~isfield(summary(events),'event_sample'); events.event_sample = round(events.onset*hdr.Fs);end
                 if ~isfield(summary(events), 'ISI');events.ISI = zeros(height(events),1);end
@@ -121,7 +120,10 @@ for ii = 1:length(sessions)
     end
 end
 
-data = allData;
+% Remove non-data channels.
+chan_inx = contains(channels.type, {'ecog', 'seeg'}); 
+channels = channels(chan_inx,:);
+data = allData(chan_inx,:);
 events = allEvents;
 
 if exist('channels', 'var') 
