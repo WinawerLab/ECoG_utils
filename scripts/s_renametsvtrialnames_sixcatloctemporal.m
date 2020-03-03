@@ -2,13 +2,13 @@
 
 %%% WARNING: WILL OVERWRITE EXISTING EVENT FILES %%%
 
-projectDir        = '/Volumes/server/Projects/BAIR/Data/BIDS/visual'; 
+projectDir        = '/Volumes/server/Projects/BAIR/Data/BIDS/visual/derivatives/ECoGBroadband/'; 
 %subject           = 'som748';
-subject           = 'som763';
+subject           = 'som765';
 %session           = 'nyuecog04';
 session           = 'nyuecog01';
-task              = 'sixcatloctemporal';
-%task              = 'sixcatlocisidiff';
+%task              = 'sixcatloctemporal';
+task              = 'sixcatlocdiffisi';
 
 overwrite         = 1; % SET TO ZERO TO CHECK/DEBUG, 1 TO CHANGE FILES
 
