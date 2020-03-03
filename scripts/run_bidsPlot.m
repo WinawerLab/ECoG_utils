@@ -57,8 +57,9 @@ specs.epoch_t     = [-0.2 1];
 specs.plot_type   = 'averageSE';
 %specs.stim_names  = {'ONEPULSE-1', 'ONEPULSE-2', 'ONEPULSE-3', 'ONEPULSE-4', 'ONEPULSE-5', 'ONEPULSE-6'};
 %specs.stim_names  = {'TWOPULSE-1', 'TWOPULSE-2', 'TWOPULSE-3', 'TWOPULSE-4', 'TWOPULSE-5', 'TWOPULSE-6'};
-specs.stim_names  = {'FACES', 'LETTERS', 'SCENES'};
-%specs.plot_ylim  = [-1 5];
+%specs.stim_names  = {'FACES', 'LETTERS', 'SCENES'};
+specs.stim_names  = {'ONEPULSE', 'TWOPULSE', 'CRF', 'SPARSITY', 'GRATING','CIRCULAR', 'PLAID'};
+specs.plot_ylim  = [-1 10];
 
 bidsEcogPlotTrials(projectDir, subject, session, task, runnums, ...
     inputFolder, description, specs, savePlot);

@@ -76,7 +76,7 @@ bar_apertures = imresize(bar_apertures, [100 100], 'nearest');
 tr                  = 1;
 opt.hrf             = 1;
 opt.maxpolydeg      = 0;
-opt.xvalmode        = 1; 
+opt.xvalmode        = 0; 
 opt.display         = 'off';
 
 % analyzePRFdog
@@ -103,20 +103,20 @@ results = analyzePRFdog(stimulus, data2fit, tr, opt);
 %load('/Volumes/server/Projects/BAIR/Data/BIDS/visual/derivatives/ECoGPRF/sub-som763/nyuecog01/sub-som763_prffits_20200226T150544.mat')
 
 %chan_ind = ecog_matchChannels({'G1', 'G2', 'G9', 'G17', 'AT4', 'PT2', 'PT3', 'PT4'}, results.channels.name);
-%chan_ind = ecog_matchChannels({'G1', 'G2', 'PT2', 'PT3'}, results.channels.name);
-chan_ind = [];
+chan_ind = ecog_matchChannels({'G01', 'G02', 'PT02', 'PT03'}, channels.name);
+%chan_ind = [];
 
 coloropt = 1;
 figureName = sprintf('%s_prftimecoursefits', subject);
 ecog_plotPRFtsfits(data2fit, stimulus, results, channels, chan_ind)
 set(gcf, 'Position', get(0,'screensize'));
 set(findall(gcf,'-property','FontSize'),'FontSize',14)
-saveas(gcf, fullfile(plotSaveDir, figureName), 'png'); close;
+%saveas(gcf, fullfile(plotSaveDir, figureName), 'png'); close;
 
 figureName = sprintf('%s_prfs', subject);
 ecog_plotPRFs(results, stimulus, channels,chan_ind,[],coloropt)  
 set(gcf, 'Position', get(0,'screensize'));
 set(findall(gcf,'-property','FontSize'),'FontSize',14)
-saveas(gcf, fullfile(plotSaveDir, figureName), 'png'); close;
+%saveas(gcf, fullfile(plotSaveDir, figureName), 'png'); close;
 
 
