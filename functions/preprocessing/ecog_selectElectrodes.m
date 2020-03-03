@@ -45,15 +45,15 @@ switch opts.elec_selection_method
         [~,~,trial_idx] = ecog_averageEpochs(epochs, events, opts.stimnames);
         [nSamp, ~, nChan] = size(epochs);
         
-        epochs = permute(epochs,[3 1 2]);
+        temp_epochs = permute(epochs,[3 1 2]);
         
         % Average first and second halfs of trials for each stimulusname
         for stim = 1:length(opts.stimnames)
             idx = trial_idx{stim};
             trial_idx1 = idx(1:2:length(idx));
             trial_idx2 = idx(2:2:length(idx));
-            epochs_averaged(1,:,:,stim) = mean(epochs(:,:,trial_idx1),3,'omitnan');
-            epochs_averaged(2,:,:,stim) = mean(epochs(:,:,trial_idx2),3,'omitnan');
+            epochs_averaged(1,:,:,stim) = mean(temp_epochs(:,:,trial_idx1),3,'omitnan');
+            epochs_averaged(2,:,:,stim) = mean(temp_epochs(:,:,trial_idx2),3,'omitnan');
         end
         
         % Correlate across halfs
@@ -72,18 +72,19 @@ switch opts.elec_selection_method
         % Compute R2
         R2 = computeR2(X1',X2');
         
-        chan_idx = r > opts.elec_split_thresh;
+        chan_idx = R2 > opts.elec_split_thresh;
         
         for el = 1:nChan
-            figureName = sprintf('%s_%s_%s_%s_%s', channels.bensonarea{ii}, channels.wangarea{ii}, ...
-                    channels.name{ii});
+            figureName = sprintf('%s_%s_%s', ...
+                channels.name{el}, channels.bensonarea{el}, channels.wangarea{el});
             figure;hold on;
             plot(X1(el,:), 'r','LineWidth', 2);
             plot(X2(el,:), 'b','LineWidth', 2);
             axis tight
-            set(gca, 'XTick', 1:nSamp:size(X1,2), 'XTickLabel', stimnames);
-            title(sprintf('%s %s %s %0.2f %0.2f', channels.name{el}, ...
-                channels.bensonarea{el}, channels.wangarea{el}, ...
+            set(gca, 'XTick', 1:nSamp:size(X1,2), 'XTickLabel', opts.stimnames);
+            xtickangle(45)
+            title(sprintf('%s %s %s Pearson = %0.2f R2 = %0.2f', ...
+                channels.name{el}, channels.bensonarea{el}, channels.wangarea{el}, ...
                 r(el), R2(el)));
             set(gcf, 'Position', get(0, 'Screensize'));
             set(findall(gcf,'-property','FontSize'),'FontSize',14)
@@ -93,9 +94,10 @@ switch opts.elec_selection_method
         figure;
         figureName = 'compareR2andPearson';
         subplot(2,1,1); bar(r); title('Pearson correlation'); xlabel('channel');
-        set(gca, 'XTick', 1:nChans, 'XTickLabel', channels.name);
+        set(gca, 'XTick', 1:nChan, 'XTickLabel', channels.name);
         subplot(2,1,2); bar(R2); title('R2'); xlabel('channel');
-        set(gca, 'XTick', 1:nChans, 'XTickLabel', channels.name);
+        set(gca, 'XTick', 1:nChan, 'XTickLabel', channels.name);
+        set(gcf, 'Position', get(0, 'Screensize'));
         set(findall(gcf,'-property','FontSize'),'FontSize',14)
         saveas(gcf, fullfile(plotSaveDir, figureName), 'png'); close;
         
