@@ -24,14 +24,19 @@ function [f,data_epoch_spectra,data_epoch] = ...
 
 % regress erp out
 if reg_erp==1 
+    data_epoch_orig = data_epoch;
     for k = 1:size(data_epoch,1)%channels
         disp(['regress erp el ' int2str(k)])
         for m = 1:size(data_epoch,2)%epochs
             x = squeeze(data_epoch(k,m,:));
-            % regress ERP out
-            s = stims(m);
-            av_erp = squeeze(mean(data_epoch(k,stims==s,:),2));
-            [~,~,reg_R] = regress(x,av_erp);
+            if all(isnan(x))
+                % regress ERP out
+                s = stims(m);
+                av_erp = squeeze(nanmean(data_epoch_orig(k,stims==s,:),2));
+                [~,~,reg_R] = regress(x,av_erp);
+            else
+                reg_R = x;
+            end
             data_epoch(k,m,:) = reg_R;
         end
     end
@@ -46,6 +51,7 @@ clear Pxx
 for k = 1:size(data_epoch,1)%channels
     disp(['fft el ' int2str(k)])
     x = squeeze(data_epoch(k,:,:))';
-    [Pxx,f] = pwelch(x(fft_t,:),fft_w,fft_ov,srate,srate);
-    data_epoch_spectra(k,:,:) = Pxx';
+    nanepoch = all(isnan(x),1);
+    [Pxx,f] = pwelch(x(fft_t,~nanepoch),fft_w,fft_ov,srate,srate);
+    data_epoch_spectra(k,~nanepoch,:) = Pxx';
 end
