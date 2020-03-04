@@ -135,20 +135,20 @@ for d = 1:length(specs.dataTypes)
         switch specs.baselineType
             case 'all'
                 baseline_index = find(~contains(trials.events.trial_name, {'PRF', 'BLANK'}));
-                baseline = mean(mean(elData(trials.time<0,baseline_index),1),2);
+                baseline = nanmean(nanmean(elData(trials.time<0,baseline_index),1),2);
             case 'selectedtrials'
-                baseline = mean(mean(elData(trials.time<0,baseline_index),1),2);
+                baseline = nanmean(nanmean(elData(trials.time<0,baseline_index),1),2);
         end
         
         switch thisDataType
             case 'broadband'
                 % percent signal? (similar to 'relchange' in fieldtrip)
                 %elData = (elData - baseline) ./ baseline;
-                elData = (elData - mean(elData(trials.time<0,:),1)) ./ baseline;
+                elData = (elData - nanmean(elData(trials.time<0,:),1)) ./ baseline;
             case 'evoked'
                 % standard ERP approach(?)
                 %elData = (elData - baseline);
-                elData = elData - mean(elData(trials.time<0,:),1);
+                elData = elData - nanmean(elData(trials.time<0,:),1);
         end
 
         % Select subset of trials to plot

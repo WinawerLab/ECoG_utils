@@ -87,9 +87,9 @@ for ee = 1:length(elInx)
         clear mnToPlot Llim Ulim
         for jj = 1:length(trial_index)
             % Compute mean and standard error of the mean
-            mnToPlot(:,jj) = squeeze(mean(elData(:,trial_index{jj}),2));
-            Llim(:,jj) = mnToPlot(:,jj)-(std(elData(:,trial_index{jj}),0,2)/sqrt(length(trial_index{jj})));
-            Ulim(:,jj) = mnToPlot(:,jj)+(std(elData(:,trial_index{jj}),0,2)/sqrt(length(trial_index{jj})));        
+            mnToPlot(:,jj) = squeeze(nanmean(elData(:,trial_index{jj}),2));
+            Llim(:,jj) = mnToPlot(:,jj)-(nanstd(elData(:,trial_index{jj}),0,2)/sqrt(length(trial_index{jj})));
+            Ulim(:,jj) = mnToPlot(:,jj)+(nanstd(elData(:,trial_index{jj}),0,2)/sqrt(length(trial_index{jj})));        
         end
 
 %         % Smooth the data?
@@ -184,6 +184,7 @@ for ee = 1:length(elInx)
         else
             ylim = specs.plot.YLim;
         end
+        if any(isnan(ylim)), ylim = [0 1]; end
         set(gca, 'YScale', 'log','YLim', ylim);
         % Set x-axis limits
         set(gca, 'XScale', specs.plot.XScale, 'XLim', specs.plot.XLim);
