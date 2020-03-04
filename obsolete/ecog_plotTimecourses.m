@@ -266,6 +266,7 @@ for d = 1:length(specs.dataTypes)
         else
             ylim = specs.plot.YLim;
         end
+        if any(isnan(ylim)), ylim = [-1 1]; end
         set(gca, 'YLim', ylim);
         
         % Add legend
