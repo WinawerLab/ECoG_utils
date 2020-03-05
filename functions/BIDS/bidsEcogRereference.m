@@ -62,7 +62,7 @@ end
 % <session>
 if ~exist('sessions', 'var') || isempty(sessions)
     [sessions] = bidsSpecifySessions(projectDir, subject);
-    idx = find(contains(lower(sessions), 'ecog'));
+    idx = find(contains(lower(sessions), {'ecog', 'iemu'}));
     if isempty(idx)
         error('no ECOG sessions found for this subject');
     else
