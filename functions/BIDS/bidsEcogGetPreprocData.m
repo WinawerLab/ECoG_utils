@@ -121,7 +121,7 @@ for ii = 1:length(sessions)
 end
 
 % Remove non-data channels.
-chan_inx = contains(channels.type, {'ecog', 'seeg'}); 
+chan_inx = contains(lower(channels.type), {'ecog', 'seeg'}); 
 channels = channels(chan_inx,:);
 data = allData(chan_inx,:);
 events = allEvents;
