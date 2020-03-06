@@ -158,16 +158,16 @@ switch opts.elec_selection_method
                 nTrials{stim} = length(idx);
             end
             % Find average response for each trial type
-            trials_avg = cellfun(@(X) mean(X, 2), trials, 'uni', false);
+            trials_avg = cellfun(@(X) mean(X, 2, 'omitnan'), trials, 'uni', false);
             trials_avg_rep = cellfun(@(X,y) repmat(X,[1 y]), trials_avg, nTrials, 'uni', false);
             % Calculate residual between individual trials and means
             trials_err = cellfun(@(X, Y) X - Y, trials, trials_avg_rep, 'uni', false);
-            trials_err = cellfun(@(X) sum(sum(X .^ 2)), trials_err, 'uni', false);
+            trials_err = cellfun(@(X) sum(sum(X .^ 2, 'omitnan')), trials_err, 'uni', false);
             % Calculate variance explained by mean trial responses
             total_err = sum(cell2mat(trials_err));
-            trial_mean = mean(mean(cell2mat(trials)));
+            trial_mean = mean(mean(cell2mat(trials), 'omitnan'));
             trials_var = cell2mat(trials) - trial_mean;
-            total_var = sum(sum(trials_var .^ 2));
+            total_var = sum(sum(trials_var .^ 2,'omitnan'));
             R2(ee) = 1 - (total_err / total_var);
 
         end
