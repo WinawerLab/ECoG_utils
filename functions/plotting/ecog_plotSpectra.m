@@ -13,6 +13,7 @@ if ~isfield(specs.plot, 'fontSize') || isempty(specs.plot.fontSize), specs.plot.
 if ~isfield(specs.plot, 'XLim') || isempty(specs.plot.XLim), specs.plot.XLim = [1 200];end
 if ~isfield(specs.plot, 'YLim'), specs.plot.YLim = [];end
 if ~isfield(specs.plot, 'XScale') || isempty(specs.plot.XScale), specs.plot.XScale = 'linear';end
+if ~isfield(specs.plot, 'YScale') || isempty(specs.plot.YScale), specs.plot.YScale = 'log';end
 
 out = struct;
 
@@ -185,9 +186,12 @@ for ee = 1:length(elInx)
             ylim = specs.plot.YLim;
         end
         if any(isnan(ylim)), ylim = [0 1]; end
-        set(gca, 'YScale', 'log','YLim', ylim);
+        set(gca, 'YScale', specs.plot.YScale,'YLim', ylim);
         % Set x-axis limits
         set(gca, 'XScale', specs.plot.XScale, 'XLim', specs.plot.XLim);
+        if all(xticks>(specs.plot.XLim(1)+diff(specs.plot.XLim)/10))
+            xticks([specs.plot.XLim(1), xticks]);
+        end
         
         % Add legend
         if hasLegend == 0

@@ -38,6 +38,8 @@ if ~isfield(specs.plot, 'showMax') || isempty(specs.plot.showMax), specs.plot.sh
 if ~isfield(specs.plot, 'fontSize') || isempty(specs.plot.fontSize), specs.plot.fontSize = 12; end
 if ~isfield(specs.plot, 'XLim') || isempty(specs.plot.XLim), specs.plot.XLim = [-0.2 1];end
 if ~isfield(specs.plot, 'YLim'), specs.plot.YLim = [];end
+if ~isfield(specs.plot, 'XScale') || isempty(specs.plot.XScale), specs.plot.XScale = 'linear';end
+if ~isfield(specs.plot, 'YScale') || isempty(specs.plot.YScale), specs.plot.YScale = 'linear';end
 
 out = struct;
 
@@ -267,7 +269,7 @@ for d = 1:length(specs.dataTypes)
             ylim = specs.plot.YLim;
         end
         if any(isnan(ylim)), ylim = [-1 1]; end
-        set(gca, 'YLim', ylim);
+        set(gca, 'YScale', specs.plot.YScale,'YLim', ylim);
         
         % Add legend
         if ii == subplotWithLegendIndex 
@@ -288,7 +290,7 @@ for d = 1:length(specs.dataTypes)
         % Save plotted lines in an output struct
         out.(thisDataType).(whichElectrodes{ii}).mn = double(mnToPlot');
         out.(thisDataType).(whichElectrodes{ii}).se = double((Ulim-mnToPlot)');
-        set(gca, 'XLim', specs.plot.XLim);
+        set(gca, 'XScale', specs.plot.XScale, 'XLim', specs.plot.XLim);
         %set(gca, 'XLim', [-0.5 3]);
         
         % Set font size
