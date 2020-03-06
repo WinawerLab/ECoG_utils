@@ -94,7 +94,7 @@ switch opts.elec_selection_method
         channels.noiseceilingR2 = round(R2,2);
         
         % Select channels based on threshold
-        chan_idx = R2 > opts.elec_splithalf_thresh;
+        chan_idx = R2 >= opts.elec_splithalf_thresh;
         
         if savePlot
             for el = 1:nChan
@@ -173,7 +173,7 @@ switch opts.elec_selection_method
         end
         
         % Select channels based on threshold
-        chan_idx = R2 > opts.elec_meanpredict_thresh;
+        chan_idx = R2 >= opts.elec_meanpredict_thresh;
         
         % Add values to channel table
         channels.noiseceilingR2 = round(R2,2);
