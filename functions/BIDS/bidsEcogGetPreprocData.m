@@ -63,8 +63,12 @@ for ii = 1:length(sessions)
 
                 % Check if there are trial_names, if not, add them
                 if ~isfield(summary(events), 'trial_name')
-                    fprintf('[%s] Events lack trial names - adding them now .\n',mfilename);
-                    events = bair_addTrialNamesToEventsTable(events);
+                    if isnumeric(events.trial_type(1))
+                        fprintf('[%s] Events lack trial names - adding them now .\n',mfilename);
+                        events = bair_addTrialNamesToEventsTable(events);
+                    else
+                        events.trial_name = events.trial_type;
+                    end
                 end
                 % Check if there are trial_names, if not, add them
                 if ~isfield(summary(events), 'stim_file')
