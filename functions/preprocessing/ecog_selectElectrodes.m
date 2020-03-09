@@ -84,7 +84,7 @@ switch opts.elec_selection_method
         % Compute R2
         R2x = computeR2(X1',X2');
         R2y = computeR2(X2',X1');
-        R2 = 100*mean([R2x' R2y'], 2);
+        R2  = mean([R2x' R2y'], 2);
         % KK code:
         %R2x = calccod(X1', X2');
         %R2y = calccod(X1', X2');

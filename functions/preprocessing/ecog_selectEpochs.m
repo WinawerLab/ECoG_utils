@@ -33,7 +33,7 @@ else
     end
 
     % 2. Remove epochs in which the absolute maximum amplitude is in the tail
-    % of the distribution (cg KY)
+    % of the distribution 
 
     if ~isfield(opts, 'epoch_outlier_thresh')  || isempty(opts.epoch_outlier_thresh)
         % do not apply this criterion
@@ -41,22 +41,18 @@ else
 
     else
         
-        % Compute max over stim_on period across epochs
-        max_epochs = squeeze(max(epochs,[],1));
+        % Compute max over time for each epoch
+        max_epochs = squeeze(max(abs(epochs),[],1));
 
         % Compute max over stim_on period across epochs
         max_epochs_stim_on = squeeze(max(epochs(stim_on_idx,:,:),[],1));
-        mn_max = mean(max_epochs_stim_on,1);
-        % Compute difference between epochs max and the average max
-        % amplitude in the stim on period
-        
+
         % Put all epochs with max higher than outlier_thresh * median to nans
-        thresh = prctile(abs(max_epochs(:)), opts.epoch_outlier_thresh);
-        outlier_idx2 = abs(max_epochs) > thresh;             
+        thresh = opts.epoch_outlier_thresh * median(max_epochs_stim_on);
+        outlier_idx2 = max_epochs > thresh;             
         outlier_idx(outlier_idx2) = 1;
     end
 
     epochs(:,outlier_idx) = nan;
-end
-
+    
 end
