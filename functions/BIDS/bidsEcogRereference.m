@@ -108,7 +108,10 @@ for ii = 1:length(sessions)
            fprintf('[%s] Task = %s, Run = %s \n', mfilename, task, runnum);
                      
            [data, channels, events, ieeg_json, hdr] = bidsEcogReadFiles(projectDir, subject, session, task, runnum);
-                  
+           
+           % Overwrite channels sampling frequency with header info
+           channels.sampling_frequency = repmat(hdr.Fs, [height(channels) 1]);
+           
            % Apply CAR
            [data_reref, channels_reref, group_indices, group_names] = ecog_performCAR(data, channels);           
           
