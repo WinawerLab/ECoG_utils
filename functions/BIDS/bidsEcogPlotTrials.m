@@ -106,7 +106,7 @@ writePath = fullfile(projectDir, 'derivatives', 'ECoGFigures');
 chan_names = specs.chan_names;
 if ~iscell(chan_names), chan_names = {chan_names}; end
 if isempty([chan_names{:}]) 
-    chan_idx = contains(channels.type, {'ecog', 'seeg'}); 
+    chan_idx = contains(lower(channels.type), {'ecog', 'seeg'}); 
 else
     %chan_idx = contains(channels.name, chan_names);
     chan_idx = ecog_matchChannels(chan_names, channels.name);
@@ -266,7 +266,7 @@ for ii = 1:length(chan_groups)
 
        figSaveDir = fullfile(writePath, sprintf('sub-%s', subject), 'figures');
        if ~exist(figSaveDir, 'dir')
-            mkdir(figSaveDir); fprintf('[%s]: Creating a figure directory for sub-%s\n', mfilename, subject); 
+            mkdir(figSaveDir); fprintf('[%s] Creating a figure directory for sub-%s\n', mfilename, subject); 
        end    
 
        fprintf('[%s] Saving figures to %s \n',mfilename, figSaveDir);
