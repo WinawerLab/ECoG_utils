@@ -1,17 +1,27 @@
-function [epochs, channels, chan_idx] = ecog_selectElectrodes(epochs, channels, events, t, opts, plotSaveDir)
+function [epochs, channels, chan_idx, epochs_split] = ecog_selectElectrodes(epochs, channels, events, t, opts)
 
+% Electrode selection
+%
+% Select electrodes based on either a simple threshold (cf Zhou et al,
+% 2019), a split half method, or single-trial variance relative to mean (cf
+% Stigliani et al., 2019). 
+% Note: each option requires different combinations of inputs and fields of opts to be set.
+% - thresh: requires t, opts.elec_max_thresh, opts.elec_mean_thresh
+% - splithalf: requires events, opts.stimnames, opts.elec_splithalf_thresh
+% - meanpredict: requires events, opts.stimnames, opts.elec_meanpredict_thresh
 
-if ~exist('plotSaveDir', 'var') || isempty(plotSaveDir)
-	savePlot = true;
-else
-    savePlot = false;
-end 
+if ~exist('events','var'), events = []; end
+if ~exist('t','var'), t = []; end
+if ~exist('opts','var'), opts = []; end
+    
+method = opts.elec_selection_method;
 
-switch opts.elec_selection_method
+switch method
     
     case 'thresh'
         
         % Requires t, opts.elec_max_thresh and opts.elec_mean_thresh to be defined
+        
         % Check:
         if ~exist('t', 'var') || isempty(t)
             error('Electrode selection method %s requires t as input', method);
@@ -36,10 +46,12 @@ switch opts.elec_selection_method
         
         % Add nans to channel table for consistency with other methods
         channels.noiseceilingR2 = nan(height(channels),1);
-
+        epochs_split = [];
+    
     case 'splithalf'
         
-        % Requires opts.elec_split_thresh 
+        % Requires events, opts.stimnames, opts.elec_splithalf_thresh
+        
         % Check:
         if ~exist('events', 'var') || isempty(events)
             error('Electrode selection method %s requires events table', method);
@@ -58,6 +70,7 @@ switch opts.elec_selection_method
         % Put trials in the last dimension
         temp_epochs = permute(epochs,[3 1 2]);
         
+        epochs_split = nan([2 size(temp_epochs)]);
         % Average first and second halfs of trials for each stimulusname
         for stim = 1:length(opts.stimnames)
             idx = trial_idx{stim};
@@ -65,16 +78,16 @@ switch opts.elec_selection_method
             % we want this?
             trial_idx1 = idx(1:2:length(idx));
             trial_idx2 = idx(2:2:length(idx));
-            epochs_averaged(1,:,:,stim) = mean(temp_epochs(:,:,trial_idx1),3,'omitnan');
-            epochs_averaged(2,:,:,stim) = mean(temp_epochs(:,:,trial_idx2),3,'omitnan');
+            epochs_split(1,:,:,stim) = mean(temp_epochs(:,:,trial_idx1),3,'omitnan');
+            epochs_split(2,:,:,stim) = mean(temp_epochs(:,:,trial_idx2),3,'omitnan');
         end
         
         % Correlate across halfs
 
         % X1: chans x concatenated stim half 1
-        X1 = squeeze(epochs_averaged(1,:,:));
+        X1 = squeeze(epochs_split(1,:,:));
         % X2: chans x concatenated stim half 2
-        X2 = squeeze(epochs_averaged(2,:,:));
+        X2 = squeeze(epochs_split(2,:,:));
         
         % Pairwise correlation between all channels across the two sets
         %[r] = corr(X1',X2');
@@ -84,7 +97,7 @@ switch opts.elec_selection_method
         % Compute R2
         R2x = computeR2(X1',X2');
         R2y = computeR2(X2',X1');
-        R2  = mean([R2x' R2y'], 2);
+        R2 = mean([R2x' R2y'], 2);
         % KK code:
         %R2x = calccod(X1', X2');
         %R2y = calccod(X1', X2');
@@ -96,37 +109,24 @@ switch opts.elec_selection_method
         % Select channels based on threshold
         chan_idx = R2 >= opts.elec_splithalf_thresh;
         
-        if savePlot
-            for el = 1:nChan
-                figureName = sprintf('%s_%s_%s', ...
-                    channels.name{el}, channels.bensonarea{el}, channels.wangarea{el});
-                figure;hold on;
-                plot(X1(el,:), 'r','LineWidth', 2);
-                plot(X2(el,:), 'b','LineWidth', 2);
-                axis tight
-                set(gca, 'XTick', 1:nSamp:size(X1,2), 'XTickLabel', opts.stimnames);
-                xtickangle(45)
-                title(sprintf('%s %s %s Pearson = %0.2f R2 = %0.2f', ...
-                    channels.name{el}, channels.bensonarea{el}, channels.wangarea{el}, ...
-                    r(el), R2(el)));
-                set(gcf, 'Position', get(0, 'Screensize'));
-                set(findall(gcf,'-property','FontSize'),'FontSize',14)
-                saveas(gcf, fullfile(plotSaveDir, figureName), 'png'); close;
-            end
-
-            figure;
-            figureName = 'compareR2andPearson';
-            subplot(2,1,1); bar(r); title('Pearson correlation'); xlabel('channel');
-            set(gca, 'XTick', 1:nChan, 'XTickLabel', channels.name);
-            subplot(2,1,2); bar(R2); title('R2'); xlabel('channel');
-            set(gca, 'XTick', 1:nChan, 'XTickLabel', channels.name);
-            set(gcf, 'Position', get(0, 'Screensize'));
-            set(findall(gcf,'-property','FontSize'),'FontSize',14)
-            saveas(gcf, fullfile(plotSaveDir, figureName), 'png'); close;
-        end
+%         % Debug       
+%         for el = 1:nChan
+%             figure;
+%             figureName = 'compareR2andPearson';
+%             subplot(2,1,1); bar(r); title('Pearson correlation'); xlabel('channel');
+%             set(gca, 'XTick', 1:nChan, 'XTickLabel', channels.name);
+%             subplot(2,1,2); bar(R2); title('R2'); xlabel('channel');
+%             set(gca, 'XTick', 1:nChan, 'XTickLabel', channels.name);
+%             set(gcf, 'Position', get(0, 'Screensize'));
+%             set(findall(gcf,'-property','FontSize'),'FontSize',14)
+%             saveas(gcf, fullfile(plotSaveDir, figureName), 'png'); close;
+%         end
         
 	case 'meanpredict'
         
+        % Requires events, opts.stimnames, opts.elec_meanpredict_thresh
+        
+        % Check:
         if ~exist('events', 'var') || isempty(events)
             error('Electrode selection method %s requires events table', method);
         end
@@ -177,6 +177,7 @@ switch opts.elec_selection_method
         
         % Add values to channel table
         channels.noiseceilingR2 = round(R2,2);
+        epochs_split = [];
 end
 
 % Exclude depth electrodes
