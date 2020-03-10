@@ -23,7 +23,7 @@ function  bidsEcogPlotTrials(projectDir, subject, sessions, tasks, runnums, ...
 %                       the input data files
 %                           default: ...
 %     specs:            A struct specifying instructions for what to plot,
-%                       with the following fields:
+%                       with the following possible fields:
 %                        - epoch_t: Epoch window, default: [-0.2 1.2];
 %                        - base_t:  Baseline time window, e.g. [-0.2 0]. 
 %                                           default: all t<0 in epochTime.
@@ -34,8 +34,11 @@ function  bidsEcogPlotTrials(projectDir, subject, sessions, tasks, runnums, ...
 %                        - plot_type: single trial, average, averageSE
 %                        - plot_colors: colormap name or RGB array
 %                        - plot_ylim: scale of y axis
-%                        - add_max:
-%                        - add_atlas:
+%                        - average_stims: average all stim_names together
+%                                           default: false                            
+%                        - add_atlas: TO DO (read atlas from derivatives/freesurfer)
+%                        - fig_subplotdims: 
+%                        - fig_subplotidx: 
 %                       
 %     savePlot:         Flag indicating whether to save the plots in 
 %                       derivatives/ECoGfigures
@@ -90,6 +93,9 @@ if ~isfield(specs,'plot_type') || isempty(specs.plot_type), specs.plot_type = 'a
 if ~isfield(specs,'plot_cmap') || isempty(specs.plot_cmap), specs.plot_cmap = 'parula'; end
 if ~isfield(specs,'plot_ylim'), specs.plot_ylim = []; end
 if ~isfield(specs, 'average_stims'), specs.average_stims = 0; end
+if ~isfield(specs,'subplotdims') || isempty(specs.subplotdims), specs.subplotdims = []; end
+if ~isfield(specs,'subplotidx') || isempty(specs.subplotidx), specs.subplotidx = []; end
+
 % <plot save>
 if ~exist('savePlot', 'var') || isempty(savePlot), savePlot = true; end
 
@@ -107,9 +113,16 @@ chan_names = specs.chan_names;
 if ~iscell(chan_names), chan_names = {chan_names}; end
 if isempty([chan_names{:}]) 
     chan_idx = contains(lower(channels.type), {'ecog', 'seeg'}); 
-else
-    %chan_idx = contains(channels.name, chan_names);
+elseif any(isnan(str2double(chan_names)) == 0) 
+    % specs.chan_names contains numbers, so the user is (probably)
+    % referencing individual channels. Match each individual channel:
     chan_idx = ecog_matchChannels(chan_names, channels.name);
+else
+    % specs.chan_names does not contain any numbers, so the user is
+    % (probably) trying to plot a group of channels based on a common
+    % character (e.g. G): match all channels with this character:
+    chan_idx = contains(channels.name, chan_names);
+    % ALTERNATIVE: use channel_group as second way to select channels
 end
 if ~any(chan_idx), error('Did not find any matching channels! Please check channel names.'), end
 
@@ -132,7 +145,7 @@ fprintf('[%s] Baseline correcting epochs using %s \n', mfilename, baseType);
 [epochs] = ecog_normalizeEpochs(epochs, t, specs.base_t, baseType);
  
 % Select trials
-fprintf('[%s] Selecting stimulus conditions... %s \n', mfilename, baseType);
+fprintf('[%s] Selecting stimulus conditions... \n', mfilename);
 stim_names = specs.stim_names;
 if ~iscell(stim_names), stim_names = {stim_names}; end
 if isempty([stim_names{:}])
@@ -171,6 +184,7 @@ for ii = 1:nGroups
     
     % Check if group is a HD grid, if so, reorder channels 
     % and make separate plots for bottom and top
+    % TO DO --> replace this by Ken's plotGrid function (no longer split)
     if contains(groups{ii}, {'gridB', 'HDgrid'}) && height(channels) > 64
         grid_idx = find(contains(channels.group, groups{ii}));
         [inx, inxNames] = ecog_sortElecsOnHDGrid(channels,grid_idx);
@@ -196,13 +210,21 @@ for ii = 1:length(chan_groups)
     
     chan_idx = chan_groups{ii};
     
-    % Determine how many subplots to make
+    % Determine how many subplots to make and in which order
     nPlot = length(chan_idx);
-    nRow  = ceil(sqrt(nPlot));
-    nCol  = ceil(sqrt(nPlot));
-    if nPlot <= (nRow*nCol)-nCol
-        nRow = nRow-1;
+    if isempty(specs.subplotdims)
+        nRow  = ceil(sqrt(nPlot));
+        nCol  = ceil(sqrt(nPlot));
+        if nPlot <= (nRow*nCol)-nCol, nRow = nRow-1; end
+    else
+        nRow = specs.subplotdims(1); nCol = specs.subplotdims(2);
     end
+    if isempty(specs.subplotidx)
+        plot_idx = 1:nPlot;
+    else
+        plot_idx = specs.subplotidx;
+    end
+   
     if nPlot > 2
         %set(gcf, 'Position', [400 200 1800 1200]);
         set(gcf, 'Position', get(0, 'Screensize'));
@@ -218,7 +240,7 @@ for ii = 1:length(chan_groups)
         
         if ~isnan(chan_idx(ee))
 
-            subplot(nRow, nCol, ee);
+            subplot(nRow, nCol, plot_idx(ee));
             plotTitle = channels.name(chan_idx(ee));
 
             % Loop over trial types
@@ -232,7 +254,8 @@ for ii = 1:length(chan_groups)
 
                     case 'singletrial'
                         this_trial = this_epoch; 
-
+                        hasLegend = 1; % do not plot legend for single trials
+                        
                     case 'average'                    
                         this_trial = mean(this_epoch,2, 'omitnan');
 

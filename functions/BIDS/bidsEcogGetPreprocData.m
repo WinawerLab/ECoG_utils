@@ -70,7 +70,14 @@ for ii = 1:length(sessions)
                         events.trial_name = events.trial_type;
                     end
                 end
-                % Check if there are trial_names, if not, add them
+                
+                % Check for value field
+                if isfield(summary(events), 'value')
+                    if ~iscell(events.value)
+                        events.value = num2cell(events.value);
+                    end
+                end
+                % Check if there are stim_file_names, if not, add them
                 if ~isfield(summary(events), 'stim_file')
                     fprintf('[%s] Events lack stim files - adding them now .\n',mfilename);
                     events.stim_file = repmat({'n/a'}, [height(events) 1]);
@@ -105,6 +112,7 @@ for ii = 1:length(sessions)
                 fprintf('[%s] Length of run %s is %s seconds, cumulative length of data is %s seconds \n', mfilename, runnum, num2str(runLengthInSeconds), num2str(samplesToAdd/hdr.Fs));          
             end
         end
+        
         % Check channel statuses
         if ~exist('previousChannels', 'var') 
             previousChannels = channels; 
@@ -121,6 +129,7 @@ for ii = 1:length(sessions)
                 end
             end
         end
+        
     end
 end
 
