@@ -24,20 +24,31 @@ function  bidsEcogPlotTrials(projectDir, subject, sessions, tasks, runnums, ...
 %                           default: ...
 %     specs:            A struct specifying instructions for what to plot,
 %                       with the following possible fields:
-%                        - epoch_t: Epoch window, default: [-0.2 1.2];
-%                        - base_t:  Baseline time window, e.g. [-0.2 0]. 
+%                        - epoch_t: Epoch window (s)
+%                                           default: [-0.2 1.2]
+%                        - base_t:  Baseline time window (s)
 %                                           default: all t<0 in epochTime.
-%                        - chan_names: Cell array with channel names to be plotted.
-%                                           default: all channels                            
-%                        - stim_names: Name of stimulus conditions to plot
-%                                           default: all conditions                            
-%                        - plot_type: single trial, average, averageSE
-%                        - plot_colors: colormap name or RGB array
-%                        - plot_ylim: scale of y axis
-%                        - average_stims: average all stim_names together
+%                        - chan_names: Cell array with channel names 
+%                                           default: all channels in channels table                           
+%                        - stim_names: Cell array with stimulus names 
+%                                           default: all unique names in events table                         
+%                        - plot_type: How to plot the trials (string):
+%                                       - 'singletrial': all single trials
+%                                       - 'average': trial average per stim
+%                                       - 'averageSE': trial average per stim
+%                                       with confidence intervals
+%                                           default: 'averageSE'                            
+%                        - plot_colors: colormap name (string) or RGB array
+%                                           default: 'parula'  
+%                        - plot_ylim: limits of y axis e.g. [-1 10]
+%                                           default: automatic by matlab
+%                        - average_stims: flag indicating to average across 
+%                                         all cells in stim_names (boolean)
 %                                           default: false                            
 %                        - add_atlas: TO DO (read atlas from derivatives/freesurfer)
-%                        - fig_subplotdims: 
+%                        - fig_subplotdims: [nrow ncol] array indicating
+%                                           layout for the subplots
+%                                         all cells in stim_names (boolean)
 %                        - fig_subplotidx: 
 %                       
 %     savePlot:         Flag indicating whether to save the plots in 
@@ -110,13 +121,16 @@ writePath = fullfile(projectDir, 'derivatives', 'ECoGFigures');
                                           
 % Select channels
 chan_names = specs.chan_names;
+includeChansInFigureName = 0; % if 0, uses the group name only
+
 if ~iscell(chan_names), chan_names = {chan_names}; end
 if isempty([chan_names{:}]) 
     chan_idx = contains(lower(channels.type), {'ecog', 'seeg'}); 
-elseif any(isnan(str2double(chan_names)) == 0) 
+elseif any(contains(chan_names, string(0:10))) 
     % specs.chan_names contains numbers, so the user is (probably)
     % referencing individual channels. Match each individual channel:
     chan_idx = ecog_matchChannels(chan_names, channels.name);
+    includeChansInFigureName = 1;
 else
     % specs.chan_names does not contain any numbers, so the user is
     % (probably) trying to plot a group of channels based on a common
@@ -203,8 +217,13 @@ end
 if ~iscell(tasks), tasks = {tasks}; end
 
 for ii = 1:length(chan_groups)
-
-    figureName = sprintf('sub %s %s %s %s %s %s', subject, groupNames{ii}, [tasks{:}], [stim_names{:}], description, specs.plot_type);
+    
+    if includeChansInFigureName
+        chanFigureNamePart = [chan_names{:}];
+    else
+        chanFigureNamePart = groupNames{ii};
+    end
+    figureName = sprintf('sub %s %s %s %s %s %s', subject, chanFigureNamePart, [tasks{:}], [stim_names{:}], description, specs.plot_type);
 
     figure('Name', figureName);
     
@@ -274,8 +293,12 @@ for ii = 1:length(chan_groups)
             % Add axis labels and legend
             if ~hasLegend
                 legend(stim_names, 'Location', 'best'); hasLegend = 1;
-                ylabel(sprintf('%s (%s)', description, channels.units{1}));
+                %ylabel(sprintf('%s (%s)', description, channels.units{1}));
                 %xlabel('Time (s)');
+            end
+            if nPlot < 10
+                ylabel(sprintf('%s (%s)', description, channels.units{1}));
+                xlabel('Time (s)');
             end
             setsubplotaxes();
             set(gca, 'FontSize', 14);

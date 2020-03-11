@@ -51,6 +51,7 @@ else
         thresh = opts.epoch_outlier_thresh * median(max_epochs_stim_on);
         outlier_idx2 = max_epochs > thresh;             
         outlier_idx(outlier_idx2) = 1;
+    
     end
 
     epochs(:,outlier_idx) = nan;
