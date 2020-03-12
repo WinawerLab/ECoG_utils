@@ -38,14 +38,14 @@ else
     if ~isfield(opts, 'epoch_outlier_thresh')  || isempty(opts.epoch_outlier_thresh)
         % do not apply this criterion
         warning('[%s] No outlier threshold defined, not detecting outlier epochs.', mfilename);
-
+        thresh = []; max_epochs = [];
     else
         
         % Compute max over time for each epoch
         max_epochs = squeeze(max(abs(epochs),[],1));
 
         % Compute max over stim_on period across epochs
-        max_epochs_stim_on = squeeze(max(epochs(stim_on_idx,:,:),[],1));
+        max_epochs_stim_on = squeeze(max(abs(epochs(stim_on_idx,:,:)),[],1));
 
         % Put all epochs with max higher than outlier_thresh * median to nans
         thresh = opts.epoch_outlier_thresh * median(max_epochs_stim_on);

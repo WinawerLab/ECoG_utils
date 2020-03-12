@@ -11,7 +11,7 @@ function [epochs, outlier_idx, max_pows, outlier_thresh] = ecog_selectEpochsStat
 %% Set parameters
 
 narginchk(3,5);
-if nargin<4,    threshpow  = 10;    end
+if nargin<4,    threshpow  = 20;    end
 if nargin<5,    threshdist = 5e-4;  end
 
 %-- Compute time indices

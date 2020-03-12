@@ -1,4 +1,4 @@
-function [epochs, channels, chan_idx, epochs_split] = ecog_selectElectrodes(epochs, channels, events, t, opts)
+function [epochs, channels, chan_idx, R2, epochs_split] = ecog_selectElectrodes(epochs, channels, events, t, opts)
 
 % Electrode selection
 %
@@ -70,7 +70,7 @@ switch method
         % Put trials in the last dimension
         temp_epochs = permute(epochs,[3 1 2]);
         
-        epochs_split = nan([2 size(temp_epochs)]);
+        epochs_split = nan([2 size(temp_epochs,1) size(temp_epochs,2) length(opts.stimnames)]);
         % Average first and second halfs of trials for each stimulusname
         for stim = 1:length(opts.stimnames)
             idx = trial_idx{stim};
