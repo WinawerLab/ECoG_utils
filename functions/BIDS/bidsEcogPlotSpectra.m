@@ -285,11 +285,12 @@ for ii = 1:length(chan_groups)
         plot_idx = specs.subplotidx;
     end
    
-    if nPlot > 2
+    if nPlot > 4
         %set(gcf, 'Position', [400 200 1800 1200]);
         set(gcf, 'Position', get(0, 'Screensize'));
     else
-        set(gcf, 'Position', [400 200 1800 1200/2]);
+        %set(gcf, 'Position', [400 200 1800 1200/2]);
+        set(gcf, 'Position', [0 400 1200 1000]);
     end
 
     hasLegend = 0;
@@ -336,12 +337,12 @@ for ii = 1:length(chan_groups)
                 %ylabel(sprintf('%s (%s)', description, channels.units{1}));
                 %xlabel('Time (s)');
             end
-            if nPlot < 10
+            if nPlot <= 4
                 ylabel('Spectral power');
                 xlabel('Frequency (Hz)');
             end
             setsubplotaxes();
-            set(gca, 'FontSize', 14);
+            set(gca, 'FontSize', 20);
             title(plotTitle);          
         end
     end
