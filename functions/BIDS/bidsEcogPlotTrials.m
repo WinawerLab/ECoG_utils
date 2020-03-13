@@ -1,4 +1,4 @@
-function  bidsEcogPlotTrials(projectDir, subject, sessions, tasks, runnums, ...
+function  [out] = bidsEcogPlotTrials(projectDir, subject, sessions, tasks, runnums, ...
     inputFolder, description, specs, savePlot)
 
 % Plots a time-varying plot of bids-formatted ECoG data; will epoch into
@@ -38,10 +38,12 @@ function  bidsEcogPlotTrials(projectDir, subject, sessions, tasks, runnums, ...
 %                                       - 'averageSE': trial average per stim
 %                                       with confidence intervals
 %                                           default: 'averageSE'                            
-%                        - plot_colors: colormap name (string) or RGB array
+%                        - plot_cmap: colormap name (string) or RGB array
 %                                           default: 'parula'  
 %                        - plot_ylim: limits of y axis e.g. [-1 10]
 %                                           default: automatic by matlab
+%                        - plot_includelegend: flag to include legend
+%                                           default: true
 %                        - average_stims: flag indicating to average across 
 %                                         all cells in stim_names (boolean)
 %                                           default: false                            
@@ -54,6 +56,9 @@ function  bidsEcogPlotTrials(projectDir, subject, sessions, tasks, runnums, ...
 %     savePlot:         Flag indicating whether to save the plots in 
 %                       derivatives/ECoGfigures
 %                           default: true
+% Output
+%
+%
 %
 % Example
 % projectDir        = '/Volumes/server/Projects/BAIR/Data/BIDS/visual'; 
@@ -103,7 +108,8 @@ if ~isfield(specs,'stim_names'), specs.stim_names = []; end
 if ~isfield(specs,'plot_type') || isempty(specs.plot_type), specs.plot_type = 'averageSE'; end
 if ~isfield(specs,'plot_cmap') || isempty(specs.plot_cmap), specs.plot_cmap = 'parula'; end
 if ~isfield(specs,'plot_ylim'), specs.plot_ylim = []; end
-if ~isfield(specs, 'average_stims'), specs.average_stims = 0; end
+if ~isfield(specs,'plot_includelegend'), specs.plot_includelegend = 1; end
+if ~isfield(specs,'average_stims'), specs.average_stims = 0; end
 if ~isfield(specs,'subplotdims') || isempty(specs.subplotdims), specs.subplotdims = []; end
 if ~isfield(specs,'subplotidx') || isempty(specs.subplotidx), specs.subplotidx = []; end
 
@@ -131,12 +137,15 @@ elseif any(contains(chan_names, string(0:10)))
     % referencing individual channels. Match each individual channel:
     chan_idx = ecog_matchChannels(chan_names, channels.name);
     includeChansInFigureName = 1;
+    useSeparateFiguresForGroups = 0;
 else
     % specs.chan_names does not contain any numbers, so the user is
     % (probably) trying to plot a group of channels based on a common
     % character (e.g. G): match all channels with this character:
+    % ALTERNATIVE: use channel_group as second way to select channels?
     chan_idx = contains(channels.name, chan_names);
-    % ALTERNATIVE: use channel_group as second way to select channels
+    useSeparateFiguresForGroups = 1;
+    
 end
 if ~any(chan_idx), error('Did not find any matching channels! Please check channel names.'), end
 
@@ -179,6 +188,8 @@ if specs.average_stims, stim_idx = {vertcat(stim_idx{:})}; stim_names = {[stim_n
 
 %% MAKE PLOTS
 
+out = [];
+
 % Set plot settings
 if ischar(specs.plot_cmap)
     cmap = eval(specs.plot_cmap);
@@ -188,30 +199,34 @@ else
 end
 
 % Determine how many figures to make
-groups = unique(channels.group);
-nGroups = length(groups);
-chan_groups = []; c = 1;
+chan_groups = []; 
 groupNames = [];
+if useSeparateFiguresForGroups
+    groups = unique(channels.group);
+    nGroups = length(groups);
+    c = 1;
+    % Get electrode indices for each group 
+    for ii = 1:nGroups
 
-% Get electrode indices for each group 
-for ii = 1:nGroups
-    
-    % Check if group is a HD grid, if so, reorder channels 
-    % and make separate plots for bottom and top
-    % TO DO --> replace this by Ken's plotGrid function (no longer split)
-    if contains(groups{ii}, {'gridB', 'HDgrid'}) && height(channels) > 64
-        grid_idx = find(contains(channels.group, groups{ii}));
-        [inx, inxNames] = ecog_sortElecsOnHDGrid(channels,grid_idx);
-        chan_groups{c} = inx{1};
-        chan_groups{c+1} = inx{2};
-        groupNames{c} = sprintf('%s %s', groups{ii}, inxNames{1}); 
-        groupNames{c+1} = sprintf('%s %s', groups{ii}, inxNames{2}); 
-        c = c+2;
-    else      
-        chan_groups{c} = find(contains(channels.group, groups{ii}));
-        groupNames{c} = groups{ii};
-        c = c+1;
+        % Check if group is a HD grid, if so, reorder channels 
+        % and make separate plots for bottom and top
+        % TO DO --> replace this by Ken's plotGrid function (no longer split)
+        if contains(groups{ii}, {'gridB', 'HDgrid'}) && height(channels) > 64
+            grid_idx = find(contains(channels.group, groups{ii}));
+            [inx, inxNames] = ecog_sortElecsOnHDGrid(channels,grid_idx);
+            chan_groups{c} = inx{1};
+            chan_groups{c+1} = inx{2};
+            groupNames{c} = sprintf('%s %s', groups{ii}, inxNames{1}); 
+            groupNames{c+1} = sprintf('%s %s', groups{ii}, inxNames{2}); 
+            c = c+2;
+        else      
+            chan_groups{c} = find(contains(channels.group, groups{ii}));
+            groupNames{c} = groups{ii};
+            c = c+1;
+        end
     end
+else
+    chan_groups{1} = 1:height(channels);
 end
 
 if ~iscell(tasks), tasks = {tasks}; end
@@ -228,6 +243,11 @@ for ii = 1:length(chan_groups)
     figure('Name', figureName);
     
     chan_idx = chan_groups{ii};
+    
+    out{ii}.t = t;
+    out{ii}.channels = channels(chan_idx,:);
+    out{ii}.stims = stim_names;
+    out{ii}.colors = colors;
     
     % Determine how many subplots to make and in which order
     nPlot = length(chan_idx);
@@ -247,13 +267,15 @@ for ii = 1:length(chan_groups)
     if nPlot > 4
         %set(gcf, 'Position', [400 200 1800 1200]);
         set(gcf, 'Position', get(0, 'Screensize'));
+    elseif nPlot < 3
+        set(gcf, 'Position', [0 400 1200 500]);
     else
         %set(gcf, 'Position', [400 200 1800 1200/2]);
         set(gcf, 'Position', [0 400 1200 1000]);
     end
 
     hasLegend = 0;
-
+    
     % Loop over electrodes
     for ee = 1:length(chan_idx)
         
@@ -287,11 +309,14 @@ for ii = 1:length(chan_groups)
 
                 % Plot
                 ecog_plotSingleTimeCourse(t, this_trial, CI, colors(ss,:), [], [], specs.plot_ylim);
+                
+                % Collect data in output
+                out{ii}.ts(:,ss,ee) = this_trial;
+                out{ii}.ci(:,:,ss,ee) = CI;
             end
-            c = c+1;
             
             % Add axis labels and legend
-            if ~hasLegend
+            if ~hasLegend && specs.plot_includelegend 
                 legend(stim_names, 'Location', 'best'); hasLegend = 1;
                 %ylabel(sprintf('%s (%s)', description, channels.units{1}));
                 %xlabel('Time (s)');
@@ -300,7 +325,7 @@ for ii = 1:length(chan_groups)
                 ylabel(sprintf('%s (%s)', description, channels.units{1}));
                 xlabel('Time (s)');
             end
-            setsubplotaxes();
+            %setsubplotaxes();
             set(gca, 'FontSize', 20);
             title(plotTitle);          
         end
