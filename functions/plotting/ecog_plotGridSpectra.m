@@ -16,7 +16,7 @@ SetDefault('specs.plot.YScale','log', 0);
 SetDefault('specs.plot.nSubPlots', [], 1);
 SetDefault('specs.plot.RotGrid', false, 0);
 
-whichHDgrid     = upper(whichHDgrid);
+% whichHDgrid     = upper(whichHDgrid);
 %%
 %-- correct elecnames (set '%03d')
 [eleccat, elecnum] = strtok(spectra.channels.name,int2str(0:9));

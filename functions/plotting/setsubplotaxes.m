@@ -1,6 +1,6 @@
-function setsubplotaxes()
+function setsubplotaxes(ax)
 
-ax = gca;
+if nargin<1,    ax = gca;   end
 outerpos = ax.OuterPosition;
 ti = ax.TightInset; 
 left = outerpos(1) + ti(1);

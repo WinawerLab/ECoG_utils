@@ -1,6 +1,6 @@
-function trials_out = ecog_plotGridSC(dat,whichHDgrid, opt)
+function figlist = ecog_plotGridSC(dat,whichHDgrid, opt)
 
-% trials_out = ecog_plotGridSC(data, whichHDgrid, options)
+% p = ecog_plotGridSC(data, whichHDgrid, options)
 % Plot the entire HD grid
 % 
 % specs should include 'timelable','channels','viselec'
@@ -12,14 +12,14 @@ function trials_out = ecog_plotGridSC(dat,whichHDgrid, opt)
 %% Set options
 narginchk(2,inf);
 SetDefault('opt.plot.colorMap','parula');
-SetDefault('opt.plot.colorBar',ture);
+SetDefault('opt.plot.colorBar',true);
 SetDefault('opt.plot.nSubPlots',[]);
 SetDefault('opt.plot.fontSize',12);
 SetDefault('opt.plot.YLim','maxmin');
 SetDefault('opt.plot.FigName','');
 SetDefault('opt.plot.RotGrid',true);
 
-whichHDgrid     = upper(whichHDgrid);
+% whichHDgrid     = upper(whichHDgrid);
 %%
 %-- set grid parameters
 switch whichHDgrid
@@ -80,19 +80,10 @@ end
 %-- Plot figures
 for itim = 1:length(opt.timelabel)
   for ee = 1:length(inx)
-    %%% Decide how many subplots are needed
-    if ~isempty(opt.plot.nSubPlots)
-        nRow = opt.plot.nSubPlots(1);
-        nCol = opt.plot.nSubPlots(2);
-    else
-        nPlot = length(el_index);
-        nRow = ceil(sqrt(nPlot));
-        nCol = ceil(sqrt(nPlot));
-        if nPlot <= (nRow*nCol)-nCol
-            nRow = nRow-1;
-        end
-    end
-
+    %-- Decide how many subplots are needed
+    nRow = opt.plot.nSubPlots(1);
+    nCol = opt.plot.nSubPlots(2);
+    
     plotElectrodes = gridList(inx{ee});
     
     %%% construct image data & alpha data for NaN
@@ -104,7 +95,7 @@ for itim = 1:length(opt.timelabel)
     imalp(isnan(imdat))   = 0;
     
     %%% imsc plot
-    figure('Name', opt.plot.FigName); 
+    hF = figure('Name', opt.plot.FigName); 
     set(gcf, 'Position', [300 400 round(nCol*50) round(nRow*50)]);
     him = imagesc(imdat); hsc = gca; box off;
     colormap(opt.plot.colorMap);
@@ -125,6 +116,6 @@ for itim = 1:length(opt.timelabel)
         set(hsc,'XTickLabel',plotElectrodes(end+(1-nCol:0)),'YTick',[]);
     end
     title(opt.timelabel(itim))
-    trials_out{ee,itim} = hF;
+    figlist{ee,itim} = hF;
   end
 end

@@ -18,7 +18,7 @@ SetDefault('specs.plot.YScale','linear', 0);
 SetDefault('specs.plot.nSubPlots', [], 1);
 SetDefault('specs.plot.RotGrid', false, 0);
 
-whichHDgrid     = upper(whichHDgrid);
+% whichHDgrid     = upper(whichHDgrid);
 %%
 %-- correct elecnames (set '%03d')
 [eleccat, elecnum] = strtok(trials.channels.name,int2str(0:9));

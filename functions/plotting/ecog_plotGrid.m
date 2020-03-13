@@ -1,7 +1,7 @@
-function trials_out = ecog_plotGrid(whichHDgrid, opt, varargin)
+function figlist = ecog_plotGrid(whichHDgrid, opt, varargin)
 
-% trials_out = ECOG_PLOTGRID(whichHDgrid, option, plot_function, x1, x2, ...)
-% trials_out = ECOG_PLOTGRID(whichHDgrid, option, plot_function1, x1, x2,..., plot_function2, y1, y2,...)
+% p = ECOG_PLOTGRID(whichHDgrid, option, plot_function, x1, x2, ...)
+% p = ECOG_PLOTGRID(whichHDgrid, option, plot_function1, x1, x2,..., plot_function2, y1, y2,...)
 % 
 % ECOG_PLOTGRID is general function to plot data using any plot_function in the entire HD grid
 % x1, x2,... are Nx1 cell-array with arguments of plot_function 
@@ -47,7 +47,7 @@ SetDefault('opt.plot.labelCol', [], 1);
 SetDefault('opt.plot.legend', {}, 1);
 SetDefault('opt.plot.options', {}, 1);
 
-whichHDgrid     = upper(whichHDgrid);
+% whichHDgrid     = upper(whichHDgrid);
 %%
 %-- process arguments
 nchan = size(opt.channels,1);
@@ -171,17 +171,8 @@ flglgnd = ~isempty(lgnds);
 %-- main
 for ee = 1:length(inx)
     %-- Decide how many subplots are needed
-    if ~isempty(opt.plot.nSubPlots)
-        nRow = opt.plot.nSubPlots(1);
-        nCol = opt.plot.nSubPlots(2);
-    else
-        nPlot = length(el_index);
-        nRow = ceil(sqrt(nPlot));
-        nCol = ceil(sqrt(nPlot));
-        if nPlot <= (nRow*nCol)-nCol
-            nRow = nRow-1;
-        end
-    end
+    nRow = opt.plot.nSubPlots(1);
+    nCol = opt.plot.nSubPlots(2);
        
     %-- subplot
     hF = figure('Name', opt.plot.FigName); 
@@ -226,5 +217,5 @@ for ee = 1:length(inx)
           drawnow limitrate nocallbacks;
       end
     end
-    trials_out{ee} = hF;
+    figlist{ee} = hF;
 end

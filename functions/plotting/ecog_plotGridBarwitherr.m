@@ -1,6 +1,6 @@
-function trials_out = ecog_plotGridBarwitherr(dat, errlo, errup, whichHDgrid, opt)
+function figlist = ecog_plotGridBarwitherr(dat, errlo, errup, whichHDgrid, opt)
 
-% trials_out = ecog_plotGridBarwitherr(data, error-upper, error-lower, whichHDgrid, options)
+% p = ecog_plotGridBarwitherr(data, error-upper, error-lower, whichHDgrid, options)
 % Plot the entire HD grid
 % 
 % options should include 'timelable','channels','viselec'
@@ -23,7 +23,7 @@ SetDefault('opt.plot.RotGrid',false);
 SetDefault('opt.plot.colors',[0:(size(dat,2)-1)]);
 SetDefault('opt.plot.tickCol',[]);
 
-whichHDgrid     = upper(whichHDgrid);
+% whichHDgrid     = upper(whichHDgrid);
 %%
 %-- plot color properties
 if isvector(dat),   ngroups = 1;
@@ -182,18 +182,9 @@ end
 %-- Plot figures
 errlo(nanlo) = nan;    errup(nanup) = nan;
 for ee = 1:length(inx)
-    %%% Decide how many subplots are needed
-    if ~isempty(opt.plot.nSubPlots)
-        nRow = opt.plot.nSubPlots(1);
-        nCol = opt.plot.nSubPlots(2);
-    else
-        nPlot = length(el_index);
-        nRow = ceil(sqrt(nPlot));
-        nCol = ceil(sqrt(nPlot));
-        if nPlot <= (nRow*nCol)-nCol
-            nRow = nRow-1;
-        end
-    end
+    %-- Decide how many subplots are needed
+    nRow = opt.plot.nSubPlots(1);
+    nCol = opt.plot.nSubPlots(2);
 
     %%% Bar plot
     hF = figure('Name', opt.plot.FigName); 
@@ -223,6 +214,6 @@ for ee = 1:length(inx)
           legend(opt.timelabel,'Location','best','NumColumns',nlegcol);
       end
     end
-    trials_out{ee} = hF;
+    figlist{ee} = hF;
 end
 
