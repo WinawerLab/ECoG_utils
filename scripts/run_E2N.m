@@ -8,7 +8,7 @@ end
 specs = [];
 
 specs.pID           = '765'; % patient ID 
-specs.atlasNames    =  [];%{'benson14_varea', 'wang15_mplbl'};%{'glasser16_atlas'};%{'wang2015_atlas','wang15_mplbl','benson14_varea', 'benson14_eccen'}; 
+specs.atlasNames    =  {'benson14_varea', 'wang15_mplbl'};%{'glasser16_atlas'};%{'wang2015_atlas','wang15_mplbl','benson14_varea', 'benson14_eccen'}; 
                         % default is all of these maps: 
                         % {'wang2015_atlas', ...
                         % 'benson14_varea', ...

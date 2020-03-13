@@ -12,17 +12,18 @@ bidsEcogBroadband(projectDir, subject, [], [], [], bands);
 clear specs;
 
 session           = 'nyuecog01';
-%task              = 'sixcatlocdiffisi';
-task              = 'sixcatloctemporal';
+task              = 'sixcatlocdiffisi';
+%task              = 'sixcatloctemporal';
 %task              = 'prf';
 %specs.stim_names  = {'BLANK', 'VERTICAL', 'HORIZONTAL', 'DIAGONAL'};
 %specs.stim_names  = {'FACES', 'BODIES', 'OBJECTS', 'BUILDINGS', 'SCENES', 'SCRAMBLED'};
-specs.stim_names  = {'ONEPULSE-1', 'ONEPULSE-2', 'ONEPULSE-3', 'ONEPULSE-4', 'ONEPULSE-5', 'ONEPULSE-6'};
+%specs.stim_names  = {'ONEPULSE-1', 'ONEPULSE-2', 'ONEPULSE-3', 'ONEPULSE-4', 'ONEPULSE-5', 'ONEPULSE-6'};
 
-%specs.stim_names  = {'TWOPULSE-1', 'TWOPULSE-2', 'TWOPULSE-3', 'TWOPULSE-4', 'TWOPULSE-5', 'TWOPULSE-6'};
+specs.stim_names  = {'TWOPULSE-1', 'TWOPULSE-2', 'TWOPULSE-3', 'TWOPULSE-4', 'TWOPULSE-5', 'TWOPULSE-6'};
 %specs.stim_names  = {'TWOPULSE-1-0', 'TWOPULSE-2-0', 'TWOPULSE-3-0', 'TWOPULSE-4-0', 'TWOPULSE-5-0', 'TWOPULSE-6-0'};
 %specs.stim_names  = {'TWOPULSE-1-1', 'TWOPULSE-2-1', 'TWOPULSE-3-1', 'TWOPULSE-4-1', 'TWOPULSE-5-1', 'TWOPULSE-6-1'};%specs.stim_names  = {'ONEPULSE-1', 'ONEPULSE-2', 'ONEPULSE-3', 'ONEPULSE-4', 'ONEPULSE-5', 'ONEPULSE-6'};
-
+specs.chan_names = {'PT'};
+specs.plot_ylim = [-1 6];
 bidsEcogPlotTrials(projectDir, subject, session, task, [], [], [], specs, 1);
 %bidsEcogPlotTrials(projectDir, subject, session, task);
 
