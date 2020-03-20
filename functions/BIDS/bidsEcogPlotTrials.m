@@ -132,6 +132,7 @@ includeChansInFigureName = 0; % if 0, uses the group name only
 if ~iscell(chan_names), chan_names = {chan_names}; end
 if isempty([chan_names{:}]) 
     chan_idx = contains(lower(channels.type), {'ecog', 'seeg'}); 
+    useSeparateFiguresForGroups = 0;
 elseif any(contains(chan_names, string(0:10))) 
     % specs.chan_names contains numbers, so the user is (probably)
     % referencing individual channels. Match each individual channel:
@@ -144,8 +145,7 @@ else
     % character (e.g. G): match all channels with this character:
     % ALTERNATIVE: use channel_group as second way to select channels?
     chan_idx = contains(channels.name, chan_names);
-    useSeparateFiguresForGroups = 1;
-    
+    useSeparateFiguresForGroups = 1;    
 end
 if ~any(chan_idx), error('Did not find any matching channels! Please check channel names.'), end
 
