@@ -63,6 +63,7 @@ end
 h = get(gcf);
 if isempty(h.CurrentObject)
     l1 = line([0 0], yLim,'LineStyle', ':', 'Color', 'k');
+    %l1 = line([0 0], [-10^4 10^4],'LineStyle', ':', 'Color', 'k');
     set(get(get(l1,'Annotation'),'LegendInformation'),'IconDisplayStyle','off'); 
     l2 = line([t(1) t(end)], [0 0],'LineStyle', ':', 'Color', 'k');
     set(get(get(l2,'Annotation'),'LegendInformation'),'IconDisplayStyle','off'); 
@@ -72,8 +73,7 @@ end
 if ~isempty(xLabel), xlabel(xLabel); end
 if ~isempty(yLabel), ylabel(yLabel); end
 if ~isempty(plotTitle), title(plotTitle); end
-
-set(gca, 'fontsize',10);
+set(gca, 'fontsize',14);
  
 
 

@@ -35,9 +35,9 @@ projectDir        = '/Volumes/server/Projects/BAIR/Data/BIDS/visual';
 subject           = 'som748';
 inputFolder       = 'ECoGBroadband';
 description       = 'broadband';
-session           = 'nyuecog04';
+session           = 'nyuecog01';
 task              = [];
-runnums           = '01';
+runnums           = [];
 
 % set parameters for epoching
 epoch_t           = [-0.2 1]; % epoch time window
@@ -63,11 +63,18 @@ events      = events(stim_idx,:);
 % make epochs
 [epochs, t] = ecog_makeEpochs(data, events.onset, epoch_t, channels.sampling_frequency(1));  
 [epochs]    = ecog_normalizeEpochs(epochs, t, [min(epoch_t) 0], 'percentsignalchange');
-[epochs]    = ecog_averageEpochs(epochs, events, stim_names); 
 
 % to add: 
 % ecog_selectEpochs (needs to be improved)
-% ecog_selectElectrodes (needs to be written based on code in tde_selectData)
+opts = [];
+opts.stimnames = stim_names;
+opts.stimnames = stim_names;
+opts.elec_selection_method = 'splithalf';
+opts.elec_splithalf_thresh = 0.2;
+[epochs, channels, chan_idx, R2, epochs_split] = ecog_selectElectrodes(epochs, channels, events, t, opts);
+
+[epochs]    = ecog_averageEpochs(epochs, events, stim_names); 
+
 
 % get visual area match per electrode
 opt = [];
@@ -92,10 +99,15 @@ options.display  = 'off';
 
 %% visualize model fits
 
-[results] = tde_evaluateModelFit(epochs, modelfun, params, pred);
+stimcond = [1 1 1 1 1 1 2 2 2 2 2 2];
+[results] = tde_evaluateModelFit(epochs, modelfun, params, pred, stimcond);
 
-saveDir = '/Volumes/server/Projects/BAIR/Analyses/visual/sub-som748/ses-nyuecog04/figures';
+saveDir = '/Volumes/server/Projects/BAIR/Analyses/visual/sub-som748/ses-nyuecog01/figures';
+
 
 tde_plotDataAndFits(results, epochs, channels, stim_ts, stim_info, t, {'ONEPULSE', 'TWOPULSE'}, saveDir);
 
-tde_plotFittedAndDerivedParams(results, channels, saveDir);
+
+tde_plotParams(results, channels, saveDir);
+
+tde_plotDerivedPredictions(results,channels,2,1, saveDir);

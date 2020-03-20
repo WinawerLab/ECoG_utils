@@ -89,10 +89,10 @@ switch method
         % X2: chans x concatenated stim half 2
         X2 = squeeze(epochs_split(2,:,:));
         
-        % Pairwise correlation between all channels across the two sets
+        % % Pairwise correlation between all channels across the two sets
         %[r] = corr(X1',X2');
-        % Select diagonal (correlation of channel with itself)
-        %r = r(eye(size(r))==1);
+        % % Select diagonal (correlation of channel with itself)
+        %R2 = r(eye(size(r))==1);
         
         % Compute R2
         R2x = computeR2(X1',X2');
@@ -181,9 +181,9 @@ switch method
 end
 
 % Exclude depth electrodes
-if opts.elec_exclude_depth 
-    chan_idx(contains(lower(channels.type), 'seeg')) = 0;
-end  
+%if opts.elec_exclude_depth 
+%    chan_idx(contains(lower(channels.type), 'seeg')) = 0;
+%end  
 
 % Apply chan_idx to epochs and update channels table
 epochs = epochs(:,:,chan_idx);
