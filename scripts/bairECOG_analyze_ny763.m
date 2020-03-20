@@ -17,12 +17,12 @@ session           = 'nyuecog01';
 %task              = 'prf';
 %specs.stim_names  = {'BLANK', 'VERTICAL', 'HORIZONTAL', 'DIAGONAL'};
 
-specs.stim_names  = {'TWOPULSE-1', 'TWOPULSE-2', 'TWOPULSE-3', 'TWOPULSE-4', 'TWOPULSE-5', 'TWOPULSE-6'};
+%specs.stim_names  = {'TWOPULSE-1', 'TWOPULSE-2', 'TWOPULSE-3', 'TWOPULSE-4', 'TWOPULSE-5', 'TWOPULSE-6'};
 %specs.stim_names  = {'ONEPULSE-1', 'ONEPULSE-2', 'ONEPULSE-3', 'ONEPULSE-4', 'ONEPULSE-5', 'ONEPULSE-6'};
 %specs.stim_names  = {'SAMETWOPULSE-1',  'SAMETWOPULSE-2', 'SAMETWOPULSE-3',  'SAMETWOPULSE-4', 'SAMETWOPULSE-5',  'SAMETWOPULSE-6'};
 %specs.stim_names  = {'DIFFTWOPULSE-1',  'DIFFTWOPULSE-2', 'DIFFTWOPULSE-3',  'DIFFTWOPULSE-4', 'DIFFTWOPULSE-5',  'DIFFTWOPULSE-6'};
 
-%specs.stim_names  = {'FACES',  'BODIES', 'OBJECTS', 'BUILDINGS','SCENES','SCRAMBLED'};
+specs.stim_names  = {'FACES',  'BODIES', 'OBJECTS', 'BUILDINGS','SCENES','SCRAMBLED'};
 %specs.stim_names  = {'FACES-ONEPULSE','BODIES-ONEPULSE', 'OBJECTS-ONEPULSE', 'BUILDINGS-ONEPULSE','SCENES-ONEPULSE','SCRAMBLED-ONEPULSE'};
 %specs.stim_names  = {'FACES-TWOPULSE-5','BODIES-TWOPULSE-5', 'OBJECTS-TWOPULSE-5', 'BUILDINGS-TWOPULSE-5','SCENES-TWOPULSE-5','SCRAMBLED-TWOPULSE-5'};
 %specs.stim_names  = {'FACES-SAMETWOPULSE-5',  'BODIES-SAMETWOPULSE-5', 'OBJECTS-SAMETWOPULSE-5', 'BUILDINGS-SAMETWOPULSE-5','SCENES-SAMETWOPULSE-5','SCRAMBLED-SAMETWOPULSE-5'};
@@ -32,22 +32,31 @@ specs.stim_names  = {'TWOPULSE-1', 'TWOPULSE-2', 'TWOPULSE-3', 'TWOPULSE-4', 'TW
 
 %specs.chan_names  = {'G01', 'G02', 'PT02', 'PT04'};
 specs.chan_names  = {'G01', 'PT02'}; 
-specs.plot_ylim   = [-1 6];
-specs.plot_cmap   = 'copper';
-specs.plot_includelegend   = 0;
+specs.plot_ylim   = [-1 12];
+specs.plot_cmap   = 'parula';
+specs.plot_includelegend   = 1;
 
 task              = 'sixcatloctemporal';
-specs.stim_names  = {'TWOPULSE-1', 'TWOPULSE-2', 'TWOPULSE-3', 'TWOPULSE-4', 'TWOPULSE-5', 'TWOPULSE-6'};
-[out1] = bidsEcogPlotTrials(projectDir, subject, session, task, [], [], [], specs, 0);
+%specs.stim_names  = {'TWOPULSE-1', 'TWOPULSE-2', 'TWOPULSE-3', 'TWOPULSE-4', 'TWOPULSE-5', 'TWOPULSE-6'};
+[out1] = bidsEcogPlotTrials(projectDir, subject, session, task, [], [], [], specs, 1);
 
 task              = 'sixcatlocisidiff';
 %specs.stim_names  = {'SAMETWOPULSE-1',  'SAMETWOPULSE-2', 'SAMETWOPULSE-3',  'SAMETWOPULSE-4', 'SAMETWOPULSE-5',  'SAMETWOPULSE-6'};
-specs.stim_names  = {'DIFFTWOPULSE-1',  'DIFFTWOPULSE-2', 'DIFFTWOPULSE-3',  'DIFFTWOPULSE-4', 'DIFFTWOPULSE-5',  'DIFFTWOPULSE-6'};
-[out2] = bidsEcogPlotTrials(projectDir, subject, session, task, [], [], [], specs, 0);
+%specs.stim_names  = {'DIFFTWOPULSE-1',  'DIFFTWOPULSE-2', 'DIFFTWOPULSE-3',  'DIFFTWOPULSE-4', 'DIFFTWOPULSE-5',  'DIFFTWOPULSE-6'};
+%specs.stim_names  = {'TWOPULSE-1',  'TWOPULSE-2', 'TWOPULSE-3',  'TWOPULSE-4', 'TWOPULSE-5',  'TWOPULSE-6'};
+
+[out2] = bidsEcogPlotTrials(projectDir, subject, session, task, [], [], [], specs, 1);
 
 %% Plot Repetition Suppression
 
-t_ind = out1{1}.t >0;
+ISIs = [0.017 0.033 0.067 0.133 0.267 0.533];
+conds = [];
+for ii = 1:length(ISIs)
+    conds{ii} = sprintf('%s', num2str(ISIs(ii)));
+end
+
+t = out1{1}.t;
+t_ind = t >0;
 
 Arep = squeeze(sum(out1{1}.ts(t_ind,:,:),1));
 Anonrep = squeeze(sum(out2{1}.ts(t_ind,:,:),1));
@@ -60,13 +69,67 @@ plot([1:6], RS(:,1),'k');
 plot([1:6], RS(:,2),'--k');
 scatter([1:6], RS(:,1), 250, out1{1}.colors, 'filled');
 scatter([1:6], RS(:,2), 250, out1{1}.colors, 'filled', 'd');
-set(gca, 'Xlim', [0 7]);
+set(gca, 'Xlim', [0 7], 'XTick', 1:6, 'XTickLabel', conds, 'XTickLabelRotation', 45);
+set(gca, 'FontSize', 14);
+set(gca, 'Ylim', [-0.3 0.3]);
 
-t_ind = out1{1}.t >0 & out1{1}.t < 0.25;
-peakstim1 = squeeze(max(out1{1}.ts(t_ind,:,:),[],1));
+ylabel('RS score');
+xlabel('ISI (s)');
 
-t_ind = out1{1}.t >0 & out1{1}.t > 0.25;
-peakstim2 = squeeze(max(out1{1}.ts(t_ind,:,:),[],1));
+%%
+dur = 0.133;
+
+t_ind = t >0 & out1{1}.t < 0.25;
+peakstim1_rep = squeeze(max(out1{1}.ts(t_ind,:,:),[],1));
+peakstim1_nonrep = squeeze(max(out2{1}.ts(t_ind,:,:),[],1));
+
+peakstim2_rep = [];
+peakstim2_nonrep = [];
+for ii = 1:length(ISIs)
+    t_ind = t > (0.25 + ISIs(ii));
+    peakstim2_rep(ii,:) = squeeze(max(out1{1}.ts(t_ind,ii,:),[],1));
+	peakstim2_nonrep(ii,:) = squeeze(max(out2{1}.ts(t_ind,ii,:),[],1));
+end
+
+RS_rep = (peakstim1_rep - peakstim2_rep) ./ peakstim1_rep;
+RS_nonrep = (peakstim1_nonrep - peakstim2_nonrep) ./ peakstim1_nonrep;
+
+figure;hold on
+for ii = 1:2
+    subplot(2,1,ii); hold on
+    if ii == 1
+        RS = RS_rep;
+        plotName = 'repeat';
+    else
+        RS = RS_nonrep;
+        plotName = 'non-repeat';
+    end
+    plot([1:6], RS(:,1),'k');
+    plot([1:6], RS(:,2),'--k');
+    scatter([1:6], RS(:,1), 250, out1{1}.colors, 'filled');
+    scatter([1:6], RS(:,2), 250, out1{1}.colors, 'filled', 'd');
+    title(plotName);
+    set(gca, 'Xlim', [0 7], 'XTick', 1:6, 'XTickLabel', conds, 'XTickLabelRotation', 45);
+    set(gca, 'FontSize', 14);
+    %set(gca, 'Ylim', [-0.3 0.3]);
+
+    ylabel('RS (Peak 1 - Peak 2)');
+    xlabel('ISI (s)');
+end
+
+RS = (RS_nonrep-RS_rep)%./RS_nonrep;
+figure;hold on
+plot([1:6], RS(:,1),'k');
+plot([1:6], RS(:,2),'--k');
+scatter([1:6], RS(:,1), 250, out1{1}.colors, 'filled');
+scatter([1:6], RS(:,2), 250, out1{1}.colors, 'filled', 'd');
+set(gca, 'Xlim', [0 7], 'XTick', 1:6, 'XTickLabel', conds, 'XTickLabelRotation', 45);
+set(gca, 'FontSize', 14);
+%set(gca, 'Ylim', [-0.3 0.3]);
+
+ylabel('RS score');
+xlabel('ISI (s)');
+title('RSnonrep - RSrep')
 
 %% fit PRFs
 
