@@ -1,4 +1,4 @@
-function [data, channels, events] = bidsEcogGetPreprocData(dataPath, subject, sessions, tasks, runnums, description)
+function [data, channels, events, srate] = bidsEcogGetPreprocData(dataPath, subject, sessions, tasks, runnums, description)
 % Reads in timeseries data, channels and events from a BIDS directory with
 % ECoG data. 
 %   
@@ -114,9 +114,13 @@ for ii = 1:length(sessions)
         end
         
         % Check channel statuses
-        if ~exist('previousChannels', 'var') 
-            previousChannels = channels; 
-        else
+        if exist('previousFs', 'var') 
+            assert(hdr.Fs == previousFs,'Failed to concatenate sessions because the sampling frequencies were different');
+        end
+        previousFs = hdr.Fs;
+        
+        % Check channel statuses
+        if exist('previousChannels', 'var') 
             if isfield(summary(channels), 'status')
                 if ~isequal(channels.status, previousChannels.status)  
                      % This means one or more electrodes are bad in one session
@@ -129,6 +133,7 @@ for ii = 1:length(sessions)
                 end
             end
         end
+        previousChannels = channels;
         
     end
 end
@@ -138,6 +143,7 @@ chan_inx = contains(lower(channels.type), {'ecog', 'seeg'});
 channels = channels(chan_inx,:);
 data = allData(chan_inx,:);
 events = allEvents;
+srate = hdr.Fs;
 
 if exist('channels', 'var') 
     channels.subject_name = repmat({subject},[height(channels) 1]);
