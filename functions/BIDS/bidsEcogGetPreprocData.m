@@ -58,6 +58,28 @@ for ii = 1:length(sessions)
                 [data, channels, events, ~, hdr] = bidsEcogReadFiles(dataPath, subject, session, task, runnum, description);
 
                 runCount = runCount + 1;
+            
+                % Check sampling frequency
+                if exist('previousFs', 'var')
+                    assert(hdr.Fs == previousFs,'Failed to concatenate sessions because the sampling frequencies were different');
+                end
+                previousFs = hdr.Fs;
+
+                % Check channel statuses
+                if exist('previousChannels', 'var')
+                    if isfield(summary(channels), 'status')
+                        if ~isequal(channels.status, previousChannels.status)
+                            % This means one or more electrodes are bad in one session
+                            % but not another. For now, label the electrode as good
+                            % across all sessions:
+                            channels.status(~strcmp(channels.status, previousChannels.status)) = {'good'};
+                            % and assume bad channels/epochs will removed at later
+                            % stages.
+                            % TO DO: find some smarter way to deal with this problem
+                        end
+                    end
+                end
+                previousChannels = channels;
 
                 % Run various checks on events table:
 
@@ -113,27 +135,6 @@ for ii = 1:length(sessions)
             end
         end
         
-        % Check channel statuses
-        if exist('previousFs', 'var') 
-            assert(hdr.Fs == previousFs,'Failed to concatenate sessions because the sampling frequencies were different');
-        end
-        previousFs = hdr.Fs;
-        
-        % Check channel statuses
-        if exist('previousChannels', 'var') 
-            if isfield(summary(channels), 'status')
-                if ~isequal(channels.status, previousChannels.status)  
-                     % This means one or more electrodes are bad in one session
-                     % but not another. For now, label the electrode as good
-                     % across all sessions:
-                     channels.status(~strcmp(channels.status, previousChannels.status)) = {'good'};
-                     % and assume bad channels/epochs will removed at later
-                     % stages.
-                     % TO DO: find some smarter way to deal with this problem
-                end
-            end
-        end
-        previousChannels = channels;
         
     end
 end
