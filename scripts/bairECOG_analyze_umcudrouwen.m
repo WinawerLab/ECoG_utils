@@ -23,29 +23,32 @@ method            = @(bp) abs(hilbert(bp)).^2; % geomean should be eliminated wh
 bidsEcogBroadband(projectDir, subject, [], [], [], bands, method, [], outputFolder);
 
 %% plot broadband timecourses for temporal conditions
-savePlot = 1;
+savePlot = 0;
 
 session           = 'umcuiemu01';
 task              = 'vtstemporalpattern';
-inputFolder       = 'ECoGBroadband_exclude110Hz';
+
+% Specify one of the three preprocessed data here:
+inputFolder       = 'ECoGBroadband_exclude110Hz'; 
 description       = 'broadband';
 
 clear specs;
 
-specs.epoch_t     = [-0.4 1.8];
-specs.base_t      = [-0.4 -0.1];
+specs.epoch_t     = [-0.4 1.8]; % stimulus epoch window
+specs.base_t      = [-0.4 -0.1]; % blank epoch windown
 specs.plot_ylim   = [-2 10];
 
 % all channels on the grid
 specs.chan_names  = {'C'};
 specs.subplotdims = [4 8];
 specs.subplotidx  = [32:-1:1];
+specs.plot_type   = 'average';
 
 specs.stim_names  = {'ONEPULSE-1', 'ONEPULSE-2', 'ONEPULSE-3', 'ONEPULSE-4', 'ONEPULSE-5', 'ONEPULSE-6'};
-bidsEcogPlotTrials(projectDir, subject, session, task, [], inputFolder, description, specs, savePlot); close
+bidsEcogPlotTrials(projectDir, subject, session, task, [], inputFolder, description, specs, savePlot); %close
 
 specs.stim_names  = {'TWOPULSE-1', 'TWOPULSE-2', 'TWOPULSE-3', 'TWOPULSE-4', 'TWOPULSE-5', 'TWOPULSE-6'};
-bidsEcogPlotTrials(projectDir, subject, session, task, [], inputFolder, description, specs, savePlot); close
+bidsEcogPlotTrials(projectDir, subject, session, task, [], inputFolder, description, specs, savePlot); %close
 
 % subsets of channels
 specs.subplotdims = [2 2];
@@ -54,26 +57,26 @@ specs.subplotidx  = [4:-1:1];
 specs.chan_names  = {'C03', 'C04', 'C11', 'C12'};
 
 specs.stim_names  = {'ONEPULSE-1', 'ONEPULSE-2', 'ONEPULSE-3', 'ONEPULSE-4', 'ONEPULSE-5', 'ONEPULSE-6'};
-bidsEcogPlotTrials(projectDir, subject, session, task, [], inputFolder, description, specs, savePlot); close
+bidsEcogPlotTrials(projectDir, subject, session, task, [], inputFolder, description, specs, savePlot); %close;
 
 specs.stim_names  = {'TWOPULSE-1', 'TWOPULSE-2', 'TWOPULSE-3', 'TWOPULSE-4', 'TWOPULSE-5', 'TWOPULSE-6'};
-bidsEcogPlotTrials(projectDir, subject, session, task, [], inputFolder, description, specs, savePlot); close
-
+bidsEcogPlotTrials(projectDir, subject, session, task, [], inputFolder, description, specs, savePlot); %close;
+%%
 specs.chan_names  = {'C14', 'C15', 'C22', 'C23'};
 
 specs.stim_names  = {'ONEPULSE-1', 'ONEPULSE-2', 'ONEPULSE-3', 'ONEPULSE-4', 'ONEPULSE-5', 'ONEPULSE-6'};
-bidsEcogPlotTrials(projectDir, subject, session, task, [], inputFolder, description, specs, savePlot); close
+bidsEcogPlotTrials(projectDir, subject, session, task, [], inputFolder, description, specs, savePlot); %close;
 
 specs.stim_names  = {'TWOPULSE-1', 'TWOPULSE-2', 'TWOPULSE-3', 'TWOPULSE-4', 'TWOPULSE-5', 'TWOPULSE-6'};
-bidsEcogPlotTrials(projectDir, subject, session, task, [], inputFolder, description, specs, savePlot); close
+bidsEcogPlotTrials(projectDir, subject, session, task, [], inputFolder, description, specs, savePlot); %close;
 
 specs.chan_names  = {'C17', 'C18','C25', 'C26'};
 
 specs.stim_names  = {'ONEPULSE-1', 'ONEPULSE-2', 'ONEPULSE-3', 'ONEPULSE-4', 'ONEPULSE-5', 'ONEPULSE-6'};
-bidsEcogPlotTrials(projectDir, subject, session, task, [], inputFolder, description, specs, savePlot); close
+bidsEcogPlotTrials(projectDir, subject, session, task, [], inputFolder, description, specs, savePlot); %close;
 
-specs.stim_names  = {'TWOPULSE-1', 'TWOPULSE-2', 'TWOPULSE-3', 'TWOPULSE-4', 'TWOPULSE-5', 'TWOPULSE-6'};
-bidsEcogPlotTrials(projectDir, subject, session, task, [], inputFolder, description, specs, savePlot); close
+specs.stim_names  = {'TWOPULSE-1', 'TWOPULSE-2', 'TWOPULSE-3', 'TWOPULSE-4', 'TWOPULSE-5', 'TWOPULSE-6'}; 
+bidsEcogPlotTrials(projectDir, subject, session, task, [], inputFolder, description, specs, savePlot); %close;
 
 %% plot ERP time courses (to check onsets)
 
@@ -97,12 +100,13 @@ bidsEcogPlotTrials(projectDir, subject, session, task, [], inputFolder, descript
 specs.chan_names  = {'C17', 'C18','C25', 'C26'};
 bidsEcogPlotTrials(projectDir, subject, session, task, [], inputFolder, description, specs, savePlot); %close;
 
-%% spectra
+%% plot spectra
 savePlot = 1;
+
 clear specs;
 
-specs.epoch_t     = [-1 2];
-specs.fft_blank_t = [-0.8 -0.1];
+specs.epoch_t     = [-1 2]; % stimulus epoch window
+specs.fft_blank_t = [-0.8 -0.1]; % fft blank epoch window
 specs.fft_w       = 0.4;
 specs.fft_ov      = 0.1;
 specs.plot_ylim   = [10^-3 10^3];
@@ -118,7 +122,7 @@ bidsEcogPlotSpectra(projectDir, subject, session, task, [], [], [], specs, saveP
 
 specs.stim_names  = {'TWOPULSE-1', 'TWOPULSE-2', 'TWOPULSE-3', 'TWOPULSE-4', 'TWOPULSE-5', 'TWOPULSE-6'};
 specs.fft_stim_t  = [0 1.8];
-bidsEcogPlotSpectra(projectDir, subject, session, task, [], [], [], specs, savePlot); close;
+bidsEcogPlotSpectra(projectDir, subject, session, task, [], [], [], specs, savePlot); %close;
 
 % subsets of channels
 specs.subplotdims = [2 2];
@@ -128,28 +132,28 @@ specs.chan_names  = {'C03', 'C04', 'C11', 'C12'};
 
 specs.stim_names  = {'ONEPULSE-1', 'ONEPULSE-2', 'ONEPULSE-3', 'ONEPULSE-4', 'ONEPULSE-5', 'ONEPULSE-6'};
 specs.fft_stim_t  = [0 1.2];
-bidsEcogPlotSpectra(projectDir, subject, session, task, [], [], [], specs, savePlot); close;
+bidsEcogPlotSpectra(projectDir, subject, session, task, [], [], [], specs, savePlot); %close;
 
 specs.stim_names  = {'TWOPULSE-1', 'TWOPULSE-2', 'TWOPULSE-3', 'TWOPULSE-4', 'TWOPULSE-5', 'TWOPULSE-6'};
 specs.fft_stim_t  = [0 1.8];
-bidsEcogPlotSpectra(projectDir, subject, session, task, [], [], [], specs, savePlot); close;
+bidsEcogPlotSpectra(projectDir, subject, session, task, [], [], [], specs, savePlot); %close;
 
 specs.chan_names  = {'C14', 'C15', 'C22', 'C23'};
 
 specs.stim_names  = {'ONEPULSE-1', 'ONEPULSE-2', 'ONEPULSE-3', 'ONEPULSE-4', 'ONEPULSE-5', 'ONEPULSE-6'};
 specs.fft_stim_t  = [0 1.2];
-bidsEcogPlotSpectra(projectDir, subject, session, task, [], [], [], specs, savePlot); close;
+bidsEcogPlotSpectra(projectDir, subject, session, task, [], [], [], specs, savePlot); %close;
 
 specs.stim_names  = {'TWOPULSE-1', 'TWOPULSE-2', 'TWOPULSE-3', 'TWOPULSE-4', 'TWOPULSE-5', 'TWOPULSE-6'};
 specs.fft_stim_t  = [0 1.8];
-bidsEcogPlotSpectra(projectDir, subject, session, task, [], [], [], specs, savePlot); close;
+bidsEcogPlotSpectra(projectDir, subject, session, task, [], [], [], specs, savePlot); %close;
 
 specs.chan_names  = {'C17', 'C18','C25', 'C26'};
 
 specs.stim_names  = {'ONEPULSE-1', 'ONEPULSE-2', 'ONEPULSE-3', 'ONEPULSE-4', 'ONEPULSE-5', 'ONEPULSE-6'};
 specs.fft_stim_t  = [0 1.2];
-bidsEcogPlotSpectra(projectDir, subject, session, task, [], [], [], specs, savePlot); close;
+bidsEcogPlotSpectra(projectDir, subject, session, task, [], [], [], specs, savePlot); %close;
 
 specs.stim_names  = {'TWOPULSE-1', 'TWOPULSE-2', 'TWOPULSE-3', 'TWOPULSE-4', 'TWOPULSE-5', 'TWOPULSE-6'};
 specs.fft_stim_t  = [0 1.8];
-bidsEcogPlotSpectra(projectDir, subject, session, task, [], [], [], specs, savePlot); close;
+bidsEcogPlotSpectra(projectDir, subject, session, task, [], [], [], specs, savePlot); %close;
