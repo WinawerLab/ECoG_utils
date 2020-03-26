@@ -1,4 +1,4 @@
-function [stimData, triggersAreMatched] = bidsconvert_matchstimulusfiles(dataReadDir, patientID, ses_label, task_label, run_label, trigger_onsets, makePlot)
+function [stimData, triggersAreMatched, runTimes] = bidsconvert_matchstimulusfiles(dataReadDir, patientID, ses_label, task_label, run_label, trigger_onsets, makePlot)
 
 if nargin < 7 || isempty(makePlot)
     makePlot = 0;
@@ -15,7 +15,6 @@ stimTSVFiles = [dir(fullfile(stimDir, sprintf('sub-*%d*%s*.tsv', patientID, ses_
 fprintf('[%s] Asserting that we have all the stimFiles \n', mfilename);
 assert(isequal(length(stimMatFiles), length(run_label)))
 assert(isequal(length(stimTSVFiles), length(run_label)))
-nRuns = length(run_label);
 
 % NOTE: It's important to read the StimFiles in in the correct order.
 % Because the logfiles are copied over, we can't assume that
@@ -36,6 +35,7 @@ end
 [~, runIndex] = sort(runTimes);
 fprintf('[%s] Sorting runs in recorded order. New run order is: \n', mfilename);
 stimData_sorted = stimData(runIndex);
+runTimes_sorted = runTimes(runIndex);
 requestedTriggerCount = 0;
 for ii = 1:length(stimMatFiles)
     disp([stimData_sorted(ii).fname])
@@ -69,5 +69,6 @@ else
 end
     
 stimData = stimData_sorted;
+runTimes = runTimes_sorted;
 
 end

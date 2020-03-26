@@ -1,4 +1,5 @@
-function bidsconvert_writerunfiles(dataWriteDir, stimWriteDir, sub_label, ses_label, task_label, run_label, ...
+function [dataFileNames] = bidsconvert_writerunfiles(dataWriteDir, stimWriteDir, ...
+    sub_label, ses_label, task_label, acq_label, run_label, ...
     data, hdr, stimData, channel_table, trigger_onsets, segmentOnFlips)
 
 %% Create RUN-SPECIFIC files %%%%%%%%%%%%%%%%%%
@@ -9,6 +10,9 @@ function bidsconvert_writerunfiles(dataWriteDir, stimWriteDir, sub_label, ses_la
 %   - .mat with stimulus info per run (goes in main 'stimuli' folder)
 %   - ieeg.json 
 %   - channels.tsv
+%
+% Should be run BEFORE generating the session specific files (so we can generate
+% the scans.tsv files based on the existing dataFileNames)
 
 if ~exist('segmentOnFlips', 'var') || isempty(segmentOnFlips)
     segmentOnFlips = 1;
@@ -38,6 +42,7 @@ end
 num_triggers_total = 0;
 nRuns = length(run_label);
 nDecimals = 4; % Specify temporal precision of time stamps in events files
+dataFileNames = cell(nRuns,1);
 
 for ii = 1:nRuns
     
@@ -84,18 +89,23 @@ for ii = 1:nRuns
                 ieeg_json.TaskDescription = 'Hand clenching upon a visual cue (fixation color change) presented a regular intervals at one of four frequencies (boldsat 1-4)';      
                 ieeg_json.Instructions = 'When fixation dot color changes, clench hand into a fist';
             elseif contains(task_label{ii}, 'fingermappingleft')         
-                ieeg_json.TaskName = 'bair_fingermapping';
+                ieeg_json.TaskName = 'bair_fingermapping_left';
                 ieeg_json.TaskDescription = 'Moving one finger at a time based on a visual cue indicating which finger to move (left hand)';	
                 ieeg_json.Instructions = 'When one of the 5 cues on the screen changes from white to black, bend the associated finger';
+                task_label{ii} = 'fingermapping';
             elseif contains(task_label{ii}, 'fingermappingright')         
-                ieeg_json.TaskName = 'bair_fingermapping';
+                ieeg_json.TaskName = 'bair_fingermapping_right';
                 ieeg_json.TaskDescription = 'Moving one finger at a time based on a visual cue indicating which finger to move (right hand)';	
                 ieeg_json.Instructions = 'When one of the 5 cues on the screen changes from white to black, bend the associated finger';
+                task_label{ii} = 'fingermapping';
             elseif contains(task_label{ii}, 'gestures')        
                 ieeg_json.TaskName = 'bair_gestures';
                 ieeg_json.TaskDescription = 'Make one of four hand gestures based on a learned visual cue';    
                 ieeg_json.Instructions = 'When the visual cue appears, make the associated hand gesture';           
             end
+            
+        case 'tactile'
+            % TACTILE TASKS - TO DO
     end
     
     % Fix some problems in older stimulus files 
@@ -198,15 +208,15 @@ for ii = 1:nRuns
     %%  Write data, channel, json and events file:    
     
     % Generate a filename
-    fname = sprintf('sub-%s_ses-%s_task-%s_run-%s', ...
-            sub_label, ses_label, task_label{ii}, run_label{ii});
-    
+    fname = sprintf('sub-%s_ses-%s_task-%s_acq-%s_run-%s', ...
+            sub_label, ses_label, task_label{ii}, acq_label, run_label{ii});
+        
     fprintf('[%s] Writing bids files for %s \n', mfilename, fname);
     
     % Write data files:    
     data_fname = fullfile(dataWriteDir, sprintf('%s_ieeg', fname));
     ft_write_data(data_fname, data_thisrun, 'header', hdr_thisrun, 'dataformat', 'brainvision_eeg');
-     
+ 
     % Write json_ieeg file:
     jsonfile_fname = fullfile(dataWriteDir, sprintf('%s_ieeg.json', fname));    
     jsonwrite(jsonfile_fname,ieeg_json,json_options)
@@ -227,6 +237,11 @@ for ii = 1:nRuns
     events_fname = fullfile(dataWriteDir, sprintf('%s_events.tsv', fname));
     writetable(events_table, events_fname, 'FileType','text', 'Delimiter', '\t')
     
+    % Collect filenames to be used for scants.tsv in
+    % bidsconvert_writesessionfiles.m
+    fname = fullfile('ieeg',sprintf('%s_ieeg', fname));
+	dataFileNames{ii} = fname;
+
 end
 
 % CHECK: Do number of triggers derived from EDF data file match the number

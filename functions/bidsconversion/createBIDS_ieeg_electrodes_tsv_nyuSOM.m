@@ -24,9 +24,9 @@ type = repmat(' ', n, 1); % Type of intracranial electrode, one of [?surface?,  
 
 %% optional columns
 
-material = repmat('platinum', n, 1); % Recommended. Material of the electrodes
+material = repmat({'platinum'}, n, 1); % Recommended. Material of the electrodes
 
-manufacturer = repmat('AdTech', n, 1); % Optional field to specify the electrode manufacturer 
+manufacturer = repmat({'AdTech'}, n, 1); % Optional field to specify the electrode manufacturer 
 % for each electrode. Can be used if electrodes were manufactured by more than one company.
 
 group = repmat({'n/a'}, n, 1); % Optional field to specify the group that the electrode 

@@ -39,6 +39,7 @@ else
     elec_types = E{5};
     fprintf('[%s] Types of electrodes found: %s\n', mfilename, unique(strcat(elec_types{:})));
     % Replace elec_types with BIDS terminology
+    elec_types = replace(elec_types, 'EG', 'surface');
     elec_types = replace(elec_types, 'G', 'surface');
     elec_types = replace(elec_types, 'D', 'depth');
     elec_types = replace(elec_types, 'S', 'surface');
@@ -78,7 +79,7 @@ channel_table.sampling_frequency = repmat(hdr.Fs,size(channel_table,1),1);
 channel_table.type{triggerChannel} = 'trig';
 
 % Indicate which channels below to which group in channels.tsv
-INXNames = {'depth', 'gridA', 'gridB', 'grid', 'strip'};
+INXNames = {'depth', 'grid', 'HDgrid', 'grid', 'strip'};
 INX = [];
 % DEPTH electrodes:
 INX{1} = find(contains(lower(channel_table.type), 'seeg'));
@@ -104,6 +105,10 @@ if length(find(elec_inx>0)) ~= height(electrode_table)
     error('Could not find all electrode names in channel table!')
 end
 electrode_table.group = channel_table.group(elec_inx);
+% For HDgrid electrodes, overwrite the default size
+hd_inx = contains(electrode_table.group, 'HDgrid');
+electrode_table.size(hd_inx) = 1.0;
+electrode_table.manufacturer(hd_inx,:) = {'PMT'};
 
 % Indicate channel statuses
 %channel_table.status = repmat({'bad'},height(channel_table),1);

@@ -1,11 +1,17 @@
-function bidsconvert_writesessionfiles(dataReadDir, dataWriteDir, T1WriteDir, sub_label, ses_label, ses_labelt1, electrode_table)
+function bidsconvert_writesessionfiles(dataReadDir, dataWriteDir, T1WriteDir, ...
+    sub_label, ses_label, acq_label, ses_labelt1, ...
+    electrode_table, dataFileNames, runTimes)
 
 
 %% Create SESSION-SPECIFIC files %%%%%%%%%%%%%%%%%%
-
+%
 %   - T1w.nii.gz
 %   - coordsystem.json
 %   - electrodes.tsv
+%   - scans.tsv
+%
+% Should be run AFTER generating the run specific files (so we can generate
+% the scans.tsv files based on the existing run data files)
 
 %% Create T1w file
 
@@ -17,33 +23,38 @@ if length(T1File) > 1, fprintf('[%s] Warning: multiple T1s found: using first on
 if length(T1File) < 1
     disp('Warning: no T1 found!') 
 else
-    T1_name = fullfile(T1WriteDir, sprintf('sub-%s_ses-%s_T1w.nii.gz', sub_label, ses_labelt1));
-    if exist(T1_name, 'file')
-        fprintf('[%s] T1 already exists in %s, not overwriting.\n', mfilename, T1_name);
+    T1_name = sprintf('sub-%s_ses-%s_acq-%s_run-01_T1w.nii.gz', sub_label, ses_labelt1, acq_label);
+    T1_fname = fullfile(T1WriteDir, T1_name);
+    if exist(T1_fname, 'file')
+        fprintf('[%s] T1 already exists in %s, not overwriting.\n', mfilename, T1_fname);
     else
-        fprintf('[%s] Writing %s \n', mfilename, T1_name);
-        copyfile(fullfile(dataReadDir, 'T1.nii.gz'), T1_name);
+        fprintf('[%s] Writing %s \n', mfilename, T1_fname);
+        copyfile(fullfile(dataReadDir, 'T1.nii.gz'), T1_fname);
+        
+        % Generate scans table
+        filename = string(fullfile('anat', T1_name));
+        acq_time = "n/a"; % We don't know when the T1 was done
+        T1_scans_table = table(filename, acq_time);
+        % Generate output name (hacky but we need to go one level up from anat)
+        tmp = strsplit(fileparts(T1WriteDir), '/');
+        T1sessionDir = strjoin(tmp,'/');
+        T1_scans_name = fullfile(T1sessionDir, sprintf('sub-%s_ses-%s_scans.tsv', sub_label, ses_labelt1));
+        writetable(T1_scans_table,T1_scans_name,'FileType','text','Delimiter','\t');
+
     end
 end
-
-% Note on pial file: surface recons should go in derivatives folder (see
-% BIDS spec doc). If we want to include this in our data do we use our own
-% freesurfer recon (which we use for electrode plotting) or the one
-% provided by SOM (but why is that a .mat file)? If so, we should probably
-% also provide an electrode locations file based on matched nodes
-% (see run_E2N and electrode_to_nearest_node scripts in ECoG_utils)
 
 %% Create coordsystem.json file
 
 % Generate output name
-coord_json_name = fullfile(dataWriteDir, sprintf('sub-%s_ses-%s_coordsystem.json', sub_label, ses_label));
+coord_json_name = fullfile(dataWriteDir, sprintf('sub-%s_ses-%s_acq-%s_coordsystem.json', sub_label, ses_label, acq_label));
 
 % Get default values
 [coordsystem_json, json_options] = createBIDS_ieeg_coordsystem_json_nyuSOM();
 
 % Update values with specs for this subject
 coordsystem_json.IntendedFor = fullfile(sprintf('sub-%s', sub_label), sprintf('ses-%s', ses_labelt1), 'anat', ...
-    sprintf('sub-%s_ses-%s_T1w.nii.gz', sub_label, ses_labelt1)); % this path must be specified relative to the project folder
+    T1_name); % this path must be specified relative to the project folder
 
 % Write coordsystem.json file
 fprintf('[%s] Writing %s\n', mfilename, coord_json_name);
@@ -60,10 +71,31 @@ jsonwrite(coord_json_name,coordsystem_json,json_options);
 %% Create electrodes.tsv file
 
 % Generate output name
-electrodes_tsv_name = fullfile(dataWriteDir, sprintf('sub-%s_ses-%s_electrodes.tsv', sub_label, ses_label));
+electrodes_tsv_name = fullfile(dataWriteDir, sprintf('sub-%s_ses-%s_acq-%s_electrodes.tsv', sub_label, ses_label, acq_label));
 
 % Write tsv file
 fprintf('[%s] Writing %s\n', mfilename, electrodes_tsv_name);
 writetable(electrode_table,electrodes_tsv_name,'FileType','text','Delimiter','\t');
+
+%% Create scans.tsv files
+
+% ieeg
+
+% Generate scans table
+acq_time = cell(length(runTimes),1);
+for ii = 1:length(runTimes)
+    t = runTimes{ii};
+    t = datestr(datenum(t, 'yyyymmddTHHMMSS'), 'yyyy-mm-ddTHH:MM:SS');
+    % shift date
+    t(1:4) = '1900';
+    acq_time{ii} = t;
+end
+filename = dataFileNames;
+ieeg_scans_table = table(filename, acq_time);
+% Generate output name (hacky but we need to go one level up from ieeg)
+tmp = strsplit(fileparts(dataWriteDir), '/');
+ieegsessionDir = strjoin(tmp,'/');
+ieeg_scans_name = fullfile(ieegsessionDir, sprintf('sub-%s_ses-%s_scans.tsv', sub_label, ses_label));
+writetable(ieeg_scans_table,ieeg_scans_name,'FileType','text','Delimiter','\t');
 
 end
