@@ -86,7 +86,8 @@ if ~isfield(specs, 'dataDir') || isempty(specs.dataDir)
 end
 
 if ~isfield(specs, 'fsDir') || isempty(specs.fsDir)
-    specs.fsDir = fullfile(filesep, 'Volumes', 'server', 'Freesurfer_subjects'); 
+%     specs.fsDir = fullfile(filesep, 'Volumes', 'server', 'Freesurfer_subjects'); 
+    specs.fsDir = fullfile(filesep, 'Volumes', 'server', 'Projects','BAIR','Data','BIDS','visual','derivatives','freesurfer');
 end
 
 if ~isfield(specs, 'atlasNames') || isempty(specs.atlasNames)
@@ -372,11 +373,28 @@ for a = 1:length(specs.atlasNames)
     end
     
     % Match nearest nodes to atlas labels
-    atlas = [squeeze(atlas_rh);squeeze(atlas_lh)]; % concatenate hemis   
-    atlas_elec = atlas(indices);
-    [elec_indices] = find(atlas_elec);
-    elec_labels_found = elec_labels(elec_indices);
-    node_indices = indices(elec_indices);
+    atlas_rh = squeeze(atlas_rh);   atlas_lh = squeeze(atlas_lh);
+    if ~iscolumn(atlas_rh)
+        atlas_rh = permute(atlas_rh,[ndims(atlas_rh), 1:(ndims(atlas_rh)-1)]); % align with rows
+        atlas_lh = permute(atlas_lh,[ndims(atlas_lh), 1:(ndims(atlas_lh)-1)]); % align with rows
+    end
+    atlas = cat(1,atlas_rh,atlas_lh); % concatenate hemis   
+    atlas_elec = atlas(indices,:);
+    if iscolumn(atlas_elec)
+        [elec_indices] = find(atlas_elec);
+        elec_labels_found = elec_labels(elec_indices);
+        node_indices = indices(elec_indices);
+    else
+        ncells = size(atlas_elec);  ncells(1) = 1;
+        elec_indices      = cell(ncells);
+        elec_labels_found = cell(ncells);
+        node_indices      = cell(ncells);
+        for i = 1:prod(ncells(2:end))
+            elec_indices{i}      = find(atlas_elec(:,i));
+            elec_labels_found{i} = elec_labels(elec_indices{i});
+            node_indices{i}      = indices(elec_indices{i});
+        end
+    end
     
     % Get names / colormaps associated with each atlas
     switch currentAtlas
@@ -406,6 +424,23 @@ for a = 1:length(specs.atlasNames)
                              0 255 255;   0 255   0;
                            255 153 153; 255 204 153; 255 255 153; 153 255 153; 153 255 255; 153 153 255; 
                            255 153 255; 255 178 102]./255;
+            out.(currentAtlas).area_names   = area_labels;
+            
+        case {'wang15_fplbl'} % Wang full probability map
+
+            % Labels come from: '/Volumes/server/Projects/Kastner2015Atlas/ProbAtlas_v4/ROIfiles_Labeling.txt';
+            area_labels =  {'V1v','V1d', ...
+                            'V2v','V2d', ...
+                            'V3v','V3d', ...
+                            'hV4', ...
+                            'VO1','VO2', ...
+                            'PHC1','PHC2', ...
+                            'TO2','TO1', ...
+                            'LO2','LO1', ...
+                            'V3b','V3a', ...
+                            'IPS0','IPS1','IPS2','IPS3','IPS4','IPS5', ...
+                            'SPL1','FEF'}; 
+            area_cmap   = autumn(64);
             out.(currentAtlas).area_names   = area_labels;
 
         case 'benson14_varea' % Noah template: areas 
@@ -531,98 +566,131 @@ for a = 1:length(specs.atlasNames)
             out.(currentAtlas).elec_labels  = elec_labels_found';
             out.(currentAtlas).node_indices = node_indices;
             out.(currentAtlas).node_values  = round(atlas(node_indices),2)';
+            
+        case {'wang15_fplbl'}
+
+            for i = 1:length(area_labels)
+                out.(currentAtlas).area_count(i)   = length(elec_labels_found{i});
+                out.(currentAtlas).elec_labels{i}  = elec_labels_found{i}';
+                out.(currentAtlas).node_indices{i} = node_indices{i};
+                out.(currentAtlas).node_values{i}  = round(atlas(node_indices{i},i),4)';
+            end
+            atlasUnits = 'overlap';
+
     end
   
     % Plot
-    switch plotmesh
+    for i = 1:size(atlas_elec,2)
+        switch currentAtlas
+            case 'wang15_fplbl'
+                posfix = [' ' area_labels{i}];
+            otherwise
+                posfix = [];
+        end
         
-        case 'none'
-            % Do nothing
-            
-        otherwise
-            
-            % Plot mesh
-            fig = figure('Name', [num2str(specs.pID) ' ' currentAtlas]); hold on;
-            
-            switch plotmesh
-                case 'both'                                                 
-                    plot_mesh(faces_r, vertices_r, atlas_rh, area_cmap);
-                    plot_mesh(faces_l, vertices_l, atlas_lh, area_cmap);
-                case 'left'
-                    plot_mesh(faces_l, vertices_l, atlas_lh, area_cmap);
-                case 'right'
-                    plot_mesh(faces_r, vertices_r, atlas_rh, area_cmap);   
-            end
-                                     
-             % Clip Benson atlases (results in better colormap scaling)
-            switch currentAtlas
-                case 'benson14_eccen'
-                    caxis([0 20]);
-                case 'benson14_sigma'
-                    caxis([0 10]);
-                otherwise
-                    caxis([0 max(atlas)]); %length(area_cmap)]);
-            end
-            
-            % Add colorbar?
-            switch plotcbar
-                case 'yes'
-                    cb = colorbar;
-                    cb.FontSize = 18;
-                    cb.Color = [0 0 0];
-                    cb.Label.String = atlasUnits;
-                    cb.Position = [0.92 0.25 0.03 0.5];
-                    switch currentAtlas
-                        case {'wang2015_atlas', 'wang15_mplbl', 'benson14_varea', 'template_areas'}
-                            cb.Ticks = 0:1:length(area_labels);
-                            cb.TickLabels = ['none', area_labels];
-                    end   
-            end
-    end
-    
-    switch plotelecs
-        
-        case 'yes'            
-            if ~exist('fig','var')
-                fig = figure('Name', [num2str(specs.pID) ' ' currentAtlas]); hold on;
-            end
+        switch plotmesh
 
-            switch plotmesh
-                case 'left'
-                    electoplot = find(elec_xyz(:,1) <= 10);
-                    elec_indices = intersect(elec_indices,electoplot);
-                    elec_plotindex = electoplot;
-                case 'right'
-                    electoplot = find(elec_xyz(:,1) >= -10);
-                    elec_indices = intersect(elec_indices,electoplot);
-                    elec_plotindex = electoplot;
-                otherwise
-                    elec_plotindex = 1:size(elec_xyz,1);
-            end
-            
-            % Plot electrodes
-            plot_electrodes(elec_xyz(elec_plotindex,:), [1 1 1]*0.2,2);
-            plot_electrodes(elec_xyz(elec_indices,:), [0 0 0],2);
+            case 'none'
+                % Do nothing
 
-            % Plot matched nodes
-            switch plotmatchednodes
-                case 'yes'
-                    plot_electrodes(vertices(indices(elec_plotindex),:), [1 1 1]*0.8, 1);
-                    plot_electrodes(vertices(indices(elec_indices),:), [1 1 1], 1);
-            end
-              
-            switch plotlabel
-                case 'yes'
-                    for i = 1:size(elec_xyz(elec_plotindex,:),1)
-                        [x, y, z] = adjust_elec_label(elec_xyz(elec_plotindex(i),:),3);
-                        text('Position',[x y z],'String',elec_labels(elec_plotindex(i),:),'Color','w','VerticalAlignment','top');
-                    end
-            end
-    end
-           
-    if exist('fig','var')
-        % Set view parameters
-        set_view(gcf)
+            otherwise
+
+                % Plot mesh
+                fig = figure('Name', [num2str(specs.pID) ' ' currentAtlas posfix]); hold on;
+
+                switch plotmesh
+                    case 'both'                                                 
+                        plot_mesh(faces_r, vertices_r, atlas_rh(:,i), area_cmap);
+                        plot_mesh(faces_l, vertices_l, atlas_lh(:,i), area_cmap);
+                    case 'left'
+                        plot_mesh(faces_l, vertices_l, atlas_lh(:,i), area_cmap);
+                    case 'right'
+                        plot_mesh(faces_r, vertices_r, atlas_rh(:,i), area_cmap);   
+                end
+
+                 % Clip Benson atlases (results in better colormap scaling)
+                switch currentAtlas
+                    case 'benson14_eccen'
+                        caxis([0 20]);
+                    case 'benson14_sigma'
+                        caxis([0 10]);
+                    otherwise
+                        caxis([0 max(atlas(:,i))]); %length(area_cmap)]);
+                end
+
+                % Add colorbar?
+                switch plotcbar
+                    case 'yes'
+                        cb = colorbar;
+                        cb.FontSize = 18;
+                        cb.Color = [0 0 0];
+                        cb.Label.String = atlasUnits;
+                        cb.Position = [0.92 0.25 0.03 0.5];
+                        switch currentAtlas
+                            case {'wang2015_atlas', 'wang15_mplbl', 'benson14_varea', 'template_areas'}
+                                cb.Ticks = 0:1:length(area_labels);
+                                cb.TickLabels = ['none', area_labels];
+                        end   
+                end
+        end
+
+        switch plotelecs
+
+            case 'yes'            
+                if ~exist('fig','var')
+                    fig = figure('Name', [num2str(specs.pID) ' ' currentAtlas posfix]); hold on;
+                end
+
+                switch plotmesh
+                    case 'left'
+                        electoplot = find(elec_xyz(:,1) <= 10);
+                        if iscell(elec_indices)
+                          elec_selindices = intersect(elec_indices{i},electoplot);
+                        else
+                          elec_selindices = intersect(elec_indices,electoplot);
+                        end
+                        elec_plotindex = electoplot;
+                    case 'right'
+                        electoplot = find(elec_xyz(:,1) >= -10);
+                        if iscell(elec_indices)
+                          elec_selindices = intersect(elec_indices{i},electoplot);
+                        else
+                          elec_selindices = intersect(elec_indices,electoplot);
+                        end
+                        elec_plotindex = electoplot;
+                    otherwise
+                        elec_plotindex = 1:size(elec_xyz,1);
+                        if iscell(elec_indices)
+                          elec_selindices = elec_indices{i};
+                        else
+                          elec_selindices = elec_indices;
+                        end
+                end
+
+                % Plot electrodes
+                plot_electrodes(elec_xyz(elec_plotindex,:), [1 1 1]*0.2,2);
+                plot_electrodes(elec_xyz(elec_selindices,:), [0 0 0],2);
+
+                % Plot matched nodes
+                switch plotmatchednodes
+                    case 'yes'
+                        plot_electrodes(vertices(indices(elec_plotindex),:), [1 1 1]*0.8, 1);
+                        plot_electrodes(vertices(indices(elec_selindices),:), [1 1 1], 1);
+                end
+
+                switch plotlabel
+                    case 'yes'
+                        for i = 1:size(elec_xyz(elec_plotindex,:),1)
+                            [x, y, z] = adjust_elec_label(elec_xyz(elec_plotindex(i),:),3);
+                            text('Position',[x y z],'String',elec_labels(elec_plotindex(i),:),'Color','w','VerticalAlignment','top');
+                        end
+                end
+        end
+
+        if exist('fig','var')
+            % Set view parameters
+            set_view(gcf)
+        end
     end
 end
 
