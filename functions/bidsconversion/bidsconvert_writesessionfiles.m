@@ -18,10 +18,12 @@ function bidsconvert_writesessionfiles(dataReadDir, dataWriteDir, T1WriteDir, ..
 % Locate T1 provided by SoM
 T1File = dir(fullfile(dataReadDir, 'T1.nii.gz'));
 if length(T1File) > 1, fprintf('[%s] Warning: multiple T1s found: using first one\n', mfilename); end
+writeT1json = 1;
 
 % Copy file: rename and save in appropriate folder
 if length(T1File) < 1
     disp('Warning: no T1 found!') 
+    writeT1json = 0;
 else
     T1_name = sprintf('sub-%s_ses-%s_acq-%s_run-01_T1w.nii.gz', sub_label, ses_labelt1, acq_label);
     T1_fname = fullfile(T1WriteDir, T1_name);
@@ -45,20 +47,21 @@ else
 end
 
 %% Create coordsystem.json file
+if writeT1json
+    % Generate output name
+    coord_json_name = fullfile(dataWriteDir, sprintf('sub-%s_ses-%s_acq-%s_coordsystem.json', sub_label, ses_label, acq_label));
 
-% Generate output name
-coord_json_name = fullfile(dataWriteDir, sprintf('sub-%s_ses-%s_acq-%s_coordsystem.json', sub_label, ses_label, acq_label));
+    % Get default values
+    [coordsystem_json, json_options] = createBIDS_ieeg_coordsystem_json_nyuSOM();
 
-% Get default values
-[coordsystem_json, json_options] = createBIDS_ieeg_coordsystem_json_nyuSOM();
+    % Update values with specs for this subject
+    coordsystem_json.IntendedFor = fullfile(sprintf('sub-%s', sub_label), sprintf('ses-%s', ses_labelt1), 'anat', ...
+        T1_name); % this path must be specified relative to the project folder
 
-% Update values with specs for this subject
-coordsystem_json.IntendedFor = fullfile(sprintf('sub-%s', sub_label), sprintf('ses-%s', ses_labelt1), 'anat', ...
-    T1_name); % this path must be specified relative to the project folder
-
-% Write coordsystem.json file
-fprintf('[%s] Writing %s\n', mfilename, coord_json_name);
-jsonwrite(coord_json_name,coordsystem_json,json_options);
+    % Write coordsystem.json file
+    fprintf('[%s] Writing %s\n', mfilename, coord_json_name);
+    jsonwrite(coord_json_name,coordsystem_json,json_options);
+end
 
 % Note on coordystem json file: SOM also provides electrode locations in
 % MNI space, as well as a list of matched anatomical regions. Do we want to

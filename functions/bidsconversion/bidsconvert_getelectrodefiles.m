@@ -110,22 +110,17 @@ hd_inx = contains(electrode_table.group, 'HDgrid');
 electrode_table.size(hd_inx) = 1.0;
 electrode_table.manufacturer(hd_inx,:) = {'PMT'};
 
-% Indicate channel statuses
-%channel_table.status = repmat({'bad'},height(channel_table),1);
-%channel_table.status_description = repmat({'bad'},height(channel_table),1);
-%channel_table = table2cell(channel_table);
-ecogChannels = find(contains(channel_table.type,{'seeg', 'ecog'}));
-for ii = 1:length(ecogChannels)
-   channel_table.status{ecogChannels(ii)} = 'good';
-end
-%for ii = 1:length(goodChannels)
-%   channel_table.status{goodChannels(ii)} = 'good';
-%end
+% Indicate bad channels
 for ii = 1:length(badChannels)
     channel_table.status{badChannels(ii)} = 'bad';
     if exist('badChannelsDescriptions', 'var')
         channel_table.status_description{badChannels(ii)} = badChannelsDescriptions{ii};
     end
+end
+% Also label non-ecog channels as bad
+nonEcogChannels = find(~contains(channel_table.type,{'seeg', 'ecog'}));
+for ii = 1:length(nonEcogChannels)
+   channel_table.status{nonEcogChannels(ii)} = 'bad';
 end
 
 end

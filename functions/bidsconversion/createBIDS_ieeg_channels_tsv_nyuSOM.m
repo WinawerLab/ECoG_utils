@@ -51,7 +51,7 @@ description = repmat({'n/a'}, n, 1); % OPTIONAL. Brief free-text description
 % of the channel, or other information of interest (e.g. position (e.g.,
 % ?left lateral temporal surface?, etc.)
 
-status = repmat({'n/a'}, n, 1); % OPTIONAL. Data quality observed on the 
+status = repmat({'good'}, n, 1); % OPTIONAL. Data quality observed on the 
 % channel (good/bad). A channel is considered bad if its data quality is
 % compromised by excessive noise. Description of noise type SHOULD be
 % provided in [status_description].
