@@ -223,6 +223,14 @@ end
 % Generate electrode files
 [electrode_table, channel_table] = bidsconvert_getelectrodefiles(dataReadDir, hdr, triggerChannel, badChannels, badChannelsDescriptions);
 
+% PATIENT SPECIFIC HACK: grid B in this patient was actually not a HD grid.
+% Replace the name in the channels and electrode tables:
+idx = contains(channel_table.group, 'HDgrid');
+channel_table.group(idx) = {'grid'};
+
+idx = contains(electrode_table.group, 'HDgrid');
+electrode_table.group(idx) = {'grid'};
+
 % Read in stimulus files
 [stimData, triggersAreMatched, runTimes] = bidsconvert_matchstimulusfiles(dataReadDir, patientID, ses_label, task_label, run_label, trigger_onsets, 1);
 if makePlot
