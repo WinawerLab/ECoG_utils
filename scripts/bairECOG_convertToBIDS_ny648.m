@@ -286,13 +286,6 @@ else
     writetable(T1_scans_table,T1_scans_name,'FileType','text','Delimiter','\t');
 end
 
-% Note on pial file: surface recons should go in derivatives folder (see
-% BIDS spec doc). If we want to include this in our data do we use our own
-% freesurfer recon (which we use for electrode plotting) or the one
-% provided by SOM (but why is that a .mat file)? If so, we should probably
-% also provide an electrode locations file based on matched nodes
-% (see run_E2N and electrode_to_nearest_node scripts in ECoG_utils)
-
 %% Create coordsystem.json file
 
 % Generate output name

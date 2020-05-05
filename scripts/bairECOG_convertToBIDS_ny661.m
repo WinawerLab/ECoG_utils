@@ -192,6 +192,7 @@ end
 stimDir = fullfile(RawDataDir,num2str(patientID), 'stimdata');
 stimFiles = dir(fullfile(stimDir, sprintf('*%s*.mat', num2str(patientID))));
 clear stimData
+runTimes = [];
 for ii = 1:length(stimFiles)
     fileName = [stimDir filesep stimFiles(ii).name];
     stimData(ii) = load(fileName) ;    
@@ -201,6 +202,8 @@ for ii = 1:length(stimFiles)
             figure; hold on
             plot(stimData(ii).stimulus.seqtiming, stimData(ii).stimulus.seq, 'o-')
     end
+    tmp = strsplit(stimFiles(ii).name,'_');
+    runTimes{ii} = tmp{2}(1:end-4);
 end
 
 % CHECK: Do we have all the stimfiles?
@@ -236,7 +239,7 @@ end
 [channel_table] = createBIDS_ieeg_channels_tsv_nyuSOM(length(chanNames));
 channel_table.name  = chanNames;
 channel_table.type  = chanTypes;
-channel_table.units = chanUnits;
+%channel_table.units = chanUnits;
 channel_table.sampling_frequency = repmat(hdr.Fs,size(channel_table,1),1);
 
 % Indicate which channel is the trigger channel in channels.tsv
@@ -245,9 +248,9 @@ channel_table.type{triggerChannel} = 'trig';
 % Indicate channel statuses
 %channel_table.status = cell(height(channel_table),1);
 %channel_table.status_description = cell(height(channel_table),1);
-ecogChannels = find(contains(channel_table.type,{'seeg', 'ecog'}));
-for ii = 1:length(ecogChannels)
-    channel_table.status{ecogChannels(ii)} = 'good';
+nonEcogChannels = find(~contains(channel_table.type,{'seeg', 'ecog'}));
+for ii = 1:length(nonEcogChannels)
+    channel_table.status{nonEcogChannels(ii)} = 'bad';
 end
 for ii = 1:length(badChannels)
     channel_table.status{badChannels(ii)} = 'bad';
@@ -292,29 +295,33 @@ if length(T1File) > 1, disp('Warning: multiple T1s found: using first one'); end
 if length(T1File) < 1
     disp('Warning: no T1 found!') 
 else
-    T1_name = fullfile(T1WriteDir, sprintf('sub-%s_ses-%s_T1w.nii.gz', sub_label, ses_labelt1));
+    T1_name = sprintf('sub-%s_ses-%s_acq-%s_run-01_T1w.nii.gz', sub_label, ses_labelt1, acq_label);
+    T1_fname = fullfile(T1WriteDir, T1_name);
     disp(['writing ' T1_name '...']);
-    [SUCCESS,MESSAGE,MESSAGEID] = copyfile(fullfile(RawDataDir,num2str(patientID), 'T1.nii.gz'), T1_name);
+    copyfile(fullfile(RawDataDir,num2str(patientID), 'T1.nii.gz'), T1_fname);
+    
+    % Generate scans table
+	filename = string(fullfile('anat', T1_name));
+    acq_time = "n/a"; % We don't know when the T1 was done
+    T1_scans_table = table(filename, acq_time);
+    % Generate output name (hacky but we need to go one level up from anat)
+    tmp = strsplit(fileparts(T1WriteDir), '/');
+    T1sessionDir = strjoin(tmp,'/');
+    T1_scans_name = fullfile(T1sessionDir, sprintf('sub-%s_ses-%s_scans.tsv', sub_label, ses_labelt1));
+    writetable(T1_scans_table,T1_scans_name,'FileType','text','Delimiter','\t');
 end
-
-% Note on pial file: surface recons should go in derivatives folder (see
-% BIDS spec doc). If we want to include this in our data do we use our own
-% freesurfer recon (which we use for electrode plotting) or the one
-% provided by SOM (but why is that a .mat file)? If so, we should probably
-% also provide an electrode locations file based on matched nodes
-% (see run_E2N and electrode_to_nearest_node scripts in ECoG_utils)
 
 %% Create coordsystem.json file
 
 % Generate output name
-coord_json_name = fullfile(dataWriteDir, sprintf('sub-%s_ses-%s_coordsystem.json', sub_label, ses_label));
+coord_json_name = fullfile(dataWriteDir, sprintf('sub-%s_ses-%s_acq-%s_coordsystem.json', sub_label, ses_label, acq_label));
 
 % Get default values
 [coordsystem_json, json_options] = createBIDS_ieeg_coordsystem_json_nyuSOM();
 
 % Update values with specs for this subject
 coordsystem_json.IntendedFor = fullfile(sprintf('sub-%s', sub_label), sprintf('ses-%s', ses_labelt1), 'anat', ...
-    sprintf('sub-%s_ses-%s_T1w.nii.gz', sub_label, ses_labelt1)); % this path must be specified relative to the project folder
+        T1_name); % this path must be specified relative to the project folder
 
 % Write coordsystem.json file
 disp(['writing ' coord_json_name '...']);
@@ -352,7 +359,7 @@ end
 electrode_table.group = channel_table.group(elec_inx);
 
 % Generate output name
-electrodes_tsv_name = fullfile(dataWriteDir, sprintf('sub-%s_ses-%s_electrodes.tsv', sub_label, ses_label));
+electrodes_tsv_name = fullfile(dataWriteDir, sprintf('sub-%s_ses-%s_acq-%s_electrodes.tsv', sub_label, ses_label, acq_label));
 
 % Write tsv file
 disp(['writing ' electrodes_tsv_name '...']);
@@ -390,14 +397,15 @@ end
 
 % Initialize trigger count
 num_triggers_total = 0;
+dataFileNames = cell(nRuns,1);
 
 for ii = 1:nRuns
     
     stim0 = num_triggers_total+1;
     
     % Generate filename
-    fname = sprintf('sub-%s_ses-%s_task-%s_run-%s', ...
-            sub_label, ses_label, task_label{ii}, run_label{ii});
+    fname = sprintf('sub-%s_ses-%s_task-%s_acq-%s_run-%s', ...
+            sub_label, ses_label, task_label{ii}, acq_label, run_label{ii});
     fprintf('Writing eeg, events, stimuli, json and channel files for %s \n', fname);
     
     % Collect task-specific info for json file   
@@ -544,6 +552,11 @@ for ii = 1:nRuns
             xlabel('Event number'); ylabel('Time (s)');
             legend('Triggers', 'Stimulus Onsets')
     end
+    
+    % Collect filenames to be used for scants.tsv in
+    % bidsconvert_writesessionfiles.m
+    fname = fullfile('ieeg',sprintf('%s_ieeg', fname));
+	dataFileNames{ii} = fname;
 
 end
 
@@ -552,4 +565,24 @@ end
 assert(isequal(length(trigger_onsets), num_triggers_total))
 disp('done');
 
+%% Create scans.tsv files
+
+ % ieeg
+
+ % Generate scans table
+ acq_time = cell(length(runTimes),1);
+ for ii = 1:length(runTimes)
+     tt = runTimes{ii};
+     tt = datestr(datenum(tt, 'yyyymmddTHHMMSS'), 'yyyy-mm-ddTHH:MM:SS');
+     % shift date
+     tt(1:4) = '1900';  
+     acq_time{ii} = tt;
+ end
+ filename = dataFileNames;
+ ieeg_scans_table = table(filename, acq_time);
+ % Generate output name (hacky but we need to go one level up from ieeg)
+ tmp = strsplit(fileparts(dataWriteDir), '/');
+ ieegsessionDir = strjoin(tmp,'/');
+ ieeg_scans_name = fullfile(ieegsessionDir, sprintf('sub-%s_ses-%s_scans.tsv', sub_label, ses_label));
+ writetable(ieeg_scans_table,ieeg_scans_name,'FileType','text','Delimiter','\t');
 
