@@ -28,23 +28,48 @@ function [data, channels, events, ieeg_json, hdr] = bidsEcogReadFiles(dataPath, 
 % and a json sidecar (<bidsfilename>_ieeg.json). 
 %
 % Example
-% projectDir = '/Volumes/server/Projects/BAIR/Data/BIDS/visual';
-% dataPath = fullfile(projectDir, 'derivatives', 'ECoGBroadband');
-% subject = 'som726';
-% session = 'nyuecog01'
-% task = 'prf';
-% runnum = '01';
-% description = 'broadband';
-% [data, channels, events, ieeg_json, hdr] = bidsEcogReadFiles(dataPath, ...
-% subject, session, task, runnum, description);
+%   projectDir = '/Volumes/server/Projects/BAIR/Data/BIDS/visual';
+%   dataPath = fullfile(projectDir, 'derivatives', 'ECoGBroadband');
+%   subject = 'som726';
+%   session = 'nyuecog01'
+%   task = 'prf';
+%   runnum = '01';
+%   description = 'broadband';
+%  [data, channels, events, ieeg_json, hdr] = bidsEcogReadFiles(dataPath, ...
+%       subject, session, task, runnum, description);
 %
 % See also bidsEcogWriteFiles.m bidsSpecifyData.m bidsSpecifySessions.m
 % See also ft_read_data.m ft_read_hdr.m
+%
+% IG, BAIR 2019
 
+% <dataPath>
+if ~exist('dataPath', 'var') || isempty(dataPath)
+    error('dataPath not defined');
+end  
 
-if ~exist('description', 'var')
-    description = [];
+% <subject>
+if ~exist('subject', 'var') || isempty(subject)
+    error('subject not defined');
 end
+
+% <session>
+if ~exist('session', 'var') || isempty(session)
+	error('session not defined');
+end
+
+% <task>
+if ~exist('task', 'var') || isempty(task)
+	error('task not defined');
+end
+
+% <runnum>
+if ~exist('runnum', 'var') || isempty(runnum)
+	error('runnum not defined');
+end
+
+% <description>
+if ~exist('description', 'var'), description = []; end
 
 if ~isempty(description)
     fname_in = sprintf('sub-%s_ses-%s_task-%s*_run-%s_desc-%s*', subject, session, task, runnum, description);

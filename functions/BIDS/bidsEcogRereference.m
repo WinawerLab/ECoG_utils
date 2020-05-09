@@ -3,17 +3,13 @@ function bidsEcogRereference(projectDir, subject, sessions, tasks, runnums, outp
 % bids-formatted ECoG data, and writes out the rereferenced data to an
 % output folder in the bids derivatives folder. 
 %
-% Notes:
+% Notes
 % This code uses the 'group' and 'status' columns in channels.tsv to
 % determine which channels to average into a common reference. For a given
 % group, only 'good' channels are included in the reference average, which
 % is then regressed out of all channels of that group. If there is no group
 % column, channels are grouped by 'type' (a bids-required column) instead.
 % If there is no status column, all channels are assumed to be good.
-%
-% TO DO: Also write out a projection matrix file? (see draft bids derivative)
-% TO DO: If following BIDS spec, outputFolder should be 'pipelinename' (?)
-% TO DO: Also write out a README file to explain what this is?
 %
 % Input
 %     projectDir:       path where the BIDS project lies (string)
@@ -48,16 +44,14 @@ function bidsEcogRereference(projectDir, subject, sessions, tasks, runnums, outp
 %     bidsEcogRereference(projectDir, subject, session, task, [], [], 0);
 %
 % See also bidsSpecifySessions.m bidsSpecifyData.m ecog_performCAR.m
+%
+% IG, BAIR 2019
 
 % <projectDir>
-if ~exist('projectDir', 'var') || isempty(projectDir)
-    error('projectDir not defined');
-end    
+if ~exist('projectDir', 'var') || isempty(projectDir), error('projectDir not defined'); end    
 
 % <subject>
-if ~exist('subject', 'var') || isempty(subject)
-    error('subject not defined');
-end
+if ~exist('subject', 'var') || isempty(subject), error('subject not defined'); end
 
 % <session>
 if ~exist('sessions', 'var') || isempty(sessions)
@@ -71,14 +65,12 @@ if ~exist('sessions', 'var') || isempty(sessions)
 end
 
 % <outputFolder>
-if ~exist('outputFolder', 'var') || isempty(outputFolder)
-    outputFolder = 'ECoGCAR';
-end
+if ~exist('outputFolder', 'var') || isempty(outputFolder), outputFolder = 'ECoGCAR'; end
 
 % <plots>
-if ~exist('savePlot', 'var') || isempty(savePlot)
-    savePlot = true;
-end
+if ~exist('savePlot', 'var') || isempty(savePlot), savePlot = true; end
+
+%% Check formats and initialize
 
 if ~iscell(sessions), sessions = {sessions}; end
 if ~exist('tasks', 'var'), tasks = []; end
