@@ -30,7 +30,7 @@ if ~exist('surfaceType', 'var') || isempty(surfaceType), surfaceType = 'pial'; e
 
 % Define path
 fsDir = fullfile(dataPath, 'derivatives', 'freesurfer',  sprintf('sub-%s', subject));
-fprintf('[%s] Reading from %s\n', mfilename, fsDir);
+%fprintf('[%s] Reading from %s\n', mfilename, fsDir);
 
 % Define filenames
 surf_file_rh = fullfile(fsDir, 'surf', sprintf('rh.%s', surfaceType));
@@ -43,7 +43,7 @@ if exist(surf_file_rh, 'file') && exist(surf_file_lh, 'file')
     fprintf('[%s] Reading Freesurfer pial surface file %s ...\n',mfilename, surf_file_lh);
     [vertices_l, faces_l] = read_surf(surf_file_lh);
 else
-    error('No freesurfer surfaces found for sub-%s',subject);
+    error('No freesurfer surfaces found for sub-%s in %s',subject, fsDir);
 end
 
 end

@@ -31,7 +31,7 @@ if ~exist('atlasName', 'var') || isempty(atlasName), error('atlasName not define
 
 % Define path
 fsDir = fullfile(dataPath, 'derivatives', 'freesurfer',  sprintf('sub-%s', subject));
-fprintf('[%s] Reading from %s\n', mfilename, fsDir);
+fprintf('[%s] Reading atlas file %s from %s\n', mfilename, atlasName, fsDir);
 
 % Define filenames
 atlas_file_rh = fullfile(fsDir, 'surf', sprintf('rh.%s.mgz', atlasName));

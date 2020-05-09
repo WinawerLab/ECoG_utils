@@ -31,7 +31,7 @@ if ~exist('subject', 'var') || isempty(subject), error('subject not defined'); e
 if ~exist('session', 'var') || isempty(session), error('session not defined'); end
 
 sessionDir = fullfile(dataPath, sprintf('sub-%s', subject), sprintf('ses-%s', session), 'ieeg');
-fprintf('[%s] Reading from %s\n', mfilename, sessionDir);
+%fprintf('[%s] Reading from %s\n', mfilename, sessionDir);
 
 D = dir(fullfile(sessionDir, '*electrodes.tsv'));          
 if isempty(D)
@@ -40,7 +40,7 @@ if isempty(D)
     %electrode_table = [];
 else
     elec_file = D(1).name;
-    fprintf('[%s] Reading %s...\n',mfilename,fullfile(sessionDir,elec_file));
+    fprintf('[%s] Reading electrode file %s...\n',mfilename,fullfile(sessionDir,elec_file));
     electrode_table = readtable(fullfile(sessionDir, elec_file), 'FileType', 'text');
 end
 
