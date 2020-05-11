@@ -70,7 +70,7 @@ end
 %figureName = strsplit(trialType{1},'-');
 %figure('Name', [figureName{1} ' ' thisDataType]); 
 
-figure('Name', [trialType{~contains(trialType, 'BLANK')}]); 
+figure('Name', [trialType{~contains(trialType, 'BLANK')}],'Position', [150 100 2000 1250]); 
 
 hasLegend = 0;
 for ee = 1:length(elInx)
@@ -192,6 +192,8 @@ for ee = 1:length(elInx)
         if all(xticks>(specs.plot.XLim(1)+diff(specs.plot.XLim)/10))
             xticks([specs.plot.XLim(1), xticks]);
         end
+        % Avoid exponential notation
+        set(gca, 'XTickLabel', cellstr(num2str(get(gca,'XTick')',['%.' int2str(log10(diff(specs.plot.XLim))-2) 'f'])));
         
         % Add legend
         if hasLegend == 0
@@ -205,7 +207,6 @@ for ee = 1:length(elInx)
         out.pwrspctrm.(whichElectrodes{ee}).se = double((Ulim-mnToPlot)');
     end
 end
-set(gcf, 'Position', [150 100 2000 1250]);
 
 out.f           = spectra.f;
 out.colors      = colors;

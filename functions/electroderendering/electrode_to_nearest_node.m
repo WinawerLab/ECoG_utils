@@ -374,17 +374,17 @@ for a = 1:length(specs.atlasNames)
     
     % Match nearest nodes to atlas labels
     atlas_rh = squeeze(atlas_rh);   atlas_lh = squeeze(atlas_lh);
-    if ~iscolumn(atlas_rh)
+    if ~iscolumn(atlas_rh)  % 1st dimension should be vertices 
         atlas_rh = permute(atlas_rh,[ndims(atlas_rh), 1:(ndims(atlas_rh)-1)]); % align with rows
         atlas_lh = permute(atlas_lh,[ndims(atlas_lh), 1:(ndims(atlas_lh)-1)]); % align with rows
     end
     atlas = cat(1,atlas_rh,atlas_lh); % concatenate hemis   
     atlas_elec = atlas(indices,:);
-    if iscolumn(atlas_elec)
+    if iscolumn(atlas_elec) % atlas_elec is vertices x 1 (MPM)
         [elec_indices] = find(atlas_elec);
         elec_labels_found = elec_labels(elec_indices);
         node_indices = indices(elec_indices);
-    else
+    else                    % atlas_elec is vertices x M (FPM)
         ncells = size(atlas_elec);  ncells(1) = 1;
         elec_indices      = cell(ncells);
         elec_labels_found = cell(ncells);
@@ -443,7 +443,7 @@ for a = 1:length(specs.atlasNames)
             area_cmap   = autumn(64);
             out.(currentAtlas).area_names   = area_labels;
 
-        case 'benson14_varea' % Noah template: areas 
+        case {'benson14_varea'} % Noah template: areas 
 
             % Labels come from Noah email:  values in order from 1-12: V1 V2 V3 hV4 VO1 VO2 LO1 LO2 TO1 TO2 V3b V3a
             area_labels = {'V1', ...
@@ -464,10 +464,16 @@ for a = 1:length(specs.atlasNames)
                              0 255 255;   0 255   0]./255;
             out.(currentAtlas).area_names   = area_labels;
 
-        case 'template_areas' % old Noah templates
+        case {'template_areas','benson20_mplbl'} % old Noah templates & Noah's HCP template
 
             area_labels = {'V1', 'V2', 'V3'}; 
-            area_cmap   = [255 255 0; 0 255 255; 0 0 255]./255;
+            area_cmap   = [255 0 0; 255 128 0; 255 255 0]./255;
+            out.(currentAtlas).area_names   = area_labels;
+            
+        case {'benson20_fplbl'} % Noah's HCP full probability map
+
+            area_labels = {'V1', 'V2', 'V3'}; 
+            area_cmap   = autumn(64);
             out.(currentAtlas).area_names   = area_labels;
             
         case 'to1_percent' % Wang probability
@@ -526,7 +532,7 @@ for a = 1:length(specs.atlasNames)
         
     % Get area labels and specs for matched nodes
     switch currentAtlas
-        case {'wang2015_atlas', 'wang15_mplbl', 'benson14_varea', 'template_areas'}
+        case {'wang2015_atlas', 'wang15_mplbl', 'benson14_varea','benson20_mplbl', 'template_areas'}
 
             area_count = zeros(1,length(area_labels));
             for i = 1:length(elec_labels_found)
@@ -567,8 +573,7 @@ for a = 1:length(specs.atlasNames)
             out.(currentAtlas).node_indices = node_indices;
             out.(currentAtlas).node_values  = round(atlas(node_indices),2)';
             
-        case {'wang15_fplbl'}
-
+        case {'wang15_fplbl', 'benson20_fplbl'}
             for i = 1:length(area_labels)
                 out.(currentAtlas).area_count(i)   = length(elec_labels_found{i});
                 out.(currentAtlas).elec_labels{i}  = elec_labels_found{i}';
@@ -582,7 +587,7 @@ for a = 1:length(specs.atlasNames)
     % Plot
     for i = 1:size(atlas_elec,2)
         switch currentAtlas
-            case 'wang15_fplbl'
+            case {'wang15_fplbl', 'benson20_fplbl'}
                 posfix = [' ' area_labels{i}];
             otherwise
                 posfix = [];
@@ -627,8 +632,9 @@ for a = 1:length(specs.atlasNames)
                         cb.Label.String = atlasUnits;
                         cb.Position = [0.92 0.25 0.03 0.5];
                         switch currentAtlas
-                            case {'wang2015_atlas', 'wang15_mplbl', 'benson14_varea', 'template_areas'}
-                                cb.Ticks = 0:1:length(area_labels);
+                            case {'wang2015_atlas', 'wang15_mplbl', 'benson14_varea', 'benson20_mplbl', 'template_areas'}
+                                dTick = length(area_labels)/(length(area_labels)+1);
+                                cb.Ticks = (dTick/2):dTick:length(area_labels);
                                 cb.TickLabels = ['none', area_labels];
                         end   
                 end
@@ -702,7 +708,7 @@ end
 % Print to window how many maps were found, and make a count per area (across hemispheres)
 
 % Check which of these atlases we ran
-atlasNames = intersect({'wang2015_atlas','wang15_mplbl', 'benson14_varea', 'template_areas'}, specs.atlasNames);
+atlasNames = intersect({'wang2015_atlas','wang15_mplbl', 'benson14_varea', 'benson20_mplbl', 'template_areas'}, specs.atlasNames);
 
 % In case not all benson maps were run, fill fields to prevent error below
 if max(contains(atlasNames, 'benson14_varea')) &&  ~isempty(out.benson14_varea)
@@ -720,7 +726,7 @@ for a = 1:length(atlasNames)
             
         for i = 1:length(out.(currentAtlas).elec_labels)            
             switch currentAtlas
-                case {'wang2015_atlas', 'template_areas', 'wang15_mplbl'}
+                case {'wang2015_atlas', 'wang15_mplbl', 'benson20_mplbl', 'template_areas'}
                     fprintf('[%s] %s in area %s\n', mfilename, out.(currentAtlas).elec_labels{i}, out.(currentAtlas).area_labels{i})
                     %disp([out.(currentAtlas).elec_labels{i} ' in area ' out.(currentAtlas).area_labels{i}]);
                 case 'benson14_varea'
