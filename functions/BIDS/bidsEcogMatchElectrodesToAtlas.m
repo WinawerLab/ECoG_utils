@@ -74,12 +74,10 @@ if ~exist('session', 'var') || isempty(session)
 end
 
 % <atlas>
-if ~exist('atlasName', 'var') || isempty(atlasName)
-    error('atlasName not defined. See help for list of options.')
-end
+if ~exist('atlasName', 'var') || isempty(atlasName), error('atlasName not defined. See help for list of options.'); end
 
 % <thresh>
-if ~exist('thresh', 'var'), thresh = inf; end
+if ~exist('thresh', 'var') || isempty(thresh), thresh = inf; end
 
 % <printSummary>
 if ~exist('printSummary', 'var') || isempty(printSummary), printSummary = true; end
