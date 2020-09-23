@@ -79,7 +79,7 @@ end
 
 sessionDir = fullfile(dataPath, sprintf('sub-%s', subject), sprintf('ses-%s', session), 'ieeg');
 fprintf('[%s] Reading from %s\n', mfilename, sessionDir);
-fprintf('[%s] Reading %s', mfilename, fname_in);
+fprintf('[%s] Reading %s\n', mfilename, fname_in);
 
 % Read in the channels file
 chanFile = dir(fullfile(sessionDir, sprintf('%s_channels.tsv', fname_in)));
