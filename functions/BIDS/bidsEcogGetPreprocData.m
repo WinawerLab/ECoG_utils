@@ -1,24 +1,74 @@
-function [data, channels, events, srate] = bidsEcogGetPreprocData(dataPath, subject, sessions, tasks, runnums, description)
+function [data, channels, events, srate] = bidsEcogGetPreprocData(dataPath, subject, sessions, tasks, runnums, description, srate)
 % Reads in timeseries data, channels and events from a BIDS directory with
-% ECoG data. 
+% preprocessed ECoG data. Data from specified tasks and runs will be
+% concatenated, and the event onsets will be updated accordingly.
 %   
-% [data, channels, events, srate] = bidsEcogGetPreProcData(dataPath, subject, [sessions], [tasks], [runnums])
+% [data, channels, events, srate] = bidsEcogGetPreProcData(dataPath, ...
+%           subject, sessions, tasks, runnums, [description], [srate])
 %
 % Inputs
-%   dataPath:   path to folder containing preprocessed data
-%   dataStr:    text string to specify filename for data
-%   tasks:      BIDS tasks, in cell array
-%   runnums:    cell array of runnumbers, equal in length to tasks
+%     dataPath:         path where the BIDS project lies (string) 
+%     subject:          BIDS subject name (string, all lower case) 
+%     sessions:         [optional] BIDS session name (cell of strings, all lower
+%                       case). default: all sessions for this subject.
+%     tasks:            [optional] BIDS task name (cell of strings, all
+%                       lower case). default: all tasks for this subject.
+%     runnums:          [optional] BIDS run number (cell of strings, all
+%                       lower case). default: all runs for this subject.
+%     description:      [optional] String for the BIDS 'desc-' label in the
+%                       bidsname. default: all desc- labels in dataPth.
+%     srate:            [optional] Integer indicating a desired sampling
+%                       rate in Hz; data that does not match sampling rate
+%                       will be resampled to this rate. Useful for when
+%                       different runs are recorded with different srates.
 %
 % Output
-%   data:       the time-series data for each run with dimensions
-%                X x Y x Z x time
-%   info:       nifti header for each run
-%   fullFile:   The (nifti) time-series data including header information
+%     data:             A 2D matrix with ECoG data (channels x time),
+%                       concatenated across tasks and runs
+%     channels:         A table with channel information (concatenated
+%                       across tasks and runs)
+%     events:           A table with events information (concatenated
+%                       across tasks and runs, with updated onsets)
+%     srate:        	Sampling rate (native when the no srate input is
+%                       provided, should match input srate if provided).
 %
 % Example:
+%  dataPath = fullfile(bidsRootPath, 'derivatives', 'ECoGCAR');
+%  subject = 'som708'; 
+%  tasks = {'spatialpattern', 'temporalpattern'};
+%  [data, channels, events, srate] = bidsEcogGetPreprocData(dataPath, subject, [], tasks);
+      
+% <dataPath>
+if ~exist('dataPath', 'var') || isempty(dataPath)
+    error('dataPath not defined');
+end  
 
-[sessions] = bidsSpecifySessions(dataPath, subject, sessions);
+% <subject>
+if ~exist('subject', 'var') || isempty(subject)
+    error('subject not defined');
+end
+
+% <session>
+if ~exist('sessions', 'var') || isempty(sessions)
+	[sessions] = bidsSpecifySessions(dataPath, subject);
+end
+
+% <task>
+if ~exist('tasks', 'var'), tasks = []; end
+
+% <runnum>
+if ~exist('runnums', 'var') || isempty(runnums)
+	getRunsPerSession = 1; 
+else
+    getRunsPerSession = 0;
+end
+
+% <description>
+if ~exist('description', 'var'), description = []; end
+
+% <srate>
+if ~exist('srate', 'var'), srate = []; end
+
 if ~iscell(sessions), sessions = {sessions}; end
 
 % Initialize
@@ -26,8 +76,6 @@ allData = [];
 allEvents = [];
 samplesToAdd = 0;
 secondsToAdd = 0;
-
-if isempty(runnums), getRunsPerSession = 1; else, getRunsPerSession = 0; end
 runCount = 0;
 
 for ii = 1:length(sessions)
@@ -60,8 +108,17 @@ for ii = 1:length(sessions)
                 runCount = runCount + 1;
             
                 % Check sampling frequency
-                if exist('previousFs', 'var')
-                    assert(hdr.Fs == previousFs,'Failed to concatenate sessions because the sampling frequencies were different');
+                if ~isempty(srate)
+                    Fs = hdr.Fs;
+                    if ~isequal(Fs,srate)
+                        fprintf('[%s] Sample rate does not match requested sample rate of %d Hz. Resampling \n',mfilename, srate);
+                        data = resample(data', 1, hdr.Fs/srate)';
+                        channels.sampling_frequency(:) = srate;
+                    end
+                else
+                    if exist('previousFs', 'var')
+                        assert(hdr.Fs == previousFs,'Failed to concatenate sessions because the sampling frequencies were different. Please specify a desired sampling rate using the input argument srate.');
+                    end
                 end
                 previousFs = hdr.Fs;
 
@@ -69,13 +126,11 @@ for ii = 1:length(sessions)
                 if exist('previousChannels', 'var')
                     if isfield(summary(channels), 'status')
                         if ~isequal(channels.status, previousChannels.status)
-                            % This means one or more electrodes are bad in one session
-                            % but not another. For now, label the electrode as good
-                            % across all sessions:
-                            channels.status(~strcmp(channels.status, previousChannels.status)) = {'good'};
-                            % and assume bad channels/epochs will removed at later
-                            % stages.
-                            % TO DO: find some smarter way to deal with this problem
+                            % This means one or more electrodes are bad in
+                            % one session but not another. For now, label
+                            % the electrode as good across all sessions,
+                            % and assume bad epochs will removed later.
+                            channels.status(~strcmp(channels.status, previousChannels.status)) = {'good'};        
                         end
                     end
                 end
@@ -99,14 +154,14 @@ for ii = 1:length(sessions)
                         events.value = num2cell(events.value);
                     end
                 end
+                
                 % Check if there are stim_file_names, if not, add them
                 if ~isfield(summary(events), 'stim_file')
                     fprintf('[%s] Events lack stim files - adding them now .\n',mfilename);
                     events.stim_file = repmat({'n/a'}, [height(events) 1]);
                 end
 
-                % Check if there are sample indices and ISIs:
-                if ~isfield(summary(events),'event_sample'); events.event_sample = round(events.onset*hdr.Fs);end
+                % Check if there are ISIs:
                 if ~isfield(summary(events), 'ISI');events.ISI = zeros(height(events),1);end
 
                 % Add task, session and run indices to the events file
@@ -115,15 +170,13 @@ for ii = 1:length(sessions)
                 events.run_name = repmat({runnum}, [height(events),1]);
 
                 % Concatenate data and events; update onsets 
-                if runCount == 1 
-                    allEvents = events; 
-                    allData = data; 
-                end
                 if runCount > 1
-                    events.event_sample = events.event_sample + samplesToAdd;
                     events.onset = events.onset + secondsToAdd;
                     allEvents = [allEvents; events];                    
                     allData = cat(2,allData,data);
+                else
+                    allEvents = events; 
+                    allData = data; 
                 end
 
                 % Use runlengths to update next run
@@ -131,11 +184,9 @@ for ii = 1:length(sessions)
                 runLengthInSeconds = hdr.nSamples/hdr.Fs;
                 samplesToAdd = samplesToAdd + runLengthInSamples;
                 secondsToAdd = secondsToAdd + runLengthInSeconds;
-                fprintf('[%s] Length of run %s is %s seconds, cumulative length of data is %s seconds \n', mfilename, runnum, num2str(runLengthInSeconds), num2str(samplesToAdd/hdr.Fs));          
+                fprintf('[%s] Length of run %s is %d seconds, cumulative length of data is %d seconds \n', mfilename, runnum, runLengthInSeconds, samplesToAdd/hdr.Fs);          
             end
-        end
-        
-        
+        end        
     end
 end
 
@@ -144,7 +195,7 @@ chan_inx = contains(lower(channels.type), {'ecog', 'seeg'});
 channels = channels(chan_inx,:);
 data = allData(chan_inx,:);
 events = allEvents;
-srate = hdr.Fs;
+if isempty(srate), srate = hdr.Fs; end
 
 if exist('channels', 'var') 
     channels.subject_name = repmat({subject},[height(channels) 1]);
