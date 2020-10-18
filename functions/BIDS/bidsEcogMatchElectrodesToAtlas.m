@@ -1,8 +1,7 @@
 function [electrode_table] = bidsEcogMatchElectrodesToAtlas(projectDir, subject, session, atlasName, thresh, printSummary)
 % Matches electrodes to visual atlas, using electrode coordinates specified
 % in the bids metadata file in electrodes.tsv and freesurfer surface nodes
-% in derivates/freesurfer. Area names for the atlas will be added to the
-% channel table and electrode_table.
+% in derivates/freesurfer. Area names will be added to the electrode_table.
 %
 % [electrode_table] = bidsEcogMatchElectrodesToAtlas(projectDir, ...
 %   subject, session, atlas, [thresh], [printSummary]);
