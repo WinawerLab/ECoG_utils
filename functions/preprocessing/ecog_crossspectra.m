@@ -44,18 +44,12 @@ end
 
 % calculate spectra to get length of f to initialize spectra
 [~,f] = pwelch(squeeze(data_epoch(1,1,fft_t)),fft_w,fft_ov,srate,srate);
-data_epoch_spectra = zeros(size(data_epoch,1),size(data_epoch,1),size(data_epoch,2),length(f));
+data_epoch_spectra = sparse(size(data_epoch,1),size(data_epoch,1),size(data_epoch,2),length(f));
 
 % calculate powerspectra
 for k = 1:size(data_epoch,1)%channels
-    for l = 1:size(data_epoch,1)%channels
+    for l = (k+1):size(data_epoch,1)%channels
         if k==l
-            disp(['fft el ' int2str(k)]);
-            x = squeeze(data_epoch(k,:,:))';
-            nanepoch = all(isnan(x),1);
-            [Pxx,f] = pwelch(x(fft_t,~nanepoch),fft_w,fft_ov,srate,srate);
-            data_epoch_spectra(k,k,~nanepoch,:) = Pxx';
-        else
             disp(['fft el ' int2str(k) ' x el ' int2str(k)]);
             x = squeeze(data_epoch(k,:,:))';
             y = squeeze(data_epoch(l,:,:))';
