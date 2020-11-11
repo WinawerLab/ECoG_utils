@@ -15,34 +15,43 @@ function figlist = ecog_plotGridPRF(whichHDgrid, opt, varargin)
 % each result can be Mx1 cell-array with pRF structures.
 % 
 % <option> is a structure of plot information.
-%   option.channels     = a table of channel information.
-%  	option.viselec      = a structure of visual area information.
-%   option.plot         = a structure of plot information with following fields.
-%       Type            = 'contour'(default) or 'imagesc'
-%       sigma           = scalar | vector (default = 1)
-%                         To draw contour lines
-%                           - from s.d. to N*s.d., specify as the scalar value N.
-%                           - at specific s.d.s, specify as a vector of coefficients of s.d.s.
-%                             Specify as [1:N] is the same as [N].
-%                           - at a specific K*s.d., specify as a two-element row vector [K K].
-%       isavg           = true or flase (default), if true plot averaged prf within each result.
-%       resolution      = stimulus size in pixel (default = 100);
-%       pix2deg         = degree/pixel (default = 1)
-%       XLim            =
-%       YLim            =
-%       colors          =
+%   option.channels      = a table of channel information.
+%                          If result has channel field, it's not necessary.
+%  	option.viselec       = a structure of visual area information.
+%                          If channels has visual area table or you don't want to show area name,
+%                          it's not necessary.
+%   option.plot          = a structure of plot information with following fields.
+%       Type             = 'contour'(default) or 'imagesc'
+%       sigma            = scalar | vector (default = 1)
+%                          To draw contour lines
+%                            - from s.d. to N*s.d., specify as the scalar value N.
+%                            - at specific s.d.s, specify as a vector of coefficients of s.d.s.
+%                              Specify as [1:N] is the same as [N].
+%                            - at a specific K*s.d., specify as a two-element row vector [K K].
+%       isavg            = true or flase (default), if true plot averaged prf within each result.
+%       resolution       = stimulus size in pixel (default = 100);
+%       pix2deg          = degree/pixel (default = 1)
+%       XLim             =
+%       YLim             =
+%       colors           =
 % 
-%       addR2ToTitle    = 'yes' or 'no'(default)  % show R2 or xval in data1
-%       addEccToTitle   = 'yes' or 'no'(default)
-%       nSubPlots       = [m n], plot m-by-n grid electrodes in a figure.
-%       RotGrid         = true or false (default), if true, electrodes are
-%                         aligned along row instead of column.
-%       labelCol        = color or cell-array of colors, color of the titles
-%                         in each axis. defualt is black.
-%       FigName         = string, name of the figure.
-%       fontSize        = scalar, font size in the figure.
-%       legend          = string or cell-array of strings, legend labels.
-%       options         = any other options for each axis.
+%       addChsToTitle    = 'yes'(default) or 'no'
+%       addWangToTitle   = 'yes'(default) or 'no'
+%       addBensonToTitle = 'yes'(default) or 'no'
+%       addR2ToTitle     = 'yes' or 'no'(default)  % show R2 or xval of result1
+%       addEccToTitle    = 'yes' or 'no'(default)  % show eccentricity of result1
+%       addSbjToTile     = 'yes' or 'no'(default)  % show subject name
+%       nSubPlots        = [m n], plot m-by-n grid electrodes in a figure.
+%       RotGrid          = true or false (default), if true, electrodes are
+%                          aligned along row instead of column.
+%       labelCol         = color or cell-array of colors, color of the titles
+%                          in each axis. defualt is black.
+%       FigName          = string, name of the figure.
+%       fontSize         = scalar, font size in the figure.
+%       legend           = string or cell-array of strings, legend labels.
+%       options          = any other options for each axis.
+%   option.plotbenson    = 'yes' or 'no'(default)  % plot results estimated from benson atlas
+%   option.subjet        = string, subject name is helpful to interpret benson prf.
 % 
 % Followings are unexplained options for option.plot: 
 %       representative
@@ -50,11 +59,14 @@ function figlist = ecog_plotGridPRF(whichHDgrid, opt, varargin)
 
 % option should include 'channels'
 
-% Dependency: drawellipse, SetDefault, cellstrfind, arrangeinrect
+% Dependency: <analyzePRF>, SetDefault, cellstrfind, arrangeinrect, istablefield
 
 % 20191106 Yuasa
 % 20200206 Yuasa: change arguments structures (not compatible to prior version)
 % 20200309 Yuasa: enable to plot no HD grid data
+% 20200331 Yuasa: add 'plotbenson' option
+% 20200925 Yuasa: solve problem using strings in channels
+% 20201110 Yuasa: bug fix
 
 %% Set options
 narginchk(3,inf);
@@ -66,10 +78,16 @@ else
     error('data or option must have ''channels'' field');
 end
 
+SetDefault('opt.plotbenson', 'no', 0);
+
 SetDefault('opt.plot.Type', 'contour', 0);
 SetDefault('opt.plot.isavg', false, 0);
+SetDefault('opt.plot.addChsToTitle', 'yes', 0);
+SetDefault('opt.plot.addWangToTitle', 'yes', 0);
+SetDefault('opt.plot.addBensonToTitle', 'yes', 0);
 SetDefault('opt.plot.addR2ToTitle', 'no', 0);
 SetDefault('opt.plot.addEccToTitle', 'no', 0);
+SetDefault('opt.plot.addSbjToTitle', 'no', 0);
 SetDefault('opt.plot.fontSize', 12, 0);
 SetDefault('opt.plot.sigma', [1], 1);
 SetDefault('opt.plot.resolution', 100, 1);
@@ -96,6 +114,25 @@ switch opt.plot.Type
 end
 
 %%
+%-- Define variables
+plotbenson   = false;
+if strcmpi(opt.plotbenson,'yes')
+    if all(ismember({'bensoneccen','bensonangle','bensonsigma'},channels.Properties.VariableNames))
+        plotbenson   = true;
+    else
+        warning('Benson atlas information is not found');
+    end
+end
+if ~istablefield(channels,'subject_name')
+    if isfield(opt,'subject'),        channels.subject_name(:) = opt.subject;
+    else
+        if isfield(varargin{1},'subject'), channels.subject_name(:) = varargin{1}.subject;
+        else,                              channels.subject_name(:) = '';
+        end
+    end
+end
+subjects = cellstr(channels.subject_name);
+
 %-- data correction (align for multi group)
 ngroups = nargin-2;
 groups  = [];
@@ -107,6 +144,27 @@ for ii=1:ngroups
 end
 dat      = cat(1,varargin{:});
 ndats    = numel(dat);
+
+%-- Benson reference
+if plotbenson
+    subj_L = {'beilen','som648','som692','som708','som748'}; % left hemisphere
+    subj_R = {'chaam','som661','som674','som718','som726'}; % right hemisphere
+    subj_B = {'som723'}; % bilateral
+    assert(~isempty(setdiff(subjects,[subj_L,subj_R,subj_B])),...
+            'data includes unknown subject');
+        
+    %-- detect channels in left hemisphere
+    islefths = ismember(subjects,subj_L) | ...
+                (ismember(subjects,subj_B) & startsWith(channels.name,'L'));
+        
+    ngroups = ngroups+1;
+    groups  = [groups; ngroups];
+    ndats   = ndats+1;
+    
+    dat{ndats}.ecc      = channels.bensoneccen./opt.plot.pix2deg;
+    dat{ndats}.ang      = ((-1).^islefths).*channels.bensonangle+90;
+    dat{ndats}.rfsize   = channels.bensonsigma./opt.plot.pix2deg;
+end
 
 %-- representative data
 if ~iscell(opt.plot.representative)
@@ -139,21 +197,15 @@ if isscalar(opt.plot.sigma)
 end
 
 %-- plot color properties
+ColList = get(groot,'DefaultAxesColorOrder');
 if isempty(opt.plot.colors)
-    plotCol = get(groot,'DefaultAxesColorOrder');
-elseif isnumeric(opt.plot.colors)
+    opt.plot.colors = reshape(1:size(ColList,1),[],1);
+end
+if isnumeric(opt.plot.colors)
     if (size(opt.plot.colors,2)~=3 || any(opt.plot.colors(:)>1))
         %-- specify as integer
-        plotCol = zeros(numel(opt.plot.colors),3);
-        ColList = get(groot,'DefaultAxesColorOrder');
-        ColList = ColList([end,1:end-1],:);
-        for icol=1:numel(opt.plot.colors)
-            if opt.plot.colors(icol) == 0
-                plotCol(icol,:) = [1 1 1].*0.3;
-            else
-                plotCol(icol,:) = ColList(mod(opt.plot.colors(icol),size(ColList,1))+1,:);
-            end
-        end
+        plotCol = ColList(mod(opt.plot.colors(:)-1,size(ColList,1))+1,:);
+        plotCol(opt.plot.colors==0,:) = 0.3;   % special color [0.3 0.3 0.3] for '0'
     else
         %-- specify as rgb
         plotCol = opt.plot.colors;
@@ -176,9 +228,17 @@ end
 if ischar(whichHDgrid) && ismember(whichHDgrid,{'GA','GB'})
     hasHDgrid   = true;
     gridList    = [];
+    chanIdx     = [];
 else
     hasHDgrid   = false;
-    gridList    = channels.name(cellstrfind(channels.name, whichHDgrid,1));
+    if islogical(whichHDgrid)
+      chanIdx     = find(whichHDgrid);
+    elseif isnumeric(whichHDgrid) && isequaln(whichHDgrid,round(whichHDgrid))
+      chanIdx     = whichHDgrid;
+    else    % list of channel names
+      chanIdx     = cellstrfind(channels.name, whichHDgrid,0);
+    end
+    gridList    = channels.name(chanIdx);
     whichHDgrid = 'Channels';
 end
 
@@ -194,7 +254,7 @@ end
 switch whichHDgrid
     case 'GA',  nCol = 8; nRow = 8;
     case 'GB',  nCol = 8; nRow = 16;
-    otherwise,  [nCol,nRow] = arrangeinrect(numel(gridList),1.5,[3,1]);
+    otherwise,  [nCol,nRow] = arrangeinrect(numel(gridList),2,[4,1]);
 end
 if hasHDgrid && opt.plot.RotGrid, tmp = nCol; nCol = nRow; nRow = tmp; end
 FullGRID = nCol * nRow;
@@ -221,21 +281,42 @@ isTableCol = @(t, thisCol) ismember(thisCol, t.Properties.VariableNames);
 for ee = 1:FullGRID
     if hasHDgrid
       gridList{ee} = sprintf('%s%03d',whichHDgrid,ee);
+      igrid = find(strcmp(channels.name,gridList{ee}),1);
+      if isempty(igrid),    chanIdx(ee)  = nan;
+      else,                 chanIdx(ee)  = igrid(1);
+      end
     elseif ee > numel(gridList)
       gridList{ee} = 'none';
+      chanIdx(ee)  = nan;
     end
     
     %-- get Visual Area Label
-    igrid = find(strcmp(channels.name,gridList{ee}),1);
-    if strcmpi(opt.plot.addR2ToTitle,'yes') && ~isempty(igrid)
-        areaList{ee} = sprintf('%s (%.1f%%)\n',gridList{ee},dat{1}.(R2field)(igrid));
+    igrid = chanIdx(ee);
+    if strcmpi(opt.plot.addR2ToTitle,'yes') && ~isnan(igrid)
+        if strcmpi(opt.plot.addChsToTitle,'yes')
+            areaList{ee} = sprintf('%s (%.1f%%)',gridList{ee},dat{1}.(R2field)(igrid));
+        else
+            areaList{ee} = sprintf('(%.1f%%)',gridList{ee},dat{1}.(R2field)(igrid));
+        end
+    elseif strcmpi(opt.plot.addChsToTitle,'yes')
+        areaList{ee} = sprintf('%s',gridList{ee});
     else
-        areaList{ee} = sprintf('%s\n',gridList{ee});
+        areaList{ee} = '';
     end
-    if ~isempty(igrid)
+    if (strcmpi(opt.plot.addWangToTitle,'yes')||strcmpi(opt.plot.addBensonToTitle,'yes'))&& ...
+            (strcmpi(opt.plot.addChsToTitle,'yes')||strcmpi(opt.plot.addR2ToTitle,'yes'))
+        areaList{ee} = sprintf('%s\n',areaList{ee});
+    end
+    if ~isnan(igrid)
+        if strcmpi(opt.plot.addSbjToTitle,'yes') && ~isempty(subjects{ee})
+            areaList{ee} = sprintf('%s %s',subjects{igrid}, areaList{ee});
+        end
+        
         VA = [];
         if isTableCol(channels,'wangarea')
-           VA = channels.wangarea{igrid};
+           if iscell(channels.wangarea),    VA = channels.wangarea{igrid};
+           else,                            VA = channels.wangarea(igrid);
+           end
         elseif isfield(opt,'viselec') && isfield(opt.viselec,'wang15_mplbl')
            vigrid = find(strcmp(opt.viselec.wang15_mplbl.elec_labels,gridList{ee}),1);
            if ~isempty(vigrid),  VA = opt.viselec.wang15_mplbl.area_labels{vigrid};  end
@@ -243,16 +324,20 @@ for ee = 1:FullGRID
            vigrid = find(strcmp(opt.viselec.wang2015_atlas.elec_labels,gridList{ee}),1);
            if ~isempty(vigrid),  VA = opt.viselec.wang2015_atlas.area_labels{vigrid};  end
         end
-        if ~isempty(VA)&&~strcmp(VA,'none'), areaList{ee} = sprintf('%s w:%s',areaList{ee},VA); end
+        if strcmpi(opt.plot.addWangToTitle,'yes')&&~isempty(VA)&&~strcmp(VA,'none')
+            areaList{ee} = sprintf('%s w:%s',areaList{ee},VA);
+        end
         
         VA = [];
         if isTableCol(channels,'bensonarea')
-           VA = channels.bensonarea{igrid};
+           if iscell(channels.bensonarea),  VA = channels.bensonarea{igrid};
+           else,                            VA = channels.bensonarea(igrid);
+           end
         elseif isfield(opt,'viselec') && isfield(opt.viselec,'benson14_varea')
            vigrid = find(strcmp(opt.viselec.benson14_varea.elec_labels,gridList{ee}),1);
            if ~isempty(vigrid),  VA = opt.viselec.benson14_varea.area_labels{vigrid};  end
         end
-        if ~isempty(VA)&&~strcmp(VA,'none')
+        if strcmpi(opt.plot.addBensonToTitle,'yes')&&~isempty(VA)&&~strcmp(VA,'none')
             areaList{ee} = sprintf('%s b:%s',areaList{ee},VA);
             switch opt.plot.addEccToTitle
                 case 'yes'
@@ -294,19 +379,17 @@ for ee = 1:nFig
 end
 
 %-- get gaussian properties of pRF & group updates
-grididx = cellstrfind(channels.name,gridList,1);
 PRFs = cell(size(dat));
 for ii = 1:ndats
-    PRFs{ii} = [dat{ii}.ecc(grididx,1) .* cos(dat{ii}.ang(grididx,1)/180*pi), ...
-                dat{ii}.ecc(grididx,1) .* sin(dat{ii}.ang(grididx,1)/180*pi), ...
-                dat{ii}.rfsize(grididx,1)];
+    PRFs{ii} = [dat{ii}.ecc(:,1) .* cos(dat{ii}.ang(:,1)/180*pi), ...
+                dat{ii}.ecc(:,1) .* sin(dat{ii}.ang(:,1)/180*pi), ...
+                dat{ii}.rfsize(:,1)];
 end
 PRFs = cat(3,PRFs{:});
 PRFr = PRFs(:,:,repidx);
 PRFs = PRFs(:,:,~repidx);
 groupr = groups(repidx);
 groups = groups(~repidx);
-channels(~grididx,:) = [];
 %%-- PRFa is determined to estimate proper axis size
 if opt.plot.isavg
     PRFa = [];
@@ -339,10 +422,11 @@ if ~isempty(opt.plot.XLim) && ~isempty(opt.plot.YLim)
         ymin = opt.plot.YLim(1) ./opt.plot.pix2deg;
         ymax = opt.plot.YLim(2) ./opt.plot.pix2deg;
 else
-    xmin = prctile(prctile(PRFa(:,1,:)-max(opt.plot.sigma).*PRFa(:,3,:),5,3),5,1);
-    xmax = prctile(prctile(PRFa(:,1,:)+max(opt.plot.sigma).*PRFa(:,3,:),95,3),95,1);
-    ymin = prctile(prctile(PRFa(:,2,:)-max(opt.plot.sigma).*PRFa(:,3,:),5,3),5,1);
-    ymax = prctile(prctile(PRFa(:,2,:)+max(opt.plot.sigma).*PRFa(:,3,:),95,3),95,1);
+    grididx = chanIdx(~isnan(chanIdx));
+    xmin = prctile(prctile(PRFa(grididx,1,:)-max(opt.plot.sigma).*PRFa(grididx,3,:),5,3),5,1);
+    xmax = prctile(prctile(PRFa(grididx,1,:)+max(opt.plot.sigma).*PRFa(grididx,3,:),95,3),95,1);
+    ymin = prctile(prctile(PRFa(grididx,2,:)-max(opt.plot.sigma).*PRFa(grididx,3,:),5,3),5,1);
+    ymax = prctile(prctile(PRFa(grididx,2,:)+max(opt.plot.sigma).*PRFa(grididx,3,:),95,3),95,1);
     if ~isempty(opt.plot.YLim)
         xmin = opt.plot.XLim(1) ./opt.plot.pix2deg;
         xmax = opt.plot.XLim(2) ./opt.plot.pix2deg;
@@ -369,7 +453,7 @@ else
     end
 end
 
-%-- main
+%%% main
 axmaxmin = max(xmax,ymax)-min(xmin,ymin);
 axlen    = max(xmax-xmin,ymax-ymin);
 axspd    = axmaxmin./axlen;
@@ -386,10 +470,10 @@ for ee = 1:length(inx)
     hF = figure('Name', opt.plot.FigName); 
     set(hF, 'Position', [150 100 125*nCol 160*nRow]);%[150 100 2000 1250]
     for ichidx=1:length(inx{ee})
-      plotElectrodes = gridList(inx{ee}(ichidx));
+%       plotElectrodes = gridList(inx{ee}(ichidx));
       nameElectrodes = areaList(inx{ee}(ichidx));
-      el = cellstrfind(channels.name,plotElectrodes,0);
-      if ~isempty(el)
+      el = chanIdx(inx{ee}(ichidx));
+      if ~isnan(el)
           %-- prepare gaussian image
           PRFexp = (bsxfun(@minus,xi,PRFs(el,1,:)).^2 + bsxfun(@minus,yi,PRFs(el,2,:)).^2)./(2.*PRFs(el,3,:).^2);
           PRFamp = 1;
@@ -411,19 +495,19 @@ for ee = 1:length(inx)
                     ax_sp(2) + ax_siz(2)*(nRow-ceil(ichidx./nCol)),...
                     ax_siz(1)*0.70, ax_siz(2)*0.60];
           hA = subplot('Position',ax_pos);    daspect([1 1 1]);
-          plot([min(axplt) max(axplt)],[0 0],'k:');
           hold on
-          plot([0 0],[min(axplt) max(axplt)],'k:');
-          drawellipse(0,0,0,opt.plot.resolution/2.*opt.plot.pix2deg,opt.plot.resolution/2.*opt.plot.pix2deg,[],[],'k:');
           
           %-- Plot
           hplts = [];
           switch opt.plot.Type
+              case {'contour'}
+                  plot([min(axplt) max(axplt)],[0 0],'k:');
+                  plot([0 0],[min(axplt) max(axplt)],'k:');
+                  drawellipse(0,0,0,opt.plot.resolution/2.*opt.plot.pix2deg,opt.plot.resolution/2.*opt.plot.pix2deg,[],[],'k:');
               case {'imagesc'}
                   ii=1;
                   imagesc(axplt.*opt.plot.pix2deg,axplt.*opt.plot.pix2deg,zeros(length(axplt)),...
                               opt.plot.options{groups(ii)}{:},[0 exp(-0.5.^2./2)]);
-                  axis xy;
           end
           for ii = 1:size(imPRFs,3)
               switch opt.plot.Type
@@ -438,7 +522,6 @@ for ee = 1:length(inx)
                       hplts(ii) = imagesc(axplt.*opt.plot.pix2deg,axplt.*opt.plot.pix2deg,imPRFs(:,:,ii),...
                                   'AlphaData',ones(size(imPRFs,[1 2]))./(size(imPRFs,3)+2*size(imPRFr,3)),...
                                   opt.plot.options{groups(ii)}{:},[0 exp(-0.5.^2./2)]);
-                      axis xy;
               end
           end
           hpltr = [];
@@ -455,9 +538,17 @@ for ee = 1:length(inx)
                       hpltr(ii) = imagesc(axplt.*opt.plot.pix2deg,axplt.*opt.plot.pix2deg,imPRFr(:,:,ii),...
                                   'AlphaData',ones(size(imPRFs,[1 2]))./(size(imPRFs,3)+2*size(imPRFr,3))*2,...
                                   opt.plot.rep_options{groupr(ii)}{:},[0 exp(-0.5.^2./2)]);
-                      axis xy;
               end
           end
+          axis xy equal
+          
+          switch opt.plot.Type
+              case {'imagesc'}
+                  plot([min(axplt) max(axplt)],[0 0],'w:');
+                  plot([0 0],[min(axplt) max(axplt)],'w:');
+                  drawellipse(0,0,0,opt.plot.resolution/2.*opt.plot.pix2deg,opt.plot.resolution/2.*opt.plot.pix2deg,[],[],'w:');
+          end
+          
           hold off
           
           %-- Set axis, title & legend
