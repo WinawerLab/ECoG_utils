@@ -1,35 +1,48 @@
-function figlist = ecog_plotGridBarwitherr(dat, errlo, errup, whichHDgrid, opt)
+function figlist = ecog_plotGridBarTwoSide(dat1, dat2, whichHDgrid, opt, errlo1, errup1, errlo2, errup2)
 
-% p = ecog_plotGridBarwitherr(data, lower_error, upper_error, whichHDgrid, options)
+% p = ecog_plotGridBarTwoSide(data1, data2, whichHDgrid, options, [lower_error1, upper_error1, lower_error2, upper_error2])
 % Plot the entire HD grid
 % 
 % options mush include 'channels'
-% options should include 'timelable','viselec'
 %   options.plot.tickCol = 'strings': colors of tick labels
 %                        {'strings', @function} : change color based on the function 
 
-% Dependency: barwitherr, SetDefault, cellstrfind
+% Dependency: SetDefault, cellstrfind
 
-% 20190726 Yuasa
-% 20190813 Yuasa: fix ylim computation
+% 20200321 Yuasa
+% 20200428 Yuasa: enable errorbar
 
 %% Set options
 narginchk(4,inf);
+
+haserror = nargin > 4;
+SetDefault('errlo1',nan(size(dat1)));
+SetDefault('errup1',nan(size(dat1)));
+SetDefault('errlo2',nan(size(dat2)));
+SetDefault('errup2',nan(size(dat2)));
+
 SetDefault('opt.plot.nSubPlots',[]);
 SetDefault('opt.plot.addEccToTitle','no');
 SetDefault('opt.plot.fontSize',12);
-SetDefault('opt.plot.YLim',[]);
 SetDefault('opt.plot.FigName','');
 SetDefault('opt.plot.RotGrid',false);
-SetDefault('opt.plot.colors',[0:(size(dat,2)-1)]);
+SetDefault('opt.plot.colors',[1,2]);
 SetDefault('opt.plot.tickCol',[]);
+
+SetDefault('opt.plot.YLim',[],'cell');
+SetDefault('opt.plot.axis','xy','cell');
+
+if length(opt.plot.YLim)==1
+    opt.plot.YLim{2} = [];
+end
+if length(opt.plot.axis)==1
+    opt.plot.axis = repmat(opt.plot.axis,1,2);
+end
 
 % whichHDgrid     = upper(whichHDgrid);
 %%
 %-- plot color properties
-if isvector(dat),   ngroups = 1;
-else,               ngroups = size(dat,2);
-end
+ngroups = 2;
 if isnumeric(opt.plot.colors)
     if (size(opt.plot.colors,2)~=3 || any(opt.plot.colors(:)>1))
         %%% specify as integer
@@ -53,14 +66,6 @@ elseif ischar(opt.plot.colors)
 end 
 plotCol = repmat(plotCol,ceil(ngroups./size(opt.plot.colors,1)),1);
 plotCol = plotCol(1:ngroups,:);
-
-%-- set values for error bar
-if isempty(errlo),  errlo   = nan(size(dat));   end
-if isempty(errup),  errup   = nan(size(dat));   end
-iserrlo = ~all(isnan(errlo(:)));
-iserrup = ~all(isnan(errup(:)));
-nanlo = isnan(errlo);    errlo(nanlo) = 0;
-nanup = isnan(errup);    errup(nanup) = 0;
 
 %-- correct elecnames (set '%03d')
 [eleccat, elecnum] = strtok(opt.channels.name,int2str(0:9));
@@ -136,7 +141,7 @@ for ee = 1:FullGRID
           ichs = cellstrfind(opt.channels.name,gridList{ee});
           if ~isempty(ichs)
             for itcl=size(opt.plot.tickCol,1):-1:1
-              if opt.plot.tickCol{itcl,2}(dat(ichs(1),:),errlo(ichs(1),:),errup(ichs(1),:))
+              if opt.plot.tickCol{itcl,2}(dat1(ichs(1),:),dat1(ichs(1),:))
                 TickCol = char(opt.plot.tickCol{itcl,1});
               end
             end
@@ -159,32 +164,57 @@ end
 
 %-- Set ylim
 ichs = cellstrfind(opt.channels.name,gridList,1);
-if isempty(opt.plot.YLim)
-    if iserrlo,    ymin = prctile(reshape(dat(ichs,:)-errlo(ichs,:),1,[]),5);
-    else,          ymin = prctile(reshape(dat(ichs,:),1,[]),0.3);     end
-    if iserrup,    ymax = prctile(reshape(dat(ichs,:)+errup(ichs,:),1,[]),95);
-    else,          ymax = prctile(reshape(dat(ichs,:),1,[]),99.7);     end
-    if ~iserrlo,   yminex = (ymin - (ymax-ymin)*0.1);  ymin = yminex .* (ymin<0 | yminex>0);
-    end
-    if ~iserrup,   ymaxex = (ymax + (ymax-ymin)*0.1);  ymax = ymaxex .* (ymax>0 | ymaxex<0);
-    end
-    if ymax-ymin>2
-        ymin = floor(ymin); ymax = ceil(ymax);
-    elseif ymax-ymin>1
-        ymin = floor(ymin*2)/2; ymax = ceil(ymax*2)/2;
-    else
-        ymin = floor(ymin*10)/10; ymax = ceil(ymax*10)/10;
-    end
+
+if isempty(opt.plot.YLim{1})
+    y1min = nanmin(reshape(dat1(ichs,:),1,[]));
+    y1max = nanmax(reshape(dat1(ichs,:),1,[]));
+    
+    ystep = (y1max - y1min)./5;
+    ystep = round(ystep,-floor(log10(ystep)));
+    
+    y1min = floor(y1min./ystep).*ystep;
+    y1max = ceil(y1max./ystep).*ystep;
 else
-    ymin = opt.plot.YLim(1);
-    ymax = opt.plot.YLim(2);
+    y1min = opt.plot.YLim{1}(1);
+    y1max = opt.plot.YLim{1}(2);
+end
+yyl = [y1min y1max];
+if ismember(opt.plot.axis(1),'ij')
+    yyl = fliplr(-yyl);
+end
+if isempty(opt.plot.YLim{2})
+    y2min = nanmin(reshape(dat2(ichs,:),1,[]));
+    y2max = nanmax(reshape(dat2(ichs,:),1,[]));
+    
+    ystep = (y2max - y2min)./5;
+    ystep = round(ystep,-floor(log10(ystep)));
+    
+    yyr = [floor(y2min./ystep), ceil(y2max./ystep)].*ystep;
+    if ismember(opt.plot.axis(2),'ij')
+        yyr = fliplr(-yyr);
+    end
+    
+    lrratio = yyr./yyl;
+    if lrratio(1)>lrratio(2)
+        yyr(2) = yyl(2)./yyl(1).*yyr(1);
+    else
+        yyr(1) = yyl(1)./yyl(2).*yyr(2);
+    end
+    if ismember(opt.plot.axis(2),'ij')
+        yyr = fliplr(-yyr);
+    end
+    
+    y2min = yyr(1);
+    y2max = yyr(2);
+else
+    y2min = opt.plot.YLim{2}(1);
+    y2max = opt.plot.YLim{2}(2);
 end
 
 %-- Legend
-flglgnd = isfield(opt,'timelabel');
+flglgnd = isfield(opt.plot,'legend');
 
 %-- Plot figures
-errlo(nanlo) = nan;    errup(nanup) = nan;
 for ee = 1:length(inx)
     %-- Decide how many subplots are needed
     nRow = opt.plot.nSubPlots(1);
@@ -198,24 +228,31 @@ for ee = 1:length(inx)
       nameElectrodes = areaList(inx{ee}((ichidx-1)*nCol + (1:nCol)));
       ichs = cellstrfind(opt.channels.name,plotElectrodes,0);
       grididx = cellstrfind(plotElectrodes,opt.channels.name(ichs),1);
-      plterrlo = nan(length(plotElectrodes), size(errlo,2));
-      plterrup = nan(length(plotElectrodes), size(errup,2));
-      pltdat = nan(length(plotElectrodes), size(dat,2));
-        plterrlo(grididx,:) = errlo(ichs,:);
-        plterrup(grididx,:) = errup(ichs,:);
-        pltdat(grididx,:)   = dat(ichs,:);
-      figure(hF);  hA = subplot(nRow,1,ichidx);
-      bars = barwitherr(cat(3,plterrlo,plterrup), pltdat);
+      pltdat1 = nan(length(plotElectrodes), size(dat1,2));
+      pltdat2 = nan(length(plotElectrodes), size(dat2,2));
+        pltdat1(grididx,:)   = dat1(ichs,:);
+        pltdat2(grididx,:)   = dat2(ichs,:);
+      set(0,'CurrentFigure',hF);  hA = subplot(nRow,1,ichidx);
+      
+      yyaxis left
+      bars = bar((1:nCol)-0.2,pltdat1,0.4);       % bar plot
       set(hA,'XTickLabel',nameElectrodes,'XTick',1:numel(plotElectrodes),...
-              'XAxisLocation','top','Ylim',[ymin ymax],'FontSize', opt.plot.fontSize,...
+              'XAxisLocation','top','Ylim',[y1min y1max],'FontSize', opt.plot.fontSize,...
               'Position',get(hA,'Position')+[-0.08 0 0.14 0]);
+      axis(hA,opt.plot.axis{1});
+          
+      yyaxis right
+      bars(2) = bar((1:nCol)+0.2,pltdat2,0.4);       % bar plot
+      set(hA,'Ylim',[y2min y2max]);
+      axis(hA,opt.plot.axis{2});
+          
       for ibar=1:length(bars),  bars(ibar).FaceColor = plotCol(ibar,:);  end
       if flglgnd && (ee ==1 || ee ~= length(inx)) && ichidx == 1
           nlegcol = 1 + (ngroups>7);
-          legend(opt.timelabel,'Location','best','NumColumns',nlegcol);
+          legend(opt.plot.legend,'Location','best','NumColumns',nlegcol);
       elseif flglgnd && ee ~= 1 && ee == length(inx) && ichidx == nRow
           nlegcol = 1 + (ngroups>7);
-          legend(opt.timelabel,'Location','best','NumColumns',nlegcol);
+          legend(opt.plot.legend,'Location','best','NumColumns',nlegcol);
       end
     end
     figlist{ee} = hF;

@@ -88,7 +88,7 @@ for ifig=figlist
                     curtick = log10(iax.XTick);
                     iax.XTick = 10.^([curtick(1), mean(curtick), curtick(end)]);
                 end
-                iax.XTickLabel = cellstr(num2str(iax.XTick'));
+                iax.XTickLabel = cellstr(num2str(iax.XTick',['%.' int2str(log10(diff(iax.XLim))-2) 'f']));
             end
         end
     end  

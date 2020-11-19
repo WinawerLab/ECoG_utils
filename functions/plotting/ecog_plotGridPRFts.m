@@ -1,7 +1,9 @@
 function figlist = ecog_plotGridPRFts(data,stimulus,result,whichHDgrid, opt)
 
-% p = ecog_plotGridPRFts(data,stimulus,result,whichHDgrid, option, data1)
-% p = ecog_plotGridPRFts(data,stimulus,result,whichElectrodes, option, data1)
+% p = ecog_plotGridPRFts(data,stimulus,result,whichHDgrid, option)
+% p = ecog_plotGridPRFts(data,stimulus,result,whichElectrodes, option)
+% p = ecog_plotGridPRFts(data,stimulus,params,whichHDgrid, option)
+% p = ecog_plotGridPRFts(data,stimulus,params,whichElectrodes, option)
 % ECOG_PLOTGRIDPRFTS plot time series in the entire HD grid.
 % 
 % <whichHDgrid> can be 'GA' or 'GB'.
@@ -10,31 +12,40 @@ function figlist = ecog_plotGridPRFts(data,stimulus,result,whichHDgrid, opt)
 % <data> is a cell-array of time-series data.
 % <stimulus> is a cell-array of stimulus data.
 % <result> is a structure of pRF information (output of analyzePRF or analyzePRFdog), requiring: 
-%   result.ecc:    Nx1 array with pRF eccentricity
-%   result.ang:    Nx1 array with pRF angle [degree: 0deg is on positive x-axis and increase anti-clockwise]
-%   result.rfsize: Nx1 array with pRF size
+%   result.params:    1xNxP array with pRF parameters
+%   result.options:   option structure to estimate pRFs
+% <params> is result.params, which you can directly specify instead of result.
 % 
 % <option> is a structure of plot information.
-%   option.channels     = a table of channel information.
-%  	option.viselec      = a structure of visual area information.
-%   option.plot         = a structure of plot information with following fields.
-%       pix2deg         = degree/pixel (default = 1)
-%       XLim            =
-%       YLim            =
-%       colors          =
+%   option.channels      = a table of channel information.
+%                          If result has channel field, it's not necessary.
+%  	option.viselec       = a structure of visual area information.
+%                          If channels has visual area table or you don't want to show area name,
+%                          it's not necessary.
+%   option.plot          = a structure of plot information with following fields.
+%       pix2deg          = degree/pixel (default = 1) (required if option.plotbenson = 'yes')
+%       XLim             =
+%       YLim             =
+%       colors           =
 % 
-%       boundaries      = 'yes', 'no'(default) or numels  % show boundaries of events
-%       addR2ToTitle    = 'yes' or 'no'(default)  % show R2 or xval in result
-%       addEccToTitle   = 'yes' or 'no'(default)
-%       nSubPlots       = [m n], plot m-by-n grid electrodes in a figure.
-%       RotGrid         = true or false (default), if true, electrodes are
-%                         aligned along row instead of column.
-%       labelCol        = color or cell-array of colors, color of the titles
-%                         in each axis. defualt is black.
-%       FigName         = string, name of the figure.
-%       fontSize        = scalar, font size in the figure.
-%       legend          = string or cell-array of strings, legend labels.
-%       options         = any other options for each axis.
+%       boundaries       = 'yes', 'no'(default) or numels  % show boundaries of events
+%       addChsToTitle    = 'yes'(default) or 'no'
+%       addWangToTitle   = 'yes'(default) or 'no'
+%       addBensonToTitle = 'yes'(default) or 'no'
+%       addR2ToTitle     = 'yes' or 'no'(default)  % show R2 or xval of result
+%       addEccToTitle    = 'yes' or 'no'(default)  % show eccentricity of result
+%       addSbjToTile     = 'yes' or 'no'(default)  % show subject name
+%       nSubPlots        = [m n], plot m-by-n grid electrodes in a figure.
+%       RotGrid          = true or false (default), if true, electrodes are
+%                          aligned along row instead of column.
+%       labelCol         = color or cell-array of colors, color of the titles
+%                          in each axis. defualt is black.
+%       FigName          = string, name of the figure.
+%       fontSize         = scalar, font size in the figure.
+%       legend           = string or cell-array of strings, legend labels.
+%       options          = any other options for each axis.
+%   option.plotbenson    = 'yes' or 'no'(default)  % plot results estimated from benson atlas
+%   option.subjet        = string, subject name is helpful to interpret benson prf.
 % 
 % Following options refer to result.options, but you can specify in <option>
 %   option.hrf
@@ -44,11 +55,11 @@ function figlist = ecog_plotGridPRFts(data,stimulus,result,whichHDgrid, opt)
 % 
 % 
 
-% option should include 'channels'
-
-% Dependency: drawellipse, SetDefault, cellstrfind, arrangeinrect
+% Dependency: <analyzePRF>, SetDefault, cellstrfind, arrangeinrect, istablefield
 
 % 20200310 Yuasa
+% 20200331 Yuasa: add 'plotbenson' option
+% 20200925 Yuasa: solve problem using strings in channels
 
 %% Set options
 narginchk(4,inf);
@@ -59,8 +70,16 @@ elseif isfield(result,'channels')&&~isempty(result.channels)
 else
     error('data or option must have ''channels'' field');
 end
+if ~isstruct(result),   result = struct('params',result);   end
+
+SetDefault('opt.plotbenson', 'no', 0);
+
+SetDefault('opt.plot.addChsToTitle', 'yes', 0);
+SetDefault('opt.plot.addWangToTitle', 'yes', 0);
+SetDefault('opt.plot.addBensonToTitle', 'yes', 0);
 SetDefault('opt.plot.addR2ToTitle', 'no', 0);
 SetDefault('opt.plot.addEccToTitle', 'no', 0);
+SetDefault('opt.plot.addSbjToTitle', 'no', 0);
 SetDefault('opt.plot.fontSize', 12, 0);
 SetDefault('opt.plot.pix2deg', 1, 1);
 SetDefault('opt.plot.nSubPlots', [], 1);
@@ -80,19 +99,19 @@ SetDefault('opt.plot.model_options', {}, 1);
 SetDefault('whichHDgrid','*',0);
 
 %-- Set model parameters
-SetDefault('result.options.hrf',1,0)
+SetDefault('result.options.hrf',1,0);
 SetDefault('opt.hrf',result.options.hrf,0);
-SetDefault('result.options.maxpolydeg',1,0)
+SetDefault('result.options.maxpolydeg',1,0);
 SetDefault('opt.maxpolydeg',result.options.maxpolydeg,0);
 SetDefault('result.options.gaussianmode','og',0);
 SetDefault('opt.gaussianmode',result.options.gaussianmode,0);
-SetDefault('result.options.targetBAND','bb',0)
+SetDefault('result.options.targetBAND','bb',0);
 SetDefault('result.targetBAND',result.options.targetBAND,0)
 SetDefault('opt.targetBAND',result.targetBAND,0);
-SetDefault('result.options.smoothingMode','none',0)
+SetDefault('result.options.smoothingMode','none',0);
 SetDefault('result.smoothingMode',result.options.smoothingMode,0)
 SetDefault('opt.smoothingMode',result.smoothingMode,0);
-SetDefault('result.options.smoothingN',1,0)
+SetDefault('result.options.smoothingN',1,0);
 SetDefault('result.smoothingN',result.options.smoothingN,0)
 SetDefault('opt.smoothingN',result.smoothingN,0);
 
@@ -105,10 +124,13 @@ end
 if ~iscell(data), data = {data}; end
 if ~iscell(stimulus), stimulus = {stimulus}; end
 
+%-- Duplicate stimulus
+if ~iscell(stimulus{1}),   stimulus = {stimulus};  end
+if length(stimulus)==1,    stimulus = repmat(stimulus,numvxs,1);    end
+
 %%
 %-- Define variables
-res          = size(stimulus{1},[1,2]);
-resmx        = max(res);
+ndats        = 1;
 hrf          = opt.hrf;
 degs         = opt.maxpolydeg;
 gaussianmode = lower(opt.gaussianmode);
@@ -117,23 +139,50 @@ switch opt.smoothingMode
     case {'decimate'},  Dsample = opt.smoothingN;
     otherwise,          Dsample = 1;
 end
+plotbenson   = false;
+if strcmpi(opt.plotbenson,'yes')
+    if all(ismember({'bensoneccen','bensonangle','bensonsigma'},channels.Properties.VariableNames))
+        plotbenson   = true;
+        ndats = ndats + 1;
+    else
+        warning('Benson atlas information is not found');
+    end
+end
+if ~istablefield(channels,'subject_name')
+    if isfield(opt,'subject'),        channels.subject_name(:) = opt.subject;
+    else
+        if isfield(result,'subject'), channels.subject_name(:) = result.subject;
+        else,                         channels.subject_name(:) = '';
+        end
+    end
+end
+subjects = cellstr(channels.subject_name);
+numvxs = height(channels);
+numruns = size(data,2);
+
+%-- Get data length
+ntime = zeros(numvxs,numruns);
+for pp=1:numruns
+    ntime(:,pp) = sum(~isnan(data{1,pp}),2);
+end
+
+%-- Set stimulus (duplicate)
+if ~iscell(stimulus{1}),   stimulus = {stimulus};  end
+if length(stimulus)==1,    stimulus = repmat(stimulus,numvxs,1);    end
+
+res = sizefull(stimulus{1}{1},2);
+resmx = max(res);
 
 %-- plot color properties
+ColList = ['rbgymc']';
 if isempty(opt.plot.colors)
-    plotCol = get(groot,'DefaultAxesColorOrder');
-elseif isnumeric(opt.plot.colors)
+    opt.plot.colors = reshape(1:size(ColList,1),[],1);
+end
+if isnumeric(opt.plot.colors)
     if (size(opt.plot.colors,2)~=3 || any(opt.plot.colors(:)>1))
         %-- specify as integer
-        plotCol = zeros(numel(opt.plot.colors),3);
-        ColList = get(groot,'DefaultAxesColorOrder');
-        ColList = ColList([end,1:end-1],:);
-        for icol=1:numel(opt.plot.colors)
-            if opt.plot.colors(icol) == 0
-                plotCol(icol,:) = [1 1 1].*0.3;
-            else
-                plotCol(icol,:) = ColList(mod(opt.plot.colors(icol),size(ColList,1))+1,:);
-            end
-        end
+        plotCol = ColList(mod(opt.plot.colors(:)-1,size(ColList,1))+1,:);
+        plotCol(opt.plot.colors==0,:) = 'k';   % special color for '0'
     else
         %-- specify as rgb
         plotCol = opt.plot.colors;
@@ -142,14 +191,23 @@ elseif ischar(opt.plot.colors) ||  isstring(opt.plot.colors)
     %-- specify as 'r' 'g' 'b' or "#0072BD" "#D95319"
     plotCol = reshape(opt.plot.colors,[],1);
 end 
+plotCol = repmat(plotCol,ceil(ndats./size(plotCol,1)),1);
 
 %-- check HD grid
 if ischar(whichHDgrid) && ismember(whichHDgrid,{'GA','GB'})
     hasHDgrid   = true;
     gridList    = [];
+    chanIdx     = [];
 else
     hasHDgrid   = false;
-    gridList    = channels.name(cellstrfind(channels.name, whichHDgrid,1));
+    if islogical(whichHDgrid)
+      chanIdx     = find(whichHDgrid);
+    elseif isnumeric(whichHDgrid) && isequaln(whichHDgrid,round(whichHDgrid))
+      chanIdx     = whichHDgrid;
+    else    % list of channel names
+      chanIdx     = cellstrfind(channels.name, whichHDgrid,0);
+    end
+    gridList    = channels.name(chanIdx);
     whichHDgrid = 'Channels';
 end
 
@@ -192,21 +250,42 @@ isTableCol = @(t, thisCol) ismember(thisCol, t.Properties.VariableNames);
 for ee = 1:FullGRID
     if hasHDgrid
       gridList{ee} = sprintf('%s%03d',whichHDgrid,ee);
+      igrid = find(strcmp(channels.name,gridList{ee}),1);
+      if isempty(igrid),    chanIdx(ee)  = nan;
+      else,                 chanIdx(ee)  = igrid;
+      end
     elseif ee > numel(gridList)
       gridList{ee} = 'none';
+      chanIdx(ee)  = nan;
     end
     
     %-- get Visual Area Label
-    igrid = find(strcmp(channels.name,gridList{ee}),1);
-    if strcmpi(opt.plot.addR2ToTitle,'yes') && ~isempty(igrid)
-        areaList{ee} = sprintf('%s (%.1f%%)\n',gridList{ee},result.(R2field)(igrid));
+    igrid = chanIdx(ee);
+    if strcmpi(opt.plot.addR2ToTitle,'yes') && ~isnan(igrid)
+        if strcmpi(opt.plot.addChsToTitle,'yes')
+            areaList{ee} = sprintf('%s (%.1f%%)',gridList{ee},result.(R2field)(igrid));
+        else
+            areaList{ee} = sprintf('(%.1f%%)',gridList{ee},result.(R2field)(igrid));
+        end
+    elseif strcmpi(opt.plot.addChsToTitle,'yes')
+        areaList{ee} = sprintf('%s',gridList{ee});
     else
-        areaList{ee} = sprintf('%s\n',gridList{ee});
+        areaList{ee} = '';
     end
-    if ~isempty(igrid)
+    if (strcmpi(opt.plot.addWangToTitle,'yes')||strcmpi(opt.plot.addBensonToTitle,'yes'))&& ...
+            (strcmpi(opt.plot.addChsToTitle,'yes')||strcmpi(opt.plot.addR2ToTitle,'yes'))
+        areaList{ee} = sprintf('%s\n',areaList{ee});
+    end
+    if ~isnan(igrid)
+        if strcmpi(opt.plot.addSbjToTitle,'yes') && ~isempty(subjects{ee})
+            areaList{ee} = sprintf('%s %s',subjects{igrid}, areaList{ee});
+        end
+        
         VA = [];
         if isTableCol(channels,'wangarea')
-           VA = channels.wangarea{igrid};
+           if iscell(channels.wangarea),    VA = channels.wangarea{igrid};
+           else,                            VA = channels.wangarea(igrid);
+           end
         elseif isfield(opt,'viselec') && isfield(opt.viselec,'wang15_mplbl')
            vigrid = find(strcmp(opt.viselec.wang15_mplbl.elec_labels,gridList{ee}),1);
            if ~isempty(vigrid),  VA = opt.viselec.wang15_mplbl.area_labels{vigrid};  end
@@ -214,16 +293,20 @@ for ee = 1:FullGRID
            vigrid = find(strcmp(opt.viselec.wang2015_atlas.elec_labels,gridList{ee}),1);
            if ~isempty(vigrid),  VA = opt.viselec.wang2015_atlas.area_labels{vigrid};  end
         end
-        if ~isempty(VA)&&~strcmp(VA,'none'), areaList{ee} = sprintf('%s w:%s',areaList{ee},VA); end
+        if strcmpi(opt.plot.addWangToTitle,'yes')&&~isempty(VA)&&~strcmp(VA,'none')
+            areaList{ee} = sprintf('%s w:%s',areaList{ee},VA);
+        end
         
         VA = [];
         if isTableCol(channels,'bensonarea')
-           VA = channels.bensonarea{igrid};
+           if iscell(channels.bensonarea),  VA = channels.bensonarea{igrid};
+           else,                            VA = channels.bensonarea(igrid);
+           end
         elseif isfield(opt,'viselec') && isfield(opt.viselec,'benson14_varea')
            vigrid = find(strcmp(opt.viselec.benson14_varea.elec_labels,gridList{ee}),1);
            if ~isempty(vigrid),  VA = opt.viselec.benson14_varea.area_labels{vigrid};  end
         end
-        if ~isempty(VA)&&~strcmp(VA,'none')
+        if strcmpi(opt.plot.addBensonToTitle,'yes')&&~isempty(VA)&&~strcmp(VA,'none')
             areaList{ee} = sprintf('%s b:%s',areaList{ee},VA);
             switch opt.plot.addEccToTitle
                 case 'yes'
@@ -264,15 +347,43 @@ for ee = 1:nFig
     inx{ee} = reshape(v(plRow*(ee-1)+1:min(nRow,plRow*(ee)),:)',1,[]);
 end
 
+%%% Benson reference
+if plotbenson
+    PRF2CSS  = @(pp,res,gain,expt) [(1+res)/2 - pp(1)*sin(pp(2)*pi/180),...
+               pp(1)*sin(pp(2)*pi/180) + (1+res)/2,...
+               pp(3)*expt, gain, expt, 1, 0];
+
+    subj_L = {'beilen','som648','som692','som708','som748'}; % left hemisphere
+    subj_R = {'chaam','som661','som674','som718','som726'}; % right hemisphere
+    subj_B = {'som723'}; % bilateral
+    assert(~isempty(setdiff(subjects,[subj_L,subj_R,subj_B])),...
+            'data includes unknown subject');
+        
+    %-- detect channels in left hemisphere
+    islefths = ismember(subjects,subj_L) | ...
+                (ismember(subjects,subj_B) & startsWith(channels.name,'L'));
+    bensonPRF = [channels.bensoneccen./opt.plot.pix2deg, ...
+                 ((-1).^islefths).*channels.bensonangle+90, ...
+                 channels.bensonsigma./opt.plot.pix2deg];
+
+    bensonparams = zeros(1,7,size(channels,1));
+    for el=1:size(channels,1)
+%         bensonparams(:,:,el) = PRF2CSS(bensonPRF(el,:),resmx,result.params(1,4,el),result.params(1,5,el));
+        bensonparams(:,:,el) = PRF2CSS(bensonPRF(el,:),resmx,1,1);    % gain = 1; expt = 1; (linear model with dummy gain)
+    end
+end
+
 %%% Model computation
 %-- Pre-compute cache for faster execution
 [~,xx,yy] = makegaussian2d(resmx,2,2,2,2);
 
 %-- Prepare the stimuli for use in the model
-stimulusPP = {};
-for pp=1:length(stimulus)
-  stimulusPP{pp} = squish(stimulus{pp},2)';  % this flattens the image so that the dimensionality is now frames x pixels
-  stimulusPP{pp} = [stimulusPP{pp} pp*ones(size(stimulusPP{pp},1),1)];  % this adds a dummy column to indicate run breaks
+stimulusPP = repmat({{}},numvxs,1);
+for vxs=1:numvxs
+for pp=1:numruns
+  stimulusPP{vxs}{pp} = squish(stimulus{vxs}{pp},2)';  % this flattens the image so that the dimensionality is now frames x pixels
+  stimulusPP{vxs}{pp} = [stimulusPP{vxs}{pp} pp*ones(size(stimulusPP{vxs}{pp},1),1)];  % this adds a dummy column to indicate run breaks
+end
 end
 
 %-- Set model
@@ -284,9 +395,11 @@ switch gaussianmode
 end
 
 %-- Construct projection matrices
-polymatrix = {};
-for pp=1:length(degs)
-  polymatrix{pp} = projectionmatrix(constructpolynomialmatrix(size(data{pp},2),0:degs(pp)));
+polymatrix = repmat({{}},numvxs,1);
+for vxs=1:numvxs
+for pp=1:numruns
+  polymatrix{vxs}{pp} = projectionmatrix(constructpolynomialmatrix(ntime(vxs,pp),0:degs(pp)));
+end
 end
 
 %-- Make boundaries
@@ -323,18 +436,25 @@ for ee = 1:length(inx)
     set(hF, 'Position', [150 100 200*nCol 160*nRow]);%[150 100 2000 1250]
 %             set(gcf,'Units','points');
     for ichidx=1:length(inx{ee})
-      plotElectrodes = gridList(inx{ee}(ichidx));
-      nameElectrodes = areaList(inx{ee}(ichidx));
-      el = cellstrfind(channels.name,plotElectrodes,0);
-      if ~isempty(el)
-          
-          
+%       plotElectrodes = gridList{inx{ee}(ichidx)};
+      nameElectrodes = areaList{inx{ee}(ichidx)};
+      el = chanIdx(inx{ee}(ichidx));
+      if ~isnan(el)
           datats = {};
           modelts = {};
-          for pp=1:length(data)
-              datats{pp}  = negfit.*polymatrix{pp}*data{pp}(el,:)';
-              modelts{pp} = negfit.*polymatrix{pp}*modelfun(result.params(1,:,el),stimulusPP{pp});
+          for pp=1:numruns
+              nanplace    = isnan(data{pp}(el,:));
+              datats{pp}  = negfit.*polymatrix{el}{pp}*data{pp}(el,~nanplace)';
+              modelts{pp} = negfit.*polymatrix{el}{pp}*modelfun(result.params(1,:,el),stimulusPP{el}{pp}(~nanplace,:));
           end
+            if plotbenson
+              modeltsB = {};
+              for pp=1:numruns
+                  modeltsB{pp} = negfit.*polymatrix{el}{pp}*modelfun(bensonparams(1,:,el),stimulusPP{el}{pp}(~nanplace,:));
+                  bensonparams(1,4,el) = prctile(posrect(negfit.*datats{pp}),95)./prctile(posrect(negfit.*modeltsB{pp}),95);
+                  modeltsB{pp} = negfit.*polymatrix{el}{pp}*modelfun(bensonparams(1,:,el),stimulusPP{el}{pp}(~nanplace,:));
+              end
+            end
           
           
           %-- Prepare axis       hA = subplot(nRow,nCol,ichidx);
@@ -350,8 +470,11 @@ for ee = 1:length(inx)
           hplts(1) = plot(cat(1,datats{:}),'k:o', 'LineWidth', 2, 'MarkerFaceColor','auto', opt.plot.data_options{:});
           hold on;
           pl = straightline(0,'h','k:');  set(pl,'LineWidth',1);
-          hplts(2) = plot(cat(1,modelts{:}),'r-','LineWidth', 2, opt.plot.data_options{:});
-          pl = straightline(boundaries,'v','g-');  set(pl,'LineWidth',1);
+          hplts(2) = plot(cat(1,modelts{:}),'-','Color',plotCol(1,:),'LineWidth', 2, opt.plot.data_options{:});
+            if plotbenson
+              hplts(3) = plot(cat(1,modeltsB{:}),'-','Color',plotCol(2,:),'LineWidth', 2, opt.plot.data_options{:});
+            end
+          pl = straightline(boundaries,'v','-');  set(pl,'Color',[1 1 1].*0.5,'LineWidth',1);
           
           %-- Set axis, title & legend
           if isempty(opt.plot.XLim),  xlims = [0 size(cat(1,modelts{:}),1)]+0.5;
