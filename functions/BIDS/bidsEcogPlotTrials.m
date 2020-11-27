@@ -184,7 +184,7 @@ for ii = 1:length(stim_names)
     end
     fprintf('[%s] Found %d trials for condition %s \n', mfilename, length(stim_idx{ii}), stim_names{ii});
 end
-if specs.average_stims, stim_idx = {vertcat(stim_idx{:})}; stim_names = {[stim_names{:}]}; end
+if specs.average_stims, stim_idx = {vertcat(stim_idx{:})}; stim_names = {'all stim averaged'}; end%{[stim_names{:}]};
 
 %% MAKE PLOTS
 
