@@ -1,5 +1,4 @@
 function [epochs, channels, chan_idx, R2, epochs_split] = ecog_selectElectrodes(epochs, channels, events, t, opts)
-
 % Electrode selection
 %
 % Select electrodes based on either a simple threshold (cf Zhou et al,
@@ -74,8 +73,9 @@ switch method
         % Average first and second halfs of trials for each stimulusname
         for stim = 1:length(opts.stimnames)
             idx = trial_idx{stim};
-            % This way of splitting the data will mix runs and sessions. Do
-            % we want this?
+            % This way of splitting the data will mix runs and sessions. I
+            % think that's OK given that we convert trials to percent
+            % signal change based on baselines computed within runs first.
             trial_idx1 = idx(1:2:length(idx));
             trial_idx2 = idx(2:2:length(idx));
             epochs_split(1,:,:,stim) = mean(temp_epochs(:,:,trial_idx1),3,'omitnan');
