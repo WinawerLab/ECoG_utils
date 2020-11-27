@@ -11,7 +11,7 @@ function [out] = electrode_to_nearest_node(specs, BIDSformatted)
 % specs.pID         = patient ID 
 %
 % OPTIONAL additional fields: 
-% specs.dataDir     = directory that has the patient electrode positions, 
+% specs.rootDir     = directory that has the patient electrode positions, 
 %                     default: /Volumes/server/Projects/BAIR/Data/BIDS. If
 %                     not found in default, looks in Raw ECoG data folder
 %                     (/Volumes/server/Projects/BAIR/Data/Raw/ECoG).
@@ -72,8 +72,8 @@ function [out] = electrode_to_nearest_node(specs, BIDSformatted)
 %%%%%%%%% Check inputs %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-if ~isfield(specs, 'dataDir') || isempty(specs.dataDir)
-    rootDir = fullfile(filesep, 'Volumes', 'server', 'Projects', 'BAIR', 'Data');
+if ~isfield(specs, 'rootDir') || isempty(specs.rootDir)
+    specs.rootDir = fullfile(filesep, 'Volumes', 'server', 'Projects', 'BAIR', 'Data');
     if ~exist('BIDSformatted', 'var')
         if contains(specs.pID, {'som', 'umcu', 'ny'})
             % this is a BIDS formatted dataset; look in the BIDS folder
@@ -144,7 +144,7 @@ plotmatchednodes = specs.plotmatchednodes;
 
 if BIDSformatted
     
-    specs.dataDir = fullfile(rootDir, 'BIDS'); 
+    specs.dataDir = fullfile(specs.rootDir, 'BIDS'); 
 
     % Check which projectfolder this patient is located
     patientDir = fullfile(specs.dataDir, 'visual', sprintf('sub-%s', specs.pID));
@@ -153,6 +153,9 @@ if BIDSformatted
     end
     if ~isfolder(patientDir)
         patientDir = fullfile(specs.dataDir, 'tactilepilot', sprintf('sub-%s', specs.pID));
+    end
+    if ~isfolder(patientDir)
+        patientDir = fullfile(specs.rootDir, sprintf('sub-%s', specs.pID));
     end
     if ~isfolder(patientDir)
         fprintf('[%s] Could not find patient data folder. Please check paths. \n',mfilename);
@@ -248,7 +251,7 @@ else
 end
 
 % Read surface reconstructions from Freesurfer_subjects directory
-if contains(specs.fsDir, 'BIDS'); specs.pID = sprintf('sub-%s', specs.pID);end
+if contains(specs.fsDir, 'BIDS') || BIDSformatted; specs.pID = sprintf('sub-%s', specs.pID);end
 surf_file_rh = fullfile(specs.fsDir, specs.pID, 'surf', 'rh.pial');
 surf_file_lh = fullfile(specs.fsDir, specs.pID, 'surf', 'lh.pial');
 
@@ -674,8 +677,8 @@ for a = 1:length(specs.atlasNames)
                 end
 
                 % Plot electrodes
-                plot_electrodes(elec_xyz(elec_plotindex,:), [1 1 1]*0.2,2);
-                plot_electrodes(elec_xyz(elec_selindices,:), [0 0 0],2);
+                plot_electrodes(elec_xyz(elec_plotindex,:), [1 1 1]*0.2,1);
+                plot_electrodes(elec_xyz(elec_selindices,:), [0 0 0],1);
 
                 % Plot matched nodes
                 switch plotmatchednodes
