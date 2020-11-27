@@ -111,6 +111,9 @@ if ~isfield(specs, 'plotelecs') || isempty(specs.plotelecs)
             specs.plotelecs = 'yes';
     end
 end
+if ~isfield(specs, 'plotelecrad') || isempty(specs.plotelecrad)
+    specs.plotelecrad = 2;
+end
 
 if ~isfield(specs, 'plotlabel') || isempty(specs.plotlabel)
     specs.plotlabel = 'yes';
@@ -118,6 +121,9 @@ end
 
 if ~isfield(specs, 'plotmatchednodes') || isempty(specs.plotmatchednodes)
     specs.plotmatchednodes = 'no';
+end
+if ~isfield(specs, 'plotnoderad') || isempty(specs.plotnoderad)
+    specs.plotnoderad = 1;
 end
 
 if ~isfield(specs, 'plotcbar') || isempty(specs.plotcbar)
@@ -137,6 +143,8 @@ plotelecs        = specs.plotelecs;
 plotlabel        = specs.plotlabel;
 plotcbar         = specs.plotcbar;
 plotmatchednodes = specs.plotmatchednodes;
+plotelecrad      = specs.plotelecrad;
+plotnoderad      = specs.plotnoderad;
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%% Read in files %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -677,14 +685,14 @@ for a = 1:length(specs.atlasNames)
                 end
 
                 % Plot electrodes
-                plot_electrodes(elec_xyz(elec_plotindex,:), [1 1 1]*0.2,1);
-                plot_electrodes(elec_xyz(elec_selindices,:), [0 0 0],1);
+                plot_electrodes(elec_xyz(elec_plotindex,:), [1 1 1]*0.2,plotelecrad);
+                plot_electrodes(elec_xyz(elec_selindices,:), [0 0 0],plotelecrad);
 
                 % Plot matched nodes
                 switch plotmatchednodes
                     case 'yes'
-                        plot_electrodes(vertices(indices(elec_plotindex),:), [1 1 1]*0.8, 1);
-                        plot_electrodes(vertices(indices(elec_selindices),:), [1 1 1], 1);
+                        plot_electrodes(vertices(indices(elec_plotindex),:), [1 1 1]*0.8, plotnoderad);
+                        plot_electrodes(vertices(indices(elec_selindices),:), [1 1 1], plotnoderad);
                 end
 
                 switch plotlabel
