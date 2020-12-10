@@ -79,6 +79,13 @@ end
 % band pass filter each sub-band
 bp  = zeros([size(x) size(bands,1)], 'double');
 
+% replace any nans in the data with zeros
+if any(isnan(x(:)))
+    warning('[%s] Found nans in the data! Replacing with zeros. Please check data for extensive nans \n', mfilename);
+    x(isnan(x)) = 0;
+end
+
+% bandpass filter 
 for ii = 1:size(bands,1)
     fprintf('[%s] Filtering signal in band %d-%d\n', mfilename, bands(ii,1),bands(ii,2));
     bp(:,:,ii) = butterpass_eeglabdata_nyu(x,bands(ii,:),srate); 
@@ -91,6 +98,7 @@ end
 % if only one time series, then eliminate singleton dimension
 if size(bp, 2) == 1, bp = squeeze(bp); end
 
+% compute broadband 
 fprintf('[%s] Computing broadband... \n', mfilename);
 
 methodstr = func2str(method);
