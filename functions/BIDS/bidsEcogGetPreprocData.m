@@ -111,7 +111,7 @@ for ii = 1:length(sessions)
                 if ~isempty(srate)
                     Fs = hdr.Fs;
                     if ~isequal(Fs,srate)
-                        fprintf('[%s] Sample rate does not match requested sample rate of %d Hz. Resampling \n',mfilename, srate);
+                        fprintf('[%s] Sample rate of %d Hz does not match requested sample rate of %d Hz. Resampling... \n',mfilename, hdr.Fs, srate);
                         data = resample(data', 1, hdr.Fs/srate)';
                         channels.sampling_frequency(:) = srate;
                     end
@@ -191,16 +191,18 @@ for ii = 1:length(sessions)
 end
 
 % Remove non-data channels.
-chan_inx = contains(lower(channels.type), {'ecog', 'seeg'}); 
-channels = channels(chan_inx,:);
-data = allData(chan_inx,:);
-events = allEvents;
-if isempty(srate), srate = hdr.Fs; end
-
 if exist('channels', 'var') 
+    chan_inx = contains(lower(channels.type), {'ecog', 'seeg'}); 
+    channels = channels(chan_inx,:);
     channels.subject_name = repmat({subject},[height(channels) 1]);
+    data = allData(chan_inx,:);
+    events = allEvents;
+    if isempty(srate), srate = hdr.Fs; end
 else
     channels = [];
+    data     = [];
+    events   = []; 
+    srate    = [];
 end
 
 end
