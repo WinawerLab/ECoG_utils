@@ -115,7 +115,7 @@ triggerChannelName = 'DC1';
 exclude_inx = [1 23 47 49 69 70 79 80 81 82 83 84 97 98 101 104 106 108 109 110 113 116 119 120 123 127 129 130 131 132 133 134 255 256];
 
 % Electrodes 135:254 are the HD grid electrodes, they have shared noise
-% Exclude only those channels that look deviant from the others
+% Exclude only those channels that look c from the others
 exclude_inxHD = [147 163 195 227]; 
 
 % Concatenate
