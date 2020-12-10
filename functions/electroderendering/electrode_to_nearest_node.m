@@ -38,6 +38,7 @@ function [out] = electrode_to_nearest_node(specs, BIDSformatted)
 % specs.thresh      = maximum allowed distance between electrode and node,
 %                     in mm (if empty, thresh is infinite, meaning that the
 %                     electrode can be infinitely far) - default empty
+% specs.face_alpha  = transparency value for mesh (default 1);
 % BIDSformatted     = flag to indicate if the data is in BIDS
 %
 % OUTPUT: a struct containing the following fields for two probablistic
@@ -129,6 +130,9 @@ if ~isfield(specs, 'plotcbar') || isempty(specs.plotcbar)
     specs.plotcbar = 'yes';
 end
 
+if ~isfield(specs, 'face_alpha') || isempty(specs.face_alpha)
+    specs.face_alpha = 1;
+end
  % Do we have a patient ID?
 if ~isfield(specs, 'pID') || isempty(specs.pID)
     fprintf('[%s] Please specify a patient ID\n',mfilename);
@@ -183,6 +187,9 @@ if BIDSformatted
         sessionList = dir(fullfile(patientDir, sprintf('ses*ECOG*')));
     end
     if isempty(sessionList)
+        sessionList = dir(fullfile(patientDir, sprintf('ses*iemu*')));
+    end
+    if isempty(sessionList)
         fprintf('[%s] Could not find ECoG sessions for this patient. Please check paths. \n',mfilename);
         out = [];
         return
@@ -223,6 +230,12 @@ if BIDSformatted
                 specs.atlasNames  = [specs.atlasNames {'to1_percent', 'to2_percent'}];
                 % add glasser atlas
                 specs.atlasNames  = [specs.atlasNames 'glasser16_atlas'];
+            end
+            if contains(specs.pID,{'merk'})
+                % subtract effect of cropping by freesurfer
+                elec_xyz(:,1) = elec_xyz(:,1)+2.2827;
+                elec_xyz(:,2) = elec_xyz(:,2)-12.9508;
+                elec_xyz(:,3) = elec_xyz(:,3)+12.1584;
             end
         end
     end
@@ -326,12 +339,12 @@ end
 % Plot pial surface as mesh
 switch plotmesh
     case 'both'                                                 
-        plot_mesh(faces_l, vertices_l, ones([1 1 size(vertices_l,1)]), []);
-        plot_mesh(faces_r, vertices_r, ones([1 1 size(vertices_r,1)]), []);
+        plot_mesh(faces_l, vertices_l, ones([1 1 size(vertices_l,1)]), [],specs.face_alpha);
+        plot_mesh(faces_r, vertices_r, ones([1 1 size(vertices_r,1)]), [],specs.face_alpha);
     case 'left'
-        plot_mesh(faces_l, vertices_l, ones([1 1 size(vertices_l,1)]), []);
+        plot_mesh(faces_l, vertices_l, ones([1 1 size(vertices_l,1)]), [],specs.face_alpha);
     case 'right'
-        plot_mesh(faces_r, vertices_r, ones([1 1 size(vertices_r,1)]), []);   
+        plot_mesh(faces_r, vertices_r, ones([1 1 size(vertices_r,1)]), [],specs.face_alpha);   
 end
 
 % Add the electrodes
@@ -634,12 +647,12 @@ for a = 1:length(specs.atlasNames)
 
                 switch plotmesh
                     case 'both'                                                 
-                        plot_mesh(faces_r, vertices_r, atlas_rh(:,i), area_cmap);
-                        plot_mesh(faces_l, vertices_l, atlas_lh(:,i), area_cmap);
+                        plot_mesh(faces_r, vertices_r, atlas_rh(:,i), area_cmap, specs.face_alpha);
+                        plot_mesh(faces_l, vertices_l, atlas_lh(:,i), area_cmap, specs.face_alpha);
                     case 'left'
-                        plot_mesh(faces_l, vertices_l, atlas_lh(:,i), area_cmap);
+                        plot_mesh(faces_l, vertices_l, atlas_lh(:,i), area_cmap, specs.face_alpha);
                     case 'right'
-                        plot_mesh(faces_r, vertices_r, atlas_rh(:,i), area_cmap);   
+                        plot_mesh(faces_r, vertices_r, atlas_rh(:,i), area_cmap, specs.face_alpha);   
                 end
 
                  % Clip Benson atlases (results in better colormap scaling)
@@ -785,8 +798,8 @@ function plot_electrodes(xyz, color, radius)
     end
 end
 
-function plot_mesh(faces, vertices, atlas, area_cmap)
-    t = trimesh(faces+1, vertices(:,1), vertices(:,2), vertices(:,3), atlas, 'FaceColor', 'flat'); 
+function plot_mesh(faces, vertices, atlas, area_cmap, alpha)
+    t = trimesh(faces+1, vertices(:,1), vertices(:,2), vertices(:,3), atlas, 'FaceColor', 'flat', 'FaceAlpha', alpha); 
     t.LineStyle = 'none';    
 	axis equal; hold on;
     %if cmapHasZeroIndex
