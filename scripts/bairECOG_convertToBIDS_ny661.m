@@ -15,7 +15,7 @@
 % the triggers sent over the audio cable at NYU SOM seem less accurate. 
 
 % Questions:
-% - More the original data into a BAIR/Data/BIDS/sourcedata/ folder?
+% - Move the original data into a BAIR/Data/BIDS/sourcedata/ folder?
 % - Should there be a json sidecar with the T1 file?
 
 %% Define paths and BIDS specs %%

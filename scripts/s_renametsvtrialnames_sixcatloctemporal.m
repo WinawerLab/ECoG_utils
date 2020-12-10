@@ -2,13 +2,14 @@
 
 %%% WARNING: WILL OVERWRITE EXISTING EVENT FILES %%%
 
-projectDir        = '/Volumes/server/Projects/BAIR/Data/BIDS/visual/derivatives/ECoGBroadband/'; 
-%subject           = 'som748';
-subject           = 'som765';
-%session           = 'nyuecog04';
+%projectDir        = '/Volumes/SeaGate/BAIR/BIDS/visualPilot/derivatives/ECoGBroadband'; 
+%projectDir        = '/Volumes/SeaGate/BAIR/BIDS/visualPilot/'; 
+projectDir = '/Users/iiagroen/surfdrive/ECoG/data';
+%projectDir = '/Users/iiagroen/surfdrive/ECoG/data/derivatives/ECoGCAR';
+subject           = 'som800';
 session           = 'nyuecog01';
-%task              = 'sixcatloctemporal';
-task              = 'sixcatlocdiffisi';
+task              = 'sixcatloctemporal';
+%task              = 'sixcatlocdiffisi';
 
 overwrite         = 1; % SET TO ZERO TO CHECK/DEBUG, 1 TO CHANGE FILES
 
