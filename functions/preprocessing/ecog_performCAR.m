@@ -37,7 +37,7 @@ group_indices = cell(size(group_names));
 for ii = 1:length(group_names)
     
     fprintf('[%s] Referencing %s electrodes...\n',mfilename, group_names{ii});
-    chan_index = find(contains(channels.group, group_names{ii}));
+    chan_index = find(strcmp(channels.group, group_names{ii}));
     
     if ~isempty(chan_index)
         % Include only good_channels in the common average:
