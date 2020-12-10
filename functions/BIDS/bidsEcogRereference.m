@@ -152,8 +152,9 @@ for ii = 1:length(sessions)
 
                        % Plot the spectra before and after CAR
                        subplot(1,2,2),hold on
-                       [pxx,freqs] = pwelch(data(channel_plot,:)',hdr.Fs,0,hdr.Fs,hdr.Fs);
-                       [pxx2,~] = pwelch(data_reref(channel_plot,:)',hdr.Fs,0,hdr.Fs,hdr.Fs);
+                       nonnanidx = ~isnan(data(channel_plot,:));
+                       [pxx,freqs] = pwelch(data(channel_plot,nonnanidx)',hdr.Fs,0,hdr.Fs,hdr.Fs);
+                       [pxx2,~] = pwelch(data_reref(channel_plot,nonnanidx)',hdr.Fs,0,hdr.Fs,hdr.Fs);
                        plot(freqs,pxx,'k')
                        plot(freqs,pxx2,'g'); 
                        set(gca, 'YScale', 'log')
