@@ -104,15 +104,32 @@ elec_labels = electrode_table.name;
 elec_xyz    = [electrode_table.x electrode_table.y electrode_table.z];
 vertices    = [vertices_r;vertices_l];
 
-% TEMP: fixing an issue with sub-chaam's coordinates, should not be in here but
-% should be fixed in the files themselves 
+% EXCEPTION: fixing an issue with sub-chaam's and sub-merk's coordinates, 
+% (would be better if fixed in the coordinate files themselves). 
+% This shift is necessary if recon-all was run with the cw256 flag after
+% throwing this error when running the normal way:
+%
+%ERROR! FOV=288.000 > 256
+%Include the flag -cw256 with recon-all!
+%Inspect orig.mgz to ensure the head is fully visible.
+%
+% Running with -cw256 seems to crop the brain image and shift the center
+% coordinate, which means the electrode coordinates are off. The hard-coded
+% shifts here are based on the ras xform info inside the orig.mgz header in
+% the freesurfer mri directory (to be inspected using mri_info orig.mgz)
 if contains(subject,{'umcuchaam', 'chaam'})
     % subtract effect of cropping by freesurfer
     elec_xyz(:,1) = elec_xyz(:,1)-3.4490;
     elec_xyz(:,2) = elec_xyz(:,2)-34.6040;
     elec_xyz(:,3) = elec_xyz(:,3)+6.2660;
 end
-
+if contains(subject,{'merk'})
+    % subtract effect of cropping by freesurfer
+    elec_xyz(:,1) = elec_xyz(:,1)+2.2827;
+    elec_xyz(:,2) = elec_xyz(:,2)-12.9508;
+    elec_xyz(:,3) = elec_xyz(:,3)+12.1584;
+end
+            
 % Match the electrode xyz with the nodes in the surfaces; find nearest
 [indices, bestSqDist] = nearpoints(elec_xyz', vertices'); % function from vistasoft
 
@@ -138,10 +155,10 @@ for a = 1:length(atlasName)
 end
 
 % Add matched nodes to electrode table
-electrode_table.node_x = vertices(indices,1);
-electrode_table.node_y = vertices(indices,2);
-electrode_table.node_z = vertices(indices,3);
-electrode_table.node_idx = indices';
+electrode_table.node_x(keep_idx) = vertices(indices,1);
+electrode_table.node_y(keep_idx) = vertices(indices,2);
+electrode_table.node_z(keep_idx) = vertices(indices,3);
+electrode_table.node_idx(keep_idx) = indices';
 
 % Add atlas info to electrode table
 for a = 1:length(atlasName)
@@ -159,16 +176,18 @@ for a = 1:length(atlasName)
         electrode_table.(atlasName{a}) = vals;
     else        
         if iscolumn(vals) % if single column, replace node values with area name
+            electrode_table.(atlasName{a}) = repmat({'none'}, height(electrode_table));
             matched_areas = cell(size(vals));
             idx = vals>0;
             matched_areas(idx) = area_labels(vals(idx));
             matched_areas(~idx) = {'none'};
-            electrode_table.(atlasName{a}) = matched_areas;
+            electrode_table.(atlasName{a})(keep_idx) = matched_areas;
         else % otherwise, add separate column for each area with atlas vals
             ncols = size(vals,2);
             for ii = 1:ncols
                 colName = sprintf('%s_%s', atlasName{a}, area_labels{ii});
-                electrode_table.(colName) = vals(:,ii);
+                electrode_table.(colName) = zeros(height(electrode_table),1);
+                electrode_table.(colName)(keep_idx) = vals(:,ii);
             end
         end
     end
