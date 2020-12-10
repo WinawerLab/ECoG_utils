@@ -85,9 +85,8 @@ if ~isfield(specs, 'rootDir') || isempty(specs.rootDir)
     end
 end
 
-if ~isfield(specs, 'fsDir') || isempty(specs.fsDir)
-%     specs.fsDir = fullfile(filesep, 'Volumes', 'server', 'Freesurfer_subjects'); 
-    specs.fsDir = fullfile(filesep, 'Volumes', 'server', 'Projects','BAIR','Data','BIDS','visual','derivatives','freesurfer');
+if ~isfield(specs, 'fsDir')
+    specs.fsDir = '';
 end
 
 if ~isfield(specs, 'atlasNames') || isempty(specs.atlasNames)
@@ -263,6 +262,18 @@ else
     
     % Add 'som' to name in order to be able to read freesurfer directory
     specs.pID = sprintf('som%s',specs.pID);
+end
+% Set fsDir based on dataDir
+if isempty(specs.fsDir)
+    fsDir = dir(fullfile(patientDir,'..','derivatives','freesurfer'));
+    if isempty(fsDir)
+        fsDir = dir(fullfile(patientDir,'..','freesurfer'));
+    end
+    if isempty(fsDir)
+        specs.fsDir = fullfile(filesep, 'Volumes', 'server', 'Freesurfer_subjects');
+    else
+        specs.fsDir = fsDir(1).folder;
+    end
 end
 
 % Read surface reconstructions from Freesurfer_subjects directory
