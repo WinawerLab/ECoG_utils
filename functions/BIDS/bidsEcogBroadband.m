@@ -204,18 +204,19 @@ for ii = 1:length(sessions)
                 
                % Plot the first channel by default
                chan_index = find(contains(lower(channels.type), 'ecog') & contains(channels.status, 'good'));
+               if isempty(chan_index), chan_index = find(contains(lower(channels.type), 'seeg') & contains(channels.status, 'good')); end
                channel_plot = chan_index(1);
 
                figure('Name', sprintf('broadband %s', channels.name{channel_plot}));
 
-               % Plot the time courses before and after CAR
+               % Plot the voltage time courses 
                subplot(2,1,1); hold on
                plot(t,data(channel_plot,:),'k')
                %legend('raw data');
                xlabel('Time (s)'); ylabel('Voltage');set(gca, 'FontSize', 16);
                title(sprintf('%s raw %s',channels.name{channel_plot}, description));
 
-               % Plot the spectra before and after CAR
+               % Plot the broadband timecourse 
                subplot(2,1,2),hold on
                plot(t,broadband(channel_plot,:),'k')
                %legend('broadband time course')
