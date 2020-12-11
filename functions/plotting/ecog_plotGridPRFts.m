@@ -124,10 +124,6 @@ end
 if ~iscell(data), data = {data}; end
 if ~iscell(stimulus), stimulus = {stimulus}; end
 
-%-- Duplicate stimulus
-if ~iscell(stimulus{1}),   stimulus = {stimulus};  end
-if length(stimulus)==1,    stimulus = repmat(stimulus,numvxs,1);    end
-
 %%
 %-- Define variables
 ndats        = 1;

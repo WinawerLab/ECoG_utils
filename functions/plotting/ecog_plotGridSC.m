@@ -8,6 +8,7 @@ function figlist = ecog_plotGridSC(dat,whichHDgrid, opt)
 % Dependency: SetDefault, cellstrfind
 
 % 20190726 Yuasa
+% 20201117 Yuasa - enable to apply mask (opt.plot.AlphaData)
 
 %% Set options
 narginchk(2,inf);
@@ -16,11 +17,22 @@ SetDefault('opt.plot.colorBar',true);
 SetDefault('opt.plot.nSubPlots',[]);
 SetDefault('opt.plot.fontSize',12);
 SetDefault('opt.plot.YLim','maxmin');
+SetDefault('opt.plot.YTick','auto',true);
+SetDefault('opt.plot.YTickLabel','auto',true,'cell');
 SetDefault('opt.plot.FigName','');
 SetDefault('opt.plot.RotGrid',true);
 
+SetDefault('opt.plot.AlphaData',[]);
+SetDefault('opt.plot.Properties',{},'cell');
+
 % whichHDgrid     = upper(whichHDgrid);
 %%
+%-- check mask
+setmask = ~isempty(opt.plot.AlphaData);
+if setmask
+    assert(isequal(size(dat),size(opt.plot.AlphaData)),'Mask data must be the same size as the data.');
+    maskdat = opt.plot.AlphaData;
+end
 %-- set grid parameters
 switch whichHDgrid
     case 'GA',  nCol = 8; nRow = 8;
@@ -76,6 +88,10 @@ if ischar(opt.plot.YLim)
 else
     yrange = opt.plot.YLim;
 end
+setytick = opt.plot.colorBar && ...
+    ~(ischar(opt.plot.YTick)&&strcmp(opt.plot.YTick,'auto'));
+setyticklabel = opt.plot.colorBar && ...
+    ~(ischar(opt.plot.YTickLabel{1})&&strcmp(opt.plot.YTickLabel{1},'auto'));
 
 %-- Plot figures
 for itim = 1:length(opt.timelabel)
@@ -92,20 +108,25 @@ for itim = 1:length(opt.timelabel)
     imdat = nan(nRow,nCol);
     imdat(~isnan(sensidx))   = dat(sensidx(~isnan(sensidx)),itim);
     imalp = ones(nRow,nCol);
+    if setmask
+    imalp(~isnan(sensidx))   = maskdat(sensidx(~isnan(sensidx)),itim);
+    end
     imalp(isnan(imdat))   = 0;
     
     %%% imsc plot
     hF = figure('Name', opt.plot.FigName); 
     set(gcf, 'Position', [300 400 round(nCol*50) round(nRow*50)]);
     him = imagesc(imdat); hsc = gca; box off;
-    colormap(opt.plot.colorMap);
-    him.AlphaData = imalp;   clim([yrange]);
-    if opt.plot.colorBar,  colorbar('FontSize', opt.plot.fontSize);    end 
+    colormap(hsc,opt.plot.colorMap);
+    him.AlphaData = imalp;   clim(hsc,[yrange]);
+    if opt.plot.colorBar,  hcb = colorbar('FontSize', opt.plot.fontSize);    end 
+    if setytick,        set(hcb,'Ticks',opt.plot.YTick);    end
+    if setyticklabel,   set(hcb,'TickLabels',opt.plot.YTickLabel);    end
     set(hsc,'Position',get(hsc,'Position').*[0 1 0 1]+[0.078 0 0.78 0],...
-        'YAxisLocation','right','FontSize', opt.plot.fontSize);
+        'YAxisLocation','right','FontSize', opt.plot.fontSize,opt.plot.Properties{:});
       hbg = axes('xlim',0.5 + [0 size(imdat,2)],'ylim',0.5 + [0 size(imdat,1)],...
           'color','none','XAxisLocation','top','YAxisLocation','left',...
-          'FontSize', opt.plot.fontSize);
+          'FontSize', opt.plot.fontSize,opt.plot.Properties{:});
       set(hbg,'Position',get(hsc,'Position'));
     
     if opt.plot.RotGrid
