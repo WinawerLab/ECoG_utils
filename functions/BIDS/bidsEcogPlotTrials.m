@@ -123,7 +123,7 @@ if ~exist('savePlot', 'var') || isempty(savePlot), savePlot = true; end
 dataPath = fullfile(projectDir, 'derivatives', inputFolder);
 writePath = fullfile(projectDir, 'derivatives', 'ECoGFigures');
                         
-[data, channels, events] = bidsEcogGetPreprocData(dataPath, subject, sessions, tasks, runnums, description);
+[data, channels, events] = bidsEcogGetPreprocData(dataPath, subject, sessions, tasks, runnums, description, 512);
                                           
 % Select channels
 chan_names = specs.chan_names;
@@ -145,6 +145,8 @@ else
     % character (e.g. G): match all channels with this character:
     % ALTERNATIVE: use channel_group as second way to select channels?
     chan_idx = contains(channels.name, chan_names);
+	chan_idx = strcmp(channels.group, chan_names);
+
     useSeparateFiguresForGroups = 1;    
 end
 if ~any(chan_idx), error('Did not find any matching channels! Please check channel names.'), end
@@ -301,18 +303,19 @@ for ii = 1:length(chan_groups)
                         this_trial = mean(this_epoch,2, 'omitnan');
 
                     case 'averageSE'
-                        this_trial = mean(this_epoch,2, 'omitnan');
+                        this_trial = median(this_epoch,2, 'omitnan');
                         llim = this_trial - std(this_epoch,0,2, 'omitnan')/sqrt(length(stim_idx{ss}));
                         ulim = this_trial + std(this_epoch,0,2, 'omitnan')/sqrt(length(stim_idx{ss}));
-                        CI = [llim ulim];     
+                        CI = [llim ulim]; 
+                        CI = [];
                 end
 
                 % Plot
                 ecog_plotSingleTimeCourse(t, this_trial, CI, colors(ss,:), [], [], specs.plot_ylim);
                 
                 % Collect data in output
-                out{ii}.ts(:,ss,ee) = this_trial;
-                out{ii}.ci(:,:,ss,ee) = CI;
+%                out{ii}.ts(:,ss,ee) = this_trial;
+%                out{ii}.ci(:,:,ss,ee) = CI;
             end
             
             % Add axis labels and legend
