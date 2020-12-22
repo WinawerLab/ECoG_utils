@@ -25,25 +25,25 @@ end
 
 % analyze PRF: 0 corresponds to the right horizontal meridian, 90 corresponds to the upper vertical meridian, and so on.
 % benson14_angle: 0 corresponds to upper vertical meridian, 180 to lower vertical meridian
-upper_right = contains(channels.hemisphere, 'L') & channels.benson14_angle <=90;
-lower_right = contains(channels.hemisphere, 'L') & channels.benson14_angle >90;
-left = contains(channels.hemisphere, 'R');
-assert(sum(sum([upper_right lower_right left])) == height(channels))
+upper_RVF = contains(channels.hemisphere, 'L') & channels.benson14_angle <=90;
+lower_RVF = contains(channels.hemisphere, 'L') & channels.benson14_angle >90;
+leftVF = contains(channels.hemisphere, 'R');
+assert(sum(sum([upper_RVF lower_RVF leftVF])) == height(channels))
 
 tmp = channels.benson14_angle;
 
-tmp(upper_right) = 90 - tmp(upper_right); % set right VF to 0-90, counterclockwise
-tmp(lower_right) = (180 - tmp(lower_right)) + 240; % set right VF to 240-260, counterclockwise
-tmp(left)        = tmp(left) + 90; % left VF to 90-240, counterclockwise
+tmp(upper_RVF) = 90 - tmp(upper_RVF); % set right VF to 0-90, counterclockwise
+tmp(lower_RVF) = (180 - tmp(lower_RVF)) + 270; % set right VF to 240-260, counterclockwise
+tmp(leftVF)    = tmp(leftVF) + 90; % left VF to 90-240, counterclockwise
 
 figure;hold on
 subplot(1,2,1);
-scatter(channels.benson14_angle(left), tmp(left), 100,'filled');
-title('benson14_angle LH / RVF'); axis square
+scatter(channels.benson14_angle(leftVF), tmp(leftVF), 100,'filled');
+title('benson14_angle LVF (RH)'); xlim([0 180]); ylim([0 360]); axis square
 xlabel('original'); ylabel('converted');
 subplot(1,2,2);
-scatter(channels.benson14_angle(~left), tmp(~left), 100,'filled');
-title('benson14_angle RH / LVF'); axis square
+scatter(channels.benson14_angle(~leftVF), tmp(~leftVF), 100,'filled');
+title('benson14_angle RVF (LH)'); xlim([0 180]); ylim([0 360]);axis square
 xlabel('original'); ylabel('converted');
 
 
