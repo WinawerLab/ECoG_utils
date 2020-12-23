@@ -34,7 +34,7 @@ assert(sum(sum([upper_RVF lower_RVF leftVF])) == height(channels)); % make sure 
 converted = channels.benson14_angle;
 
 converted(upper_RVF) = 90 - channels.benson14_angle(upper_RVF); % set right VF to 0-90, counterclockwise
-converted(lower_RVF) = (180 - channels.benson14_angle(lower_RVF)) + 270; % set right VF to 240-360, counterclockwise
+converted(lower_RVF) = (180 - channels.benson14_angle(lower_RVF)) + 270; % set right VF to 270-360, counterclockwise
 converted(leftVF)    = channels.benson14_angle(leftVF) + 90; % left VF to 90-270, counterclockwise
 
 figure;hold on
