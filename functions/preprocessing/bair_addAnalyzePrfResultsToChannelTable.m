@@ -56,7 +56,7 @@ if ~isempty(results) && isfield(results, 'channels')
     end
 end
 
-% Convert to degress and add to channel table
+% Add to channel table
 channels.aprf_R2     = aprf_R2;
 channels.aprf_ecc    = aprf_ecc;
 channels.aprf_ang    = aprf_ang;
