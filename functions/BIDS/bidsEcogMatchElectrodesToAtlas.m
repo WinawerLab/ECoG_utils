@@ -176,7 +176,7 @@ for a = 1:length(atlasName)
         electrode_table.(atlasName{a}) = vals;
     else        
         if iscolumn(vals) % if single column, replace node values with area name
-            electrode_table.(atlasName{a}) = repmat({'none'}, height(electrode_table));
+            electrode_table.(atlasName{a}) = repmat({'none'}, height(electrode_table),1);
             matched_areas = cell(size(vals));
             idx = vals>0;
             matched_areas(idx) = area_labels(vals(idx));
