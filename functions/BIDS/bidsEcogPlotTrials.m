@@ -40,6 +40,8 @@ function  [out] = bidsEcogPlotTrials(projectDir, subject, sessions, tasks, runnu
 %                                           default: 'averageSE'                            
 %                        - plot_cmap: colormap name (string) or RGB array
 %                                           default: 'parula'  
+%                        - plot_smooth: extent of smoothing of time course
+%                                           default: 0
 %                        - plot_ylim: limits of y axis e.g. [-1 10]
 %                                           default: automatic by matlab
 %                        - plot_includelegend: flag to include legend
@@ -108,6 +110,7 @@ if ~isfield(specs,'stim_names'), specs.stim_names = []; end
 if ~isfield(specs,'plot_type') || isempty(specs.plot_type), specs.plot_type = 'averageSE'; end
 if ~isfield(specs,'plot_cmap') || isempty(specs.plot_cmap), specs.plot_cmap = 'parula'; end
 if ~isfield(specs,'plot_ylim'), specs.plot_ylim = []; end
+if ~isfield(specs,'plot_smooth'), specs.plot_smooth = 0; end
 if ~isfield(specs,'plot_includelegend'), specs.plot_includelegend = 1; end
 if ~isfield(specs,'average_stims'), specs.average_stims = 0; end
 if ~isfield(specs,'subplotdims') || isempty(specs.subplotdims), specs.subplotdims = []; end
@@ -132,7 +135,7 @@ includeChansInFigureName = 0; % if 0, uses the group name only
 if ~iscell(chan_names), chan_names = {chan_names}; end
 if isempty([chan_names{:}]) 
     chan_idx = contains(lower(channels.type), {'ecog', 'seeg'}); 
-    useSeparateFiguresForGroups = 0;
+    useSeparateFiguresForGroups = 1;
 elseif any(contains(chan_names, string(0:10))) 
     % specs.chan_names contains numbers, so the user is (probably)
     % referencing individual channels. Match each individual channel:
@@ -247,7 +250,7 @@ for ii = 1:length(chan_groups)
     chan_idx = chan_groups{ii};
     
     out{ii}.t = t;
-    out{ii}.channels = channels(chan_idx,:);
+    out{ii}.channels = channels(chan_idx(~isnan(chan_idx)),:);
     out{ii}.stims = stim_names;
     out{ii}.colors = colors;
     
@@ -303,14 +306,21 @@ for ii = 1:length(chan_groups)
                         this_trial = mean(this_epoch,2, 'omitnan');
 
                     case 'averageSE'
-                        this_trial = median(this_epoch,2, 'omitnan');
+                        this_trial = mean(this_epoch,2, 'omitnan');
                         llim = this_trial - std(this_epoch,0,2, 'omitnan')/sqrt(length(stim_idx{ss}));
                         ulim = this_trial + std(this_epoch,0,2, 'omitnan')/sqrt(length(stim_idx{ss}));
                         CI = [llim ulim]; 
-                        CI = [];
+                        %CI = [];
                 end
 
                 % Plot
+                if specs.plot_smooth > 0
+                    this_trial = smooth(this_trial,specs.plot_smooth);
+                    if ~isempty(CI)
+                        CI(:,1) = smooth(CI(:,1),specs.plot_smooth);
+                        CI(:,2) = smooth(CI(:,2),specs.plot_smooth);
+                    end
+                end
                 ecog_plotSingleTimeCourse(t, this_trial, CI, colors(ss,:), [], [], specs.plot_ylim);
                 
                 % Collect data in output
@@ -325,7 +335,7 @@ for ii = 1:length(chan_groups)
                 %xlabel('Time (s)');
             end
             if nPlot <= 4
-                ylabel(sprintf('%s (%s)', description, channels.units{1}));
+                %ylabel(sprintf('%s (%s)', description, channels.units{1}));
                 xlabel('Time (s)');
             end
             %setsubplotaxes();
