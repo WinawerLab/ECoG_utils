@@ -405,11 +405,18 @@ end
 
 for a = 1:length(specs.atlasNames)
     
-    currentAtlas = specs.atlasNames{a};  
+    currentAtlas = specs.atlasNames{a};
+    
+    switch currentAtlas
+        case 'wang15_fplbl_norm'
+            atlasToLoad = 'wang15_fplbl';
+        otherwise
+            atlasToLoad = currentAtlas;
+    end
     % Get atlases for this subject
     %fullfile(specs.fsDir, specs.pID, 'surf', 'rh.pial');
-    atlas_file_rh = fullfile(specs.fsDir, specs.pID, 'surf', sprintf('rh.%s.mgz', currentAtlas));
-    atlas_file_lh = fullfile(specs.fsDir, specs.pID, 'surf', sprintf('lh.%s.mgz', currentAtlas));
+    atlas_file_rh = fullfile(specs.fsDir, specs.pID, 'surf', sprintf('rh.%s.mgz', atlasToLoad));
+    atlas_file_lh = fullfile(specs.fsDir, specs.pID, 'surf', sprintf('lh.%s.mgz', atlasToLoad));
     if exist(atlas_file_rh, 'file') && exist(atlas_file_lh, 'file')
         [atlas_rh] = load_mgh(atlas_file_rh);
         [atlas_lh] = load_mgh(atlas_file_lh);
@@ -422,22 +429,19 @@ for a = 1:length(specs.atlasNames)
     atlas_rh = squeeze(atlas_rh);   atlas_lh = squeeze(atlas_lh);
     
      switch currentAtlas
-        case {'wang15_fplbl'} % Wang full probability map
-%             atlas_rh./sum(atlas_rh,2);
-%             atlas_lh./sum(atlas_lh,2);
-%             atlas_rh(isnan(atlas_rh)) = 0;
-%             atlas_lh(isnan(atlas_lh)) = 0;
-              tmp = zeros(1,size(atlas_rh,2));
-              ind = any(atlas_rh);
-              [~,tmp(:,ind)] = max(atlas_rh(:,ind));
-              atlas_rh = tmp;
-              tmp = zeros(1,size(atlas_lh,2));
-              ind = any(atlas_lh);
-              [~,tmp(:,ind)] = max(atlas_lh(:,ind));
-              atlas_lh = tmp;            
+        case {'wang15_fplbl_norm'} % Wang full probability map normalized
+            % assign each node with probability > 0 to an area
+          tmp = zeros(1,size(atlas_rh,2));
+          ind = any(atlas_rh);
+          [~,tmp(:,ind)] = max(atlas_rh(:,ind));
+          atlas_rh = tmp;
+          tmp = zeros(1,size(atlas_lh,2));
+          ind = any(atlas_lh);
+          [~,tmp(:,ind)] = max(atlas_lh(:,ind));
+          atlas_lh = tmp;            
      end
-	% Match nearest nodes to atlas labels
-
+     
+     % Match nearest nodes to atlas labels
     if ~iscolumn(atlas_rh)  % 1st dimension should be vertices 
         atlas_rh = permute(atlas_rh,[ndims(atlas_rh), 1:(ndims(atlas_rh)-1)]); % align with rows
         atlas_lh = permute(atlas_lh,[ndims(atlas_lh), 1:(ndims(atlas_lh)-1)]); % align with rows
@@ -463,7 +467,7 @@ for a = 1:length(specs.atlasNames)
     % Get names / colormaps associated with each atlas
     switch currentAtlas
 
-        case {'wang2015_atlas', 'wang15_mplbl', 'wang15_fplbl'} % Wang atlas
+        case {'wang2015_atlas', 'wang15_mplbl', 'wang15_fplbl_norm'} % Wang atlas
 
             % Labels come from: '/Volumes/server/Projects/Kastner2015Atlas/ProbAtlas_v4/ROIfiles_Labeling.txt';
             area_labels =  {'V1v','V1d', ...
@@ -490,22 +494,22 @@ for a = 1:length(specs.atlasNames)
                            255 153 255; 255 178 102]./255;
             out.(currentAtlas).area_names   = area_labels;
             
-%        case {'wang15_fplbl'} % Wang full probability map
-% 
-%             % Labels come from: '/Volumes/server/Projects/Kastner2015Atlas/ProbAtlas_v4/ROIfiles_Labeling.txt';
-%             area_labels =  {'V1v','V1d', ...
-%                             'V2v','V2d', ...
-%                             'V3v','V3d', ...
-%                             'hV4', ...
-%                             'VO1','VO2', ...
-%                             'PHC1','PHC2', ...
-%                             'TO2','TO1', ...
-%                             'LO2','LO1', ...
-%                             'V3b','V3a', ...
-%                             'IPS0','IPS1','IPS2','IPS3','IPS4','IPS5', ...
-%                             'SPL1','FEF'}; 
-%             area_cmap   = autumn(64);
-%             out.(currentAtlas).area_names   = area_labels;
+       case {'wang15_fplbl'} % Wang full probability map
+
+            % Labels come from: '/Volumes/server/Projects/Kastner2015Atlas/ProbAtlas_v4/ROIfiles_Labeling.txt';
+            area_labels =  {'V1v','V1d', ...
+                            'V2v','V2d', ...
+                            'V3v','V3d', ...
+                            'hV4', ...
+                            'VO1','VO2', ...
+                            'PHC1','PHC2', ...
+                            'TO2','TO1', ...
+                            'LO2','LO1', ...
+                            'V3b','V3a', ...
+                            'IPS0','IPS1','IPS2','IPS3','IPS4','IPS5', ...
+                            'SPL1','FEF'}; 
+            area_cmap   = autumn(64);
+            out.(currentAtlas).area_names   = area_labels;
 
         case {'benson14_varea'} % Noah template: areas 
 
@@ -596,7 +600,7 @@ for a = 1:length(specs.atlasNames)
         
     % Get area labels and specs for matched nodes
     switch currentAtlas
-        case {'wang2015_atlas', 'wang15_mplbl', 'wang15_fplbl', 'benson14_varea','benson20_mplbl', 'template_areas'}
+        case {'wang2015_atlas', 'wang15_mplbl', 'wang15_fplbl_norm', 'benson14_varea','benson20_mplbl', 'template_areas'}
 
             area_count = zeros(1,length(area_labels));
             for i = 1:length(elec_labels_found)
@@ -637,14 +641,14 @@ for a = 1:length(specs.atlasNames)
             out.(currentAtlas).node_indices = node_indices;
             out.(currentAtlas).node_values  = round(atlas(node_indices),2)';
             
-%         case {'wang15_fplbl', 'benson20_fplbl'}
-%             for i = 1:length(area_labels)
-%                 out.(currentAtlas).area_count(i)   = length(elec_labels_found{i});
-%                 out.(currentAtlas).elec_labels{i}  = elec_labels_found{i}';
-%                 out.(currentAtlas).node_indices{i} = node_indices{i};
-%                 out.(currentAtlas).node_values{i}  = round(atlas(node_indices{i},i),4)';
-%             end
-%             atlasUnits = 'overlap';
+        case {'wang15_fplbl', 'benson20_fplbl'}
+            for i = 1:length(area_labels)
+                out.(currentAtlas).area_count(i)   = length(elec_labels_found{i});
+                out.(currentAtlas).elec_labels{i}  = elec_labels_found{i}';
+                out.(currentAtlas).node_indices{i} = node_indices{i};
+                out.(currentAtlas).node_values{i}  = round(atlas(node_indices{i},i),4)';
+            end
+            atlasUnits = 'overlap';
 
     end
   
@@ -696,7 +700,7 @@ for a = 1:length(specs.atlasNames)
                         cb.Label.String = atlasUnits;
                         cb.Position = [0.92 0.25 0.03 0.5];
                         switch currentAtlas
-                            case {'wang2015_atlas', 'wang15_fplbl', 'wang15_mplbl', 'benson14_varea', 'benson20_mplbl', 'template_areas'}
+                            case {'wang2015_atlas', 'wang15_fplbl_norm', 'wang15_mplbl', 'benson14_varea', 'benson20_mplbl', 'template_areas'}
                                 dTick = length(area_labels)/(length(area_labels)+1);
                                 cb.Ticks = (dTick/2):dTick:length(area_labels);
                                 cb.TickLabels = ['none', area_labels];
@@ -772,7 +776,7 @@ end
 % Print to window how many maps were found, and make a count per area (across hemispheres)
 
 % Check which of these atlases we ran
-atlasNames = intersect({'wang2015_atlas','wang15_mplbl', 'wang15_fplbl','benson14_varea', 'benson20_mplbl', 'template_areas'}, specs.atlasNames);
+atlasNames = intersect({'wang2015_atlas','wang15_mplbl', 'wang15_fplbl_norm','benson14_varea', 'benson20_mplbl', 'template_areas'}, specs.atlasNames);
 
 % In case not all benson maps were run, fill fields to prevent error below
 if max(contains(atlasNames, 'benson14_varea')) &&  ~isempty(out.benson14_varea)
@@ -790,7 +794,7 @@ for a = 1:length(atlasNames)
             
         for i = 1:length(out.(currentAtlas).elec_labels)            
             switch currentAtlas
-                case {'wang2015_atlas', 'wang15_mplbl', 'benson20_mplbl', 'template_areas'}
+                case {'wang2015_atlas', 'wang15_mplbl', 'wang15_fplbl', 'benson20_mplbl', 'template_areas'}
                     fprintf('[%s] %s in area %s\n', mfilename, out.(currentAtlas).elec_labels{i}, out.(currentAtlas).area_labels{i})
                     %disp([out.(currentAtlas).elec_labels{i} ' in area ' out.(currentAtlas).area_labels{i}]);
                 case 'benson14_varea'
