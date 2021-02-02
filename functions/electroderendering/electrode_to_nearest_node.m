@@ -21,15 +21,21 @@ function [out] = electrode_to_nearest_node(specs, BIDSformatted)
 %                     contain the wang and benson atlases that can be 
 %                     obtained through the nben/neuropythy docker
 % specs.atlasNames  = list of atlases to match electrode locations with.
-%                     Current options are (default = all):
+%                     Current options are (default = wang_mplbl and benson maps):
 %                                         {'wang2015_atlas', ...
+%                                          'wang15_mplbl', ...
+%                                          'wang15_fplbl', ...
+%                                          'wang15_fplbl_norm', ...
+%                                          'benson20_fplbl', ...
 %                                          'benson14_varea', ...
 %                                          'benson14_eccen', ...
 %                                          'benson14_angle', ...
 %                                          'benson14_sigma', ...
+%                                          'glasser16_atlas', ...
 %                                          'template_areas'};
 %                     NOTE: including benson14_varea is required to
 %                     be able to obtain benson14_eccen, angle and sigma
+%                     NOTE: glasser16 currently onlys plot subset of MT+ areas
 % specs.plotmesh    = flag to plot meshes with atlases: 'left', 'right',
 %                     'both', 'none';
 % specs.plotelecs   = flag to plot electrodes on mesh: 'yes', 'no'
@@ -93,7 +99,7 @@ if ~isfield(specs, 'fsDir')
 end
 
 if ~isfield(specs, 'atlasNames') || isempty(specs.atlasNames)
-    specs.atlasNames = {'wang2015_atlas','wang15_mplbl', 'benson14_varea', 'benson14_eccen', 'benson14_angle', 'benson14_sigma', 'template_areas'};
+    specs.atlasNames = {'wang15_mplbl', 'benson14_varea', 'benson14_eccen', 'benson14_angle', 'benson14_sigma'};
 end
 
 if ~isfield(specs, 'thresh') || isempty(specs.thresh)
@@ -779,35 +785,37 @@ end
 atlasNames = intersect({'wang2015_atlas','wang15_mplbl', 'wang15_fplbl_norm','benson14_varea', 'benson20_mplbl', 'template_areas'}, specs.atlasNames);
 
 % In case not all benson maps were run, fill fields to prevent error below
-if max(contains(atlasNames, 'benson14_varea')) &&  ~isempty(out.benson14_varea)
-    if ~isfield(out.benson14_varea, 'node_eccen'); out.benson14_varea.node_eccen = nan(1,length(out.benson14_varea.node_indices));end
-    if ~isfield(out.benson14_varea, 'node_angle'); out.benson14_varea.node_angle = nan(1,length(out.benson14_varea.node_indices));end
-    if ~isfield(out.benson14_varea, 'node_sigma'); out.benson14_varea.node_sigma = nan(1,length(out.benson14_varea.node_indices));end
-end      
+if ~isempty(atlasNames)
+    if max(contains(atlasNames, 'benson14_varea')) &&  ~isempty(out.benson14_varea)
+        if ~isfield(out.benson14_varea, 'node_eccen'); out.benson14_varea.node_eccen = nan(1,length(out.benson14_varea.node_indices));end
+        if ~isfield(out.benson14_varea, 'node_angle'); out.benson14_varea.node_angle = nan(1,length(out.benson14_varea.node_indices));end
+        if ~isfield(out.benson14_varea, 'node_sigma'); out.benson14_varea.node_sigma = nan(1,length(out.benson14_varea.node_indices));end
+    end     
+
     
-for a = 1:length(atlasNames)
-    currentAtlas = atlasNames{a};
-    
-    if ~isempty(out.(currentAtlas)) && ~isempty(out.(currentAtlas).elec_labels)
-        
-        fprintf('[%s] Found %d electrodes in %s :\n' ,mfilename, length(out.(currentAtlas).elec_labels), currentAtlas);
-            
-        for i = 1:length(out.(currentAtlas).elec_labels)            
-            switch currentAtlas
-                case {'wang2015_atlas', 'wang15_mplbl', 'wang15_fplbl', 'benson20_mplbl', 'template_areas'}
-                    fprintf('[%s] %s in area %s\n', mfilename, out.(currentAtlas).elec_labels{i}, out.(currentAtlas).area_labels{i})
-                    %disp([out.(currentAtlas).elec_labels{i} ' in area ' out.(currentAtlas).area_labels{i}]);
-                case 'benson14_varea'
-                    fprintf('[%s] %s in area %s with eccen = %4.2f, angle = %4.2f, sigma = %4.2f\n', ...
-                        mfilename, out.(currentAtlas).elec_labels{i}, out.(currentAtlas).area_labels{i}, ...
-                        out.benson14_varea.node_eccen(i), out.benson14_varea.node_angle(i), out.benson14_varea.node_sigma(i));
-                    %disp([out.(currentAtlas).elec_labels{i} ' in area ' out.(currentAtlas).area_labels{i} ...
-                        %' with eccen = ' num2str(out.benson14_varea.node_eccen(i)) ', angle = ' num2str(out.benson14_varea.node_angle(i)) ', sigma = ' num2str(out.benson14_varea.node_sigma(i))]);
+    for a = 1:length(atlasNames)
+        currentAtlas = atlasNames{a};
+
+        if ~isempty(out.(currentAtlas)) && ~isempty(out.(currentAtlas).elec_labels)
+
+            fprintf('[%s] Found %d electrodes in %s :\n' ,mfilename, length(out.(currentAtlas).elec_labels), currentAtlas);
+
+            for i = 1:length(out.(currentAtlas).elec_labels)            
+                switch currentAtlas
+                    case {'wang2015_atlas', 'wang15_mplbl', 'wang15_fplbl', 'benson20_mplbl', 'template_areas'}
+                        fprintf('[%s] %s in area %s\n', mfilename, out.(currentAtlas).elec_labels{i}, out.(currentAtlas).area_labels{i})
+                        %disp([out.(currentAtlas).elec_labels{i} ' in area ' out.(currentAtlas).area_labels{i}]);
+                    case 'benson14_varea'
+                        fprintf('[%s] %s in area %s with eccen = %4.2f, angle = %4.2f, sigma = %4.2f\n', ...
+                            mfilename, out.(currentAtlas).elec_labels{i}, out.(currentAtlas).area_labels{i}, ...
+                            out.benson14_varea.node_eccen(i), out.benson14_varea.node_angle(i), out.benson14_varea.node_sigma(i));
+                        %disp([out.(currentAtlas).elec_labels{i} ' in area ' out.(currentAtlas).area_labels{i} ...
+                            %' with eccen = ' num2str(out.benson14_varea.node_eccen(i)) ', angle = ' num2str(out.benson14_varea.node_angle(i)) ', sigma = ' num2str(out.benson14_varea.node_sigma(i))]);
+                end
             end
         end
     end
 end
-
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%% SUBROUTINES%%%%% %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
