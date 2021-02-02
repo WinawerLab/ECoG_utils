@@ -165,7 +165,9 @@ if BIDSformatted
     if ~isfolder(patientDir)
         patientDir = fullfile(specs.dataDir, 'tactile', sprintf('sub-%s', specs.pID));
     end
-    patientDir = fullfile(specs.dataDir, 'pilots', 'visualPilot', sprintf('sub-%s', specs.pID));
+    if ~isfolder(patientDir)
+        patientDir = fullfile(specs.dataDir, 'pilots', 'visualPilot', sprintf('sub-%s', specs.pID));
+    end
     if ~isfolder(patientDir)
         patientDir = fullfile(specs.dataDir, 'pilots', 'motorPilot', sprintf('sub-%s', specs.pID));
     end
