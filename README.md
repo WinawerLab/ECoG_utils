@@ -2,13 +2,9 @@ This is a set of Matlab tools for analyzing intracranial (iEEG) data. The data w
 
 In this repository you can find the following folders:
 
-scripts
-
 functions
 
 files
 
-obsolete
-
-Please contact irisgroen (https://github.com/irisgroen) for questions.
+Please contact Iris Groen (https://github.com/irisgroen) or Ken Yuasa (https://github.com/KenYMB) for questions.
 
