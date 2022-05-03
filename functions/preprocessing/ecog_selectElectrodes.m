@@ -5,15 +5,20 @@ function [chan_idx, R2, epochs_split] = ecog_selectElectrodes(epochs, channels, 
 % 2019), a split half method, or single-trial variance relative to mean (cf
 % Stigliani et al., 2019). 
 % Note: each option requires different combinations of inputs and fields of opts to be set.
-% - thresh: requires t, opts.elec_max_thresh, opts.elec_mean_thresh
-% - splithalf: requires events, opts.stimnames, opts.elec_splithalf_thresh
+% - thresh: requires t, opts.stim_on, opts.elec_max_thresh, opts.elec_mean_thresh
+% - splithalf: requires events, opts.stimnames, opts.elec_splithalf_thresh, opts.elec_splitmethod
 % - meanpredict: requires events, opts.stimnames, opts.elec_meanpredict_thresh
 
-if ~exist('events','var'), events = []; end
-if ~exist('t','var'), t = []; end
+narginchk(4,5);
 if ~exist('opts','var'), opts = []; end
-    
+if nargin == 4 && isstruct(t)
+    opts    = t;
+    t       = [];
+end
+assert(~isempty(opts) && isfield(opts,'elec_selection_method') && ~isempty(opts.elec_selection_method),...
+    'opts.elec_selection_method is required.');
 method = opts.elec_selection_method;
+R2 = [];
 epochs_split = [];
 
 switch method
@@ -23,8 +28,16 @@ switch method
         % Requires t, opts.elec_max_thresh and opts.elec_mean_thresh to be defined
         
         % Check:
-        if ~exist('t', 'var') || isempty(t)
-            error('Electrode selection method %s requires t as input', method);
+        if isempty(t)
+            if ~isepmty(events) && ~istable(events)
+                t       = events;
+            else
+                error('Electrode selection method %s requires t as input', method);
+            end
+        end
+        if ~isfield(opts, 'stim_on') || isempty(opts.stim_on)
+            Warning('Electrode selection method %s requires definition of stim_on', method);
+            opts.stim_on = [min(t)-1 max(t)];
         end
         if ~isfield(opts, 'elec_max_thresh') || ~isfield(opts, 'elec_mean_thresh')
             error('Electrode selection method %s requires definition of max and mean thresholds', method);
@@ -46,34 +59,55 @@ switch method
     
     case 'splithalf'
         
-        % Requires events, opts.stimnames, opts.elec_splithalf_thresh
+        % Requires events, opts.stimnames, opts.elec_splithalf_thresh, opts.elec_splitmethod
         
         % Check:
-        if ~exist('events', 'var') || isempty(events)
+        if isempty(events)
             error('Electrode selection method %s requires events table', method);
         end
         if ~isfield(opts, 'stimnames') || isempty(opts.stimnames)
-            error('Electrode selection method %s requires definition of stimnames', method);
+            warning('Electrode selection method %s requires definition of stimnames', method);
+            opts.stimnames = unique(events.trial_name);
         end
         if ~isfield(opts, 'elec_splithalf_thresh') 
             error('Electrode selection method %s requires definition of splithalf threshold', method);
         end     
+        if ~isfield(opts, 'elec_splitmethod') 
+            opts.elec_splitmethod = 'alternative';
+        end     
         
         % Get trial indices for each stimname
-        [~,~,trial_idx] = ecog_averageEpochs(epochs, events, opts.stimnames);
+        elec_splitmethod = lower(opts.elec_splitmethod);
+        if endsWith(elec_splitmethod,{'inruns','insessions'})
+            elec_splitmethod = strsplit(elec_splitmethod,'in');
+            avgrange = elec_splitmethod{end};
+            elec_splitmethod = elec_splitmethod{1};
+        else
+            avgrange = 'all';
+        end
+        [~,~,trial_idx] = ecog_averageEpochs(epochs, events, opts.stimnames, avgrange);
+        nstims = length(trial_idx);
         
         % Put trials in the last dimension
         temp_epochs = permute(epochs,[3 1 2]);
         
-        epochs_split = nan([2 size(temp_epochs,1) size(temp_epochs,2) length(opts.stimnames)]);
+        epochs_split = nan([2 size(temp_epochs,1) size(temp_epochs,2) nstims]);
         % Average first and second halfs of trials for each stimulusname
-        for stim = 1:length(opts.stimnames)
+        for stim = 1:nstims
             idx = trial_idx{stim};
             % This way of splitting the data will mix runs and sessions. I
             % think that's OK given that we convert trials to percent
             % signal change based on baselines computed within runs first.
-            trial_idx1 = idx(1:2:length(idx));
-            trial_idx2 = idx(2:2:length(idx));
+            switch elec_splitmethod
+                case {'alternative'}
+                    trial_idx1 = idx(1:2:length(idx));
+                    trial_idx2 = idx(2:2:length(idx));
+                case {'twohalves'}
+                    trial_idx1 = idx(1:fix(length(idx)./2));
+                    trial_idx2 = idx(ceil(length(idx)./2):length(idx));
+                otherwise
+                    error('%s is unknown split method',opts.elec_splitmethod);
+            end
             epochs_split(1,:,:,stim) = mean(temp_epochs(:,:,trial_idx1),3,'omitnan');
             epochs_split(2,:,:,stim) = mean(temp_epochs(:,:,trial_idx2),3,'omitnan');
         end
@@ -120,11 +154,12 @@ switch method
         % Requires events, opts.stimnames, opts.elec_meanpredict_thresh
         
         % Check:
-        if ~exist('events', 'var') || isempty(events)
+        if isempty(events)
             error('Electrode selection method %s requires events table', method);
         end
         if ~isfield(opts, 'stimnames') || isempty(opts.stimnames)
-            error('Electrode selection method %s requires definition of stimnames', method);
+            warning('Electrode selection method %s requires definition of stimnames', method);
+            opts.stimnames = unique(events.trial_name);
         end
         if ~isfield(opts, 'elec_meanpredict_thresh') 
             error('Electrode selection method %s requires definition of meanpredict threshold', method);
@@ -155,18 +190,21 @@ switch method
             trials_avg_rep = cellfun(@(X,y) repmat(X,[1 y]), trials_avg, nTrials, 'uni', false);
             % Calculate residual between individual trials and means
             trials_err = cellfun(@(X, Y) X - Y, trials, trials_avg_rep, 'uni', false);
-            trials_err = cellfun(@(X) sum(sum(X .^ 2, 'omitnan')), trials_err, 'uni', false);
+            trials_err = cellfun(@(X) sum(sum(X .^ 2, 'omitnan'), 'omitnan'), trials_err, 'uni', false);
             % Calculate variance explained by mean trial responses
             total_err = sum(cell2mat(trials_err));
-            trial_mean = mean(mean(cell2mat(trials), 'omitnan'));
-            trials_var = cell2mat(trials) - trial_mean;
-            total_var = sum(sum(trials_var .^ 2,'omitnan'));
+            trial_mean = mean(mean(cell2mat(trials'), 'omitnan'), 'omitnan');
+            trials_var = cell2mat(trials') - trial_mean;
+            total_var = sum(sum(trials_var .^ 2,'omitnan'), 'omitnan');
             R2(ee) = 1 - (total_err / total_var);
 
         end
         
         % Select channels based on threshold
         chan_idx = R2 >= opts.elec_meanpredict_thresh;
+        
+    otherwise
+        error('%s is unknown method.',method);
 
 end
 

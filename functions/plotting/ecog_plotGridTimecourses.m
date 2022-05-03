@@ -23,6 +23,7 @@ SetDefault('specs.plot.RotGrid', false, 0);
 %%% run plotGridSimpleCommon
 channels = trials.channels;
 plotGridSimpleCommon;
+trials.channels = channels;
 
 %-- Plot figures
 for ee = 1:length(inx)

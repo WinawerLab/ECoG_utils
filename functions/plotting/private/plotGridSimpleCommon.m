@@ -8,19 +8,16 @@
 hdGthresh = 64;
 
 %-- get electrodes list
-whichElectrodes = channels.name(cellfun(@(C) ~isempty(C), regexp(channels.name,['^' whichGrid '\d+$'])));
-numpltchan      = length(whichElectrodes);
+chanIdx     = cellfun(@(C) ~isempty(C), regexp(channels.name,['^' whichGrid '\d+$']));
+numpltchan  = sum(chanIdx);
 
 %-- correct elecnames (set '%03d')
 [eleccat, elecnum] = strtok(channels.name,int2str(0:9));
-if numpltchan > hdGthresh    % HDgrid
-    chanformat = '%s%03d';
-else
-    chanformat = '%s%02d';
-end
+chanformat  = sprintf('%%s%%%02dd',max(cellfun(@length, elecnum)));
 for el = 1:length(channels.name)
     channels.name{el} = sprintf(chanformat,eleccat{el},str2double(elecnum{el}));
 end
+whichElectrodes = channels.name(chanIdx);
 
 %-- set grid parameters
 if numpltchan > hdGthresh    % HDgrid

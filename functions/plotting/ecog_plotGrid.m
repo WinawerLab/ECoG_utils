@@ -81,7 +81,6 @@ for idat = 1:ndat
 end
 
 channels = opt.channels;
-subjects = cellstr(channels.subject_name);
 
 %%% run plotGridCommon
 plotGridCommon;

@@ -32,8 +32,18 @@ bensonprfs  = {'benson14_eccen','benson14_angle','benson14_sigma'};
 if istable(visualelectrodes)
     fprintf('[%s] Adding atlas information to channel table\n',mfilename);
     
+    % Solve fplbl atlas names
+    %-- Wang probability
+    wangprobs = [wangprobs, cellfun(@(C) sprintf('%s_*',C),wangprobs,'UniformOutput',false)];
+    wangprobs = [wangprobs(1), setdiff(chkfields(visualelectrodes,wangprobs),...
+                                       chkfields(visualelectrodes,wangatlas),'stable')];
+    %-- HCP probability
+    hcpprobs  = [hcpprobs, cellfun(@(C) sprintf('%s_*',C),hcpprobs,'UniformOutput',false)];
+    hcpprobs  = [hcpprobs(1), setdiff(chkfields(visualelectrodes,hcpprobs),...
+                                      chkfields(visualelectrodes,hcpatlas),'stable')];
+    
     % Select matched channels
-    [~, elecidx, chanidx] = intersect(visualelectrodes.name, channels.name);
+    [~, elecidx, chanidx] = intersect(visualelectrodes.name, channels.name,'stable');
     channels    = channels(chanidx,:);
     visualelectrodes  = visualelectrodes(elecidx,:);
     
@@ -44,7 +54,7 @@ if istable(visualelectrodes)
     % Get additional fields from electrods
     chanfields = tbfieldnames(channels);
     elecfields = tbfieldnames(visualelectrodes);
-    [extrfields] = setdiff(elecfields,[chanfields,atlasfields]);
+    [extrfields] = setdiff(elecfields,[chanfields,atlasfields],'stable');
     
     % Add addtional info to channels
     channels = horzcat(channels, visualelectrodes(:,extrfields));

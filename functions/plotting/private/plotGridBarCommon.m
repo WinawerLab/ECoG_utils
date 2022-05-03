@@ -12,11 +12,7 @@ hdGthresh = 64;
 %-- correct elecnames (set '%02d' or '%03d')
 numpltchan  = sum(cellfun(@(C) ~isempty(C), regexp(opt.channels.name,['^' whichGrid '\d+$'])));
 [eleccat, elecnum] = strtok(opt.channels.name,int2str(0:9));
-if numpltchan > hdGthresh    % HDgrid
-    chanformat = '%s%03d';
-else
-    chanformat = '%s%02d';
-end
+chanformat  = sprintf('%%s%%%02dd',max(cellfun(@length, elecnum)));
 for el = 1:length(opt.channels.name)
     opt.channels.name{el} = sprintf(chanformat,eleccat{el},str2double(elecnum{el}));
 end

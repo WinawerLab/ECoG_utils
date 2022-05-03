@@ -21,6 +21,7 @@ SetDefault('specs.plot.RotGrid', false, 0);
 %%% run plotGridSimpleCommon
 channels = spectra.channels;
 plotGridSimpleCommon;
+spectra.channels = channels;
 
 %-- Plot figures
 for ee = 1:length(inx)

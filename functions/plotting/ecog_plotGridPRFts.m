@@ -158,7 +158,6 @@ if ~istablefield(channels,'subject_name')
         end
     end
 end
-subjects = cellstr(channels.subject_name);
 numvxs = height(channels);
 numruns = size(data,2);
 
