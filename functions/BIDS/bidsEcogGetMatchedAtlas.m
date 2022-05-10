@@ -118,15 +118,32 @@ end
 
 %% Match electrodes to nodes
 
+% Isorate left and right hemispheres not to be associated to the opposite
+if ismember('hemisphere',fieldnames(summary(electrode_table))) && ...
+        all(ismember(electrode_table.hemisphere,{'L','R'}))
+    elec_isr = ismember(electrode_table.hemisphere,'R');
+    isodist  = 10;
+else
+    elec_isr = false(height(electrode_table),1);
+    isodist  = 0;
+end
+elec_xyz   = elec_xyz + elec_isr.*isodist;
+vertices_r = vertices_r + isodist;
+
 % Prepare data for matching
-vertices    = [vertices_r;vertices_l];
+vertices   = [vertices_r;vertices_l];
             
 % Match the electrode xyz with the nodes in the surfaces; find nearest
 [indices, bestSqDist] = nearpoints(elec_xyz', vertices'); % function from vistasoft
 
+% Put back isolation
+elec_xyz   = elec_xyz - elec_isr.*isodist;
+vertices_r = vertices_r - isodist;
+vertices   = [vertices_r;vertices_l];
+
 % Ignore electrodes that are more than [thresh] away from any surface node
 keep_idx = find(bestSqDist < thresh);
-indices = indices(keep_idx);
+indices  = indices(keep_idx);
 elec_xyz = elec_xyz(keep_idx,:);
 
 %% Match nodes to atlases 
