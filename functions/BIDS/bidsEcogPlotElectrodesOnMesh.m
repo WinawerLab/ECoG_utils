@@ -1,4 +1,4 @@
-function [h] = bidsEcogPlotElectrodesOnMesh(projectDir, subject, session, atlasName, thresh, specs)
+function varargout = bidsEcogPlotElectrodesOnMesh(projectDir, subject, session, atlasName, thresh, specs)
 % bidsEcogPlotElectrodesOnMesh(projectDir, subject, session, atlasName, thresh, specs)
 % 
 % Plots iEEG electrode positions from a BIDS directory onto on a 3D brain
@@ -50,11 +50,7 @@ function [h] = bidsEcogPlotElectrodesOnMesh(projectDir, subject, session, atlasN
 %                         will automatically scale all electrodes to 2, or to
 %                         user specified scalar (specified here).
 %     specs.plotnoderad = radius of matched node (default = 1)
-%     specs.normthresh  = [0,100] threshold percent to consider 'none' area for
-%                          normalized atlas (default = 0)
-%                          eg. if normthresh = 5 then total probability across
-%                          all areas under 5% will not have area label 
-%     specs.smrylabel   = flag to summarize area label: 'yes', 'no'(default)
+%     specs.view        = camera angles of plotting (default = [0,0])
 %     specs.areaName    = cell-array of visual area names, which are
 %                         plotted when full probability map is specified
 %                         (default = 'all')
@@ -148,8 +144,8 @@ if ~isfield(specs, 'plotmatchednodes') || isempty(specs.plotmatchednodes)
     specs.plotmatchednodes = 'no';
 end
 
-if ~isfield(specs, 'plotnoderad') || isempty(specs.plotnoderad)
-    specs.plotnoderad = 1;
+if ~isfield(specs, 'plotnoderad')
+    specs.plotnoderad = [];
 end
 
 if ~isfield(specs, 'plotcbar') || isempty(specs.plotcbar)
@@ -160,8 +156,8 @@ if ~isfield(specs, 'face_alpha') || isempty(specs.face_alpha)
     specs.face_alpha = 1;
 end
 
-if ~isfield(specs, 'normthresh') || isempty(specs.normthresh)
-    specs.normthresh = 0;
+if ~isfield(specs, 'view') || isempty(specs.view)
+    specs.view = [0,0];
 end
 
 if ~isfield(specs, 'areaName') || isempty(specs.areaName)
@@ -176,6 +172,7 @@ plotcbar         = strcmpi(specs.plotcbar,'yes');
 plotmatchednodes = strcmpi(specs.plotmatchednodes,'yes');
 plotelecrad      = specs.plotelecrad;
 plotnoderad      = specs.plotnoderad;
+viewanlge        = specs.view;
 if isempty(specs.labelsize)
     labelsize = {};
 else
@@ -187,11 +184,11 @@ if ~iscell(areaName),  areaName = {areaName};  end
 %% Read in files and matched ECoG electrodes and MRI atlas
 
 [~,~,~,~,atlasName] = interpretAtlasNames(atlasName);
-[matched_atlas_vals, electrode_table, matched_vertices, ~, ~, ...
+[matched_atlas_vals, electrode_table, matched_vertices, keep_idx, ~, ...
     elec_xyz, atlases_r, atlases_l, vertices_r, faces_r, vertices_l, faces_l, atlasName] = ...
     bidsEcogGetMatchedAtlas(projectDir, subject, session, atlasName, thresh);
-elec_labels = electrode_table.name;
-elec_size = electrode_table.size;
+elec_labels = electrode_table.name(keep_idx);
+elec_size = electrode_table.size(keep_idx);
 
 %% Prepare figures
 
@@ -204,6 +201,11 @@ if isempty(plotelecrad)
     end
 else
     elec_radii = ones(size(elec_xyz,1),1)*plotelecrad;
+end
+if isempty(plotnoderad)
+    node_radii = elec_radii*0.75;
+else
+    node_radii = ones(size(elec_xyz,1),1)*plotnoderad;
 end
 
 % Estimate appropriate hemisphere
@@ -338,13 +340,13 @@ for a = 1:length(atlasName)
 
                 % Plot matched nodes
                 if plotmatchednodes
-                    plot_electrodes(matched_vertices(elec_plotindex,:), [1 1 1]*0.8, plotnoderad);
-                    plot_electrodes(matched_vertices(elec_selindices,:), [1 1 1], plotnoderad);
+                    plot_electrodes(matched_vertices(elec_plotindex,:), [1 1 1]*0.8, node_radii(elec_plotindex));
+                    plot_electrodes(matched_vertices(elec_selindices,:), [1 1 1], node_radii(elec_plotindex));
                 end
 
                 if plotlabel
                     for j = 1:size(elec_xyz(elec_plotindex,:),1)
-                        [x, y, z] = adjust_elec_label(elec_xyz(elec_plotindex(j),:),3);
+                        [x, y, z] = adjust_elec_label(elec_xyz(elec_plotindex(j),:),elec_radii(elec_plotindex(j)).*1.3,plotmesh);
                         text('Position',[x y z],'String',elec_labels(elec_plotindex(j),:),'Color','w','VerticalAlignment','top',labelsize{:});
                     end
                 end
@@ -352,14 +354,15 @@ for a = 1:length(atlasName)
 
             if ishandle(figidx)
                 % Set view parameters
-                set_view(gcf);
+                set_view(gcf,viewanlge);
                 figidx = figidx + 1;
             end
         end
     end
 end
-
-
+if nargout > 0
+    varargout{1} = h;
+end
 
 
 end
@@ -397,9 +400,12 @@ function plot_mesh(faces, vertices, atlas, area_cmap, alpha)
     colormap(gcf,cmap);    
 end
 
-function set_view(gcf)
+function set_view(gcf,viewangle)
+    if ~exist('viewangle','var') || isempty(viewangle)
+        viewangle = [0,0];
+    end
     axis off; set(gcf, 'color','white','InvertHardCopy', 'off');
-    view(0,0);
+    view(viewangle);
     material dull;
     h=light; lightangle(h,  45, 45); lighting gouraud;
     h=light; lightangle(h, -45, 45); lighting gouraud;
@@ -408,11 +414,24 @@ function set_view(gcf)
     axis tight    
 end
 
-function [x, y, z] = adjust_elec_label(xyz,radius)
-    if ~exist('radius','var')
+function [x, y, z] = adjust_elec_label(xyz,radius,plotmesh)
+    if ~exist('radius','var') || isempty(radius)
         radius = 3;
     end
-    if xyz(1)>0
+    if ~exist('plotmesh','var') || isempty(plotmesh)
+        plotmesh = 'unknown';
+    end
+    
+    switch plotmesh
+        case 'right'
+            xbias = 5;
+        case 'left'
+            xbias = -5;
+        otherwise
+            xbias = 0;
+    end
+        
+    if xyz(1)>xbias
         x = xyz(1)+radius;
     else
         x = xyz(1)-radius;
@@ -422,7 +441,11 @@ function [x, y, z] = adjust_elec_label(xyz,radius)
     else
         z = xyz(3)-radius;
     end
-    y = xyz(2);
+    if abs(xyz(1))<abs(xbias)
+        y = xyz(2)-radius;
+    else
+        y = xyz(2);
+    end
 end
 
 function [ang] = bensonng2PRFang(ang, hemi)
