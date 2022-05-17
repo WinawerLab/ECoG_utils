@@ -73,9 +73,11 @@ function results = analyzePRFdog(stimulus,data,tr,options)
 %     default: 0.5 for <prfmodel='CSS'>, 0.05 for <prfmodel='fixexpt'>.
 %   <forcebounds> (optional) is flag to force to consider bounds in optimization:
 %     0 means ignore bounds
-%     1 means set bounds in pRF eccentricity
-%     2 means set bounds in pRF eccentricity and exponent
+%     1 means set bounds in pRF eccentricity (refer boundsecc)
+%     2 means set bounds in pRF eccentricity and exponent ([0,1])
 %     default: 0.
+%   <boundsecc> (optional) is how many times bounds of eccentricity is larger than stimulus:
+%     if 2 (default), then the pRF center of each x and y axis is estimated in double area of stimulus
 %
 % Analyze pRF data and return the results.
 %
@@ -171,6 +173,7 @@ function results = analyzePRFdog(stimulus,data,tr,options)
 %   - The <resnorms> and <numiters> outputs will be empty.
 %
 % history:
+% 2022/05/16 - Yuasa: enable to modify bounds on eccentricity
 % 2020/02/25 - Yuasa: make bounds on eccentricity more strict.
 %                     (triple of visual field -> double of visual field)
 %                     separate <prfmodel='fixexpt'> from <prfmodel='linear'>
@@ -319,6 +322,11 @@ end
 if ~isfield(options,'forcebounds') || isempty(options.forcebounds)
   options.forcebounds = 0;
 end
+if ~isfield(options,'boundsecc') || isempty(options.boundsecc)
+  options.boundsecc = [-2 2];
+elseif numel(options.boundsecc)==1
+  options.boundsecc = [-1 1].*options.boundsecc;
+end
 
 % massage
 wantquick = isequal(options.seedmode,-2);
@@ -385,12 +393,13 @@ else
 end
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% PREPARE MODEL
+eccrate = (options.boundsecc+1)./2;
 if options.forcebounds == 2
-  lb = [1-res(1)/2 1-res(2)/2 0   0   0   1   0];
-  ub = [1.5*res(1) 1.5*res(2) Inf Inf 1   Inf 1];
+  lb = [1+eccrate(1).*res(1) 1+eccrate(1).*res(2) 0   0   0   1   0];
+  ub = [eccrate(2).*res(1)   eccrate(2).*res(2)   Inf Inf 1   Inf 1];
 else
-  lb = [1-res(1)/2 1-res(2)/2 0   0   0   1   0];
-  ub = [1.5*res(1) 1.5*res(2) Inf Inf Inf Inf 1];
+  lb = [1+eccrate(1).*res(1) 1+eccrate(1).*res(2) 0   0   0   1   0];
+  ub = [eccrate(2).*res(1)   eccrate(2).*res(2)   Inf Inf Inf Inf 1];
 end
 
 % pre-compute some cache
