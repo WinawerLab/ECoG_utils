@@ -113,8 +113,12 @@ max_pows_conf = max_pows_stim_on;       max_pows_conf(outlier_idx) = nan;
 %-- Fit distribution
 %%% fit to InverseGaussian distribution
 for el = 1:size(max_pows_conf,2)
-    estdist = fitdist(max_pows_conf(:,el),'InverseGaussian');
-    outlier_thresh(el) = estdist.icdf(1-threshout);
+    if sum(~isnan(max_pows_conf(:,el))) > 5
+        estdist = fitdist(max_pows_conf(:,el),'InverseGaussian');
+        outlier_thresh(el) = estdist.icdf(1-threshout);
+    else
+        outlier_thresh(el) = nan;
+    end
 end
 % %%% fit to empirical distribution
 % for el = 1:size(max_pows_conf,2)
@@ -123,6 +127,7 @@ end
 % end
 
 outlier_idx2 = max_pows > outlier_thresh;
+outlier_idx2(:,isnan(outlier_thresh)) = true;   % exclude all epochs if outlier_thresh is nan 
 
 %% Output
 outlier_idx = or(outlier_idx1,outlier_idx2);
