@@ -72,10 +72,10 @@ regressed  = ecog_regressout(epochs,base_idx,stmlist,maxlagpts,epoch_idx,negregr
     
 %% 2-1 step: temporaly exclude outliers from stim_on distribution based on median of stim_on epochs
 %-- Compute max power over time for each epoch
-max_pows = shiftdim(nanmax(regressed(epoch_idx,:,:).^2,[],1),1);
+max_pows = shiftdim(max(regressed(epoch_idx,:,:).^2,[],1,'omitnan'),1);
 
 %-- Compute reference max power
-max_pows_stim_on    = shiftdim(nanmax(epochs(stim_on_idx,stim_on_epoch,:).^2,[],1),1);
+max_pows_stim_on    = shiftdim(max(epochs(stim_on_idx,stim_on_epoch,:).^2,[],1,'omitnan'),1);
 
 %-- set default for outlier_idx
 outlier_idx     = false(size(max_pows_stim_on));
@@ -88,7 +88,7 @@ while (n_outlier - n_outlier_comp) > 0
     max_pows_conf(outlier_idx) = nan;
 
     %-- Put all epochs with max higher than median
-    outlier_thresh     = threshdist * nanmedian(max_pows_conf,1);
+    outlier_thresh     = threshdist * median(max_pows_conf,1,'omitnan');
     outlier_idx = max_pows_stim_on > outlier_thresh;
 
     n_outlier_comp  = n_outlier;
@@ -133,5 +133,6 @@ outlier_idx2(:,isnan(outlier_thresh)) = true;   % exclude all epochs if outlier_
 outlier_idx = or(outlier_idx1,outlier_idx2);
 epochs(:,outlier_idx) = nan;
 
+regressed(:,outlier_idx) = nan;
 
 end
