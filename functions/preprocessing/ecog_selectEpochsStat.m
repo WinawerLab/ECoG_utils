@@ -133,6 +133,4 @@ outlier_idx2(:,isnan(outlier_thresh)) = true;   % exclude all epochs if outlier_
 outlier_idx = or(outlier_idx1,outlier_idx2);
 epochs(:,outlier_idx) = nan;
 
-regressed(:,outlier_idx) = nan;
-
 end
