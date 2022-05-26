@@ -1,26 +1,26 @@
-function [data_out,coefs,predictor,lags] = ecog_regressout(data_epoch,t_base,stims,maxlag,t_ref,negregress)
+function [data_out,coefs,predictor,lags] = ecog_regressout(data_epoch,t_base,stims,maxlag,t_ref,negcoef4lag)
 
 % function to regress out the ERP from some data
 % USAGE:
 % data_out = ECOG_REGRESSOUT(data_epoch,t_base,stims)
-% data_out = ECOG_REGRESSOUT(data_epoch,t_base,stims [,maxlag,t_ref,negregress])
+% data_out = ECOG_REGRESSOUT(data_epoch,t_base,stims [,maxlag,t_ref,negcoef4lag])
 %   with specifying 'maxlag', it estimates time lag for regression based on cross-correlation
 % 
-% [data_out,coef,predictor,lag] = ECOG_REGRESSOUT(data_epoch,t_base,stims [,maxlag,t_ref,negregress])
+% [data_out,coef,predictor,lag] = ECOG_REGRESSOUT(data_epoch,t_base,stims [,maxlag,t_ref,negcoef4lag])
 % 
 % Inputs: 
-%   data_epoch % electrodes X time X epochs
-%   t_base     % indices of the baseline period (ex: [1:100])
-%   stims      % different code for different conditions
-%   maxlag     % maximum time sample of lag for regression (default: 0)
-%   t_ref      % indices of the reference period to apply regression (ex: [1:30])(default: all time points)
-%   negregress % if allow negative regression during the time lag evaluation (default: false)
+%   data_epoch  % electrodes X time X epochs
+%   t_base      % indices of the baseline period (ex: [1:100])
+%   stims       % different code for different conditions
+%   maxlag      % maximum time sample of lag for regression (default: 0)
+%   t_ref       % indices of the reference period to apply regression (ex: [1:30])(default: all time points)
+%   negcoef4lag % if allow negative regression during the time lag evaluation (default: false)
 % 
 % Outputs: 
-%   data_out   % data_epoch after regressing out the EPR
-%   coef       % coefficients of regressor
-%   predictor  % regressor (ERP)
-%   lag        % regressor (ERP)
+%   data_out    % data_epoch after regressing out the EPR
+%   coef        % coefficients of regressor
+%   predictor   % regressor (ERP)
+%   lag         % regressor (ERP)
 % 
 % See also, ecog_regressERP
 
@@ -52,8 +52,8 @@ data_epoch = permute(data_epoch,[dim_ch,dim_tim,dim_trl]);
 
 %-- get inputs
 nsample  = size(data_epoch,2);
-if nargin < 6 || isempty(negregress)
-    negregress = false;
+if nargin < 6 || isempty(negcoef4lag)
+    negcoef4lag = false;
 end
 if nargin < 5 || isempty(t_ref)
     t_ref = 1:nsample;
@@ -74,7 +74,7 @@ end
 stims = grp2idx(stims);
 
 %-- baseline correct
-data_epoch = bsxfun(@minus, data_epoch, mean(data_epoch(:,t_base,:),2));
+data_epoch = bsxfun(@minus, data_epoch, mean(data_epoch(:,t_base,:),2,'omitnan'));
 
 %-- regress erp out
 data_out  = nan(size(data_epoch));
@@ -90,7 +90,7 @@ for k=1:size(data_epoch,1)%channels
     end
     %-- regress ERP out
     parfor m=1:size(data_epoch,3)%epochs
-      av_erp            = av_erp_list(:,stims(m))
+      av_erp            = av_erp_list(:,stims(m));
       av_erp_pad        = zeros(nsample,1);
       av_erp_pad(t_ref) = av_erp(t_ref,:);
       x=reshape(data_epoch(k,:,m),nsample,1);
@@ -112,7 +112,7 @@ for k=1:size(data_epoch,1)%channels
         [cr,tlags] = xcorr(x_pad,av_erp_pad,maxlag);
         if all(diff(cr)==0)
           tlags = 0; dt = 1;   % avoid empty output for flat cr
-        elseif negregress
+        elseif negcoef4lag
             [~,dt] = max(abs(cr));
         else
             [~,dt] = max(cr);
