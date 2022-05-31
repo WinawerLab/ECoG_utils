@@ -10,7 +10,7 @@ units     = '';
 col_range = [];
 
 % Colormap name
-colormap_file = ['colormap_' atlasName];
+colormap_file = ['colormap_' atlasName '.mat'];
 
 % Read colormap
 if exist(colormap_file,'file') && ismember({'cmap'},who('-file',colormap_file))

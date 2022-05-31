@@ -1,6 +1,6 @@
 function  [matched_atlas_vals, electrode_table, matched_vertices, keep_idx, indices, ...
            elec_xyz, atlases_r, atlases_l, vertices_r, faces_r, vertices_l, faces_l, atlasName] = ...
-             bidsEcogGetMatchedAtlas(projectDir, subject, session, atlasName, thresh)
+             bidsEcogGetMatchedAtlas(projectDir, subject, session, atlasName, thresh, surfaceType)
 % [matched_atlas_vals, electrode_table, matched_vertices, keep_idx, indices, ...
 %  elec_xyz, atlases_r, atlases_l, vertices_r, faces_r, vertices_l, faces_l, atlasName] = ...
 %   bidsEcogGetMatchedAtlas(projectDir, subject, session, atlasName, thresh)
@@ -36,20 +36,31 @@ function  [matched_atlas_vals, electrode_table, matched_vertices, keep_idx, indi
 %                       in mm (if empty, thresh is infinite, meaning that the
 %                       electrode can be infinitely far) 
 %                           default empty
+%     surfaceType:      which MRI surface to read 
+%                           default pial
 % 
 % See also, bidsEcogMatchElectrodesToAtlas, bidsEcogPlotElectrodesOnMesh
 % 
 % Makes use of 'nearpoints' function from vistasoft
          
 % K.Yuasa, IG, BAIR 2022;
-         
+        
+
+% <thresh>
+if ~exist('thresh', 'var') || isempty(thresh), thresh = inf; end
+
+% <surfaceType>
+if ~exist('surfaceType','var') || isempty(surfaceType)
+    surfaceType = 'pial';
+end
+
 %% Read in files
 
 % Read in electrode cooordinates
 [electrode_table, elec_xyz] = bidsEcogReadElectrodeFile(projectDir, subject, session);
 
 % Read surface reconstructions from BIDS derivatives 
-[vertices_r, faces_r, vertices_l, faces_l] = bidsEcogReadSurfFile(projectDir, subject);
+[vertices_r, faces_r, vertices_l, faces_l] = bidsEcogReadSurfFile(projectDir, subject, surfaceType);
 
 % Interpret atlas name
 if ~iscell(atlasName), atlasName = {atlasName}; end
@@ -122,7 +133,8 @@ end
 if ismember('hemisphere',fieldnames(summary(electrode_table))) && ...
         all(ismember(electrode_table.hemisphere,{'L','R'}))
     elec_isr = ismember(electrode_table.hemisphere,'R');
-    isodist  = 10;
+    isodist  = round(max(max(vertices_l(:,1)) - min(vertices_r(:,1)), 0)...
+                      + diff(minmax(vertices_r(:,1)'))/10);
 else
     elec_isr = false(height(electrode_table),1);
     isodist  = 0;

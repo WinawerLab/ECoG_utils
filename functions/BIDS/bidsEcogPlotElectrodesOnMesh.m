@@ -1,4 +1,4 @@
-function varargout = bidsEcogPlotElectrodesOnMesh(projectDir, subject, session, atlasName, thresh, specs)
+function varargout = bidsEcogPlotElectrodesOnMesh(projectDir, subject, session, atlasName, thresh, surfaceType, specs)
 % bidsEcogPlotElectrodesOnMesh(projectDir, subject, session, atlasName, thresh, specs)
 % 
 % Plots iEEG electrode positions from a BIDS directory onto on a 3D brain
@@ -104,12 +104,21 @@ if ~iscell(atlasName), atlasName = {atlasName}; end
 % <thresh>
 if ~exist('thresh', 'var') || isempty(thresh), thresh = inf; end
 
-%% Specs
-if ~isfield(specs, 'surf') || isempty(specs.surf)
-    % specs.surf should be 'pial' to match electrode locations
-    specs.surf = 'pial';
+% <surfaceType>
+if ~exist('specs','var') && exist('surfaceType','var') && isstruct(surfaceType)
+    specs = surfaceType;
+    surfaceType  = [];
+end
+if ~exist('surfaceType','var') || isempty(surfaceType)
+    if exist('specs','var') && isfield(specs, 'surf') && ~isempty(specs.surf)
+        surfaceType = specs.surf;
+    else
+        % surfaceType should be 'pial' to match electrode locations in BAIR project
+        surfaceType = 'pial';
+    end
 end
 
+%% Specs
 if ~isfield(specs, 'plotmesh') || isempty(specs.plotmesh)
     specs.plotmesh = 'auto';
 end
@@ -120,7 +129,7 @@ if ~isfield(specs, 'plotelecs') || isempty(specs.plotelecs)
             specs.plotelecs = 'no';
             specs.plotcbar = 'no';
         otherwise
-            switch specs.surf
+            switch surfaceType
                 case 'pial'
                     specs.plotelecs = 'yes';
                 otherwise
@@ -186,7 +195,7 @@ if ~iscell(areaName),  areaName = {areaName};  end
 [~,~,~,~,atlasName] = interpretAtlasNames(atlasName);
 [matched_atlas_vals, electrode_table, matched_vertices, keep_idx, ~, ...
     elec_xyz, atlases_r, atlases_l, vertices_r, faces_r, vertices_l, faces_l, atlasName] = ...
-    bidsEcogGetMatchedAtlas(projectDir, subject, session, atlasName, thresh);
+    bidsEcogGetMatchedAtlas(projectDir, subject, session, atlasName, thresh, surfaceType);
 elec_labels = electrode_table.name(keep_idx);
 elec_size = electrode_table.size(keep_idx);
 

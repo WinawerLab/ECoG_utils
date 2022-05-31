@@ -1,4 +1,4 @@
-function [electrode_table] = bidsEcogMatchElectrodesToAtlas(projectDir, subject, session, atlasName, thresh, printSummary)
+function [electrode_table] = bidsEcogMatchElectrodesToAtlas(projectDir, subject, session, atlasName, thresh, surfaceType, printSummary)
 % Matches electrodes to visual atlas, using electrode coordinates specified
 % in the bids metadata file in electrodes.tsv and freesurfer surface nodes
 % in derivates/freesurfer. Area names will be added to the electrode_table.
@@ -89,6 +89,16 @@ atlasName(ismember(atlasName,'none')) = [];
 % <thresh>
 if ~exist('thresh', 'var') || isempty(thresh), thresh = inf; end
 
+% <surfaceType>
+if ~exist('printSummary','var') && exist('surfaceType','var') && islogical(surfaceType)
+    printSummary = surfaceType;
+    surfaceType  = [];
+end
+if ~exist('surfaceType','var') || isempty(surfaceType)
+    % surfaceType should be 'pial' to match electrode locations in BAIR project
+    surfaceType = 'pial';
+end
+
 % <printSummary>
 if ~exist('printSummary', 'var') || isempty(printSummary), printSummary = true; end
 
@@ -96,7 +106,7 @@ if ~exist('printSummary', 'var') || isempty(printSummary), printSummary = true; 
 
 [~,~,~,~,atlasName] = interpretAtlasNames(atlasName);
 [matched_atlas_vals, electrode_table, matched_vertices, keep_idx, indices] =...
-    bidsEcogGetMatchedAtlas(projectDir, subject, session, atlasName, thresh);
+    bidsEcogGetMatchedAtlas(projectDir, subject, session, atlasName, thresh, surfaceType);
 
 %% Make output
 
