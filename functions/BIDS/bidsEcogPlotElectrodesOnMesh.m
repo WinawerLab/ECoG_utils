@@ -43,6 +43,7 @@ function varargout = bidsEcogPlotElectrodesOnMesh(projectDir, subject, session, 
 %     specs.plotmatchednodes = flag to plotmatched nodes in mesh: 'yes', 'no'
 %     specs.labelsize   = font size of electrode labels (default = [])
 %     specs.plotcbar    = flag to plot colorbar for the atlas: 'yes', 'no'
+%     specs.adjustLRdistance = flag to adjust the distance between left and right surface: 'auto', 'yes', 'no'
 %     specs.face_alpha  = transparency value for mesh (default 1);
 %     specs.plotelecrad = radius of electrodes. If empty, will use the
 %                         electrode size in the electrode table as radius for
@@ -173,12 +174,18 @@ if ~isfield(specs, 'areaName') || isempty(specs.areaName)
     specs.areaName = 'all';
 end
 
+if ~isfield(specs, 'adjustLRdistance') || isempty(specs.adjustLRdistance)
+    specs.adjustLRdistance = 'auto';
+end
+
+
 plotmesh         = specs.plotmesh;
 face_alpha       = specs.face_alpha;
 plotelecs        = strcmpi(specs.plotelecs,'yes');
 plotlabel        = strcmpi(specs.plotlabel,'yes');
 plotcbar         = strcmpi(specs.plotcbar,'yes');
 plotmatchednodes = strcmpi(specs.plotmatchednodes,'yes');
+adjustLRdistance = specs.adjustLRdistance;
 plotelecrad      = specs.plotelecrad;
 plotnoderad      = specs.plotnoderad;
 viewanlge        = specs.view;
@@ -218,19 +225,35 @@ else
 end
 
 % Estimate appropriate hemisphere
+elec_isr = ismember(electrode_table.hemisphere,'R');
 if strcmpi(plotmesh,'auto')
     plotmesh = 'both';
     if plotelecs
-        elecbias = (numel(getElecinHemi(elec_xyz,'right',-5)) - numel(getElecinHemi(elec_xyz,'left',-5)))...
-                        ./ numel(getElecinHemi(elec_xyz,'both',-5));
-        if     elecbias(1) > 0.9,  plotmesh = 'right';
-        elseif elecbias(1) < -0.9, plotmesh = 'left';
+        elecbias = sum(elec_isr) ./ size(matched_vertices,1);
+        if     elecbias(1) == 1,  plotmesh = 'right';
+        elseif elecbias(1) == 0,  plotmesh = 'left';
         end
     end
 end
 
+% Adjust surface location
+surfdist = min(vertices_r(:,1)) - max(vertices_l(:,1));
+surfwdth = diff(minmax(vertcat(vertices_l(:,1),vertices_r(:,1))'));
+if strcmpi(adjustLRdistance,'auto')
+    adjustLRdistance = surfdist < -surfwdth/10 | surfdist > surfwdth/10;
+else
+    adjustLRdistance = strcmpi(adjustLRdistance,'yes');
+end
+if adjustLRdistance
+    isodist  = [round((-surfdist + surfwdth/20)./2) 0 0];
+    elec_xyz   = elec_xyz + (elec_isr-~elec_isr).*isodist;
+    vertices_r = vertices_r + isodist;
+    vertices_l = vertices_l - isodist;
+end
+
 %% Make Figures
 
+h = gobjects(0);
 figidx = 1;
 for a = 1:length(atlasName)
     currentAtlas = atlasName{a};
@@ -361,7 +384,7 @@ for a = 1:length(atlasName)
                 end
             end
 
-            if ishandle(figidx)
+            if numel(h) == figidx
                 % Set view parameters
                 set_view(gcf,viewanlge);
                 figidx = figidx + 1;

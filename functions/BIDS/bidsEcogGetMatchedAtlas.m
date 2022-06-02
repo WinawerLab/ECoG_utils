@@ -129,15 +129,16 @@ end
 
 %% Match electrodes to nodes
 
-% Isorate left and right hemispheres not to be associated to the opposite
+% Isolate left and right hemispheres not to be associated to the opposite
 if ismember('hemisphere',fieldnames(summary(electrode_table))) && ...
         all(ismember(electrode_table.hemisphere,{'L','R'}))
     elec_isr = ismember(electrode_table.hemisphere,'R');
-    isodist  = round(max(max(vertices_l(:,1)) - min(vertices_r(:,1)), 0)...
-                      + diff(minmax(vertices_r(:,1)'))/10);
+    surfdist = min(vertices_r(:,1)) - max(vertices_l(:,1));
+    surfwdth = diff(minmax(vertcat(vertices_l(:,1),vertices_r(:,1))'));
+    isodist  = [round(max(-surfdist,0) + surfwdth/20) 0 0];
 else
     elec_isr = false(height(electrode_table),1);
-    isodist  = 0;
+    isodist  = [0 0 0];
 end
 elec_xyz   = elec_xyz + elec_isr.*isodist;
 vertices_r = vertices_r + isodist;
@@ -152,6 +153,13 @@ vertices   = [vertices_r;vertices_l];
 elec_xyz   = elec_xyz - elec_isr.*isodist;
 vertices_r = vertices_r - isodist;
 vertices   = [vertices_r;vertices_l];
+
+% Add LR information
+if ~ismember('hemisphere',fieldnames(summary(electrode_table)))
+    elec_isr = indices <= size(vertices_r,1);
+    electrode_table.hemisphere(~elec_isr) = {'L'};
+    electrode_table.hemisphere(elec_isr)  = {'R'};
+end
 
 % Ignore electrodes that are more than [thresh] away from any surface node
 keep_idx = find(bestSqDist < thresh);
