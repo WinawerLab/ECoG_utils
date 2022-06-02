@@ -74,7 +74,9 @@ end
 stims = grp2idx(stims);
 
 %-- baseline correct
-data_epoch = bsxfun(@minus, data_epoch, mean(data_epoch(:,t_base,:),2,'omitnan'));
+if any(t_base)
+    data_epoch = bsxfun(@minus, data_epoch, mean(data_epoch(:,t_base,:),2,'omitnan'));
+end
 
 %-- regress erp out
 data_out  = nan(size(data_epoch));

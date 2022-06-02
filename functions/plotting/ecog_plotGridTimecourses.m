@@ -2,6 +2,7 @@ function [trials_out,figlist] = ecog_plotGridTimecourses(trials, whichGrid, whic
 
 % [trials_out, p] = ecog_plotGridTimecourses(trials, whichGrid, whichTrials, specs)
 % Plot in the entire grid.
+%   trials.evoked / trials.broadband = chs x times x trials
 % 
 % See also ecog_plotTimecourses
 
@@ -121,7 +122,7 @@ if ~isfield(specs.plot, 'nSubPlots') || isempty(specs.plot.nSubPlots), specs.plo
 if ~isfield(specs.plot, 'addEccToTitle') || isempty(specs.plot.addEccToTitle), specs.plot.addEccToTitle = 'no'; end
 if ~isfield(specs.plot, 'showMax') || isempty(specs.plot.showMax), specs.plot.showMax = 'no'; end
 if ~isfield(specs.plot, 'fontSize') || isempty(specs.plot.fontSize), specs.plot.fontSize = 12; end
-if ~isfield(specs.plot, 'XLim') || isempty(specs.plot.XLim), specs.plot.XLim = [-0.2 1];end
+if ~isfield(specs.plot, 'XLim') || isempty(specs.plot.XLim), specs.plot.XLim = [];end
 if ~isfield(specs.plot, 'YLim'), specs.plot.YLim = [];end
 if ~isfield(specs.plot, 'XScale') || isempty(specs.plot.XScale), specs.plot.XScale = 'linear';end
 if ~isfield(specs.plot, 'YScale') || isempty(specs.plot.YScale), specs.plot.YScale = 'linear';end
@@ -375,10 +376,19 @@ for d = 1:length(specs.dataTypes)
         set(get(get(l2,'Annotation'),'LegendInformation'),'IconDisplayStyle','off'); 
         
         % Save plotted lines in an output struct
+        if isempty(specs.plot.XLim)
+            lim = [min(mnToPlot(:)) max(mnToPlot(:))];
+            ylim = [lim(1)-(0.2*lim(1)*sign(lim(1))) lim(2)+(0.2*lim(2)*sign(lim(2)))];
+        else
+            xlim = specs.plot.XLim;
+        end
         out.(thisDataType).(whichElectrodes{ii}).mn = double(mnToPlot');
         out.(thisDataType).(whichElectrodes{ii}).se = double((Ulim-mnToPlot)');
-        set(gca, 'XScale', specs.plot.XScale, 'XLim', specs.plot.XLim);
-        %set(gca, 'XLim', [-0.5 3]);
+        if isempty(specs.plot.XLim)
+            set(gca, 'XScale', specs.plot.XScale);
+        else
+            set(gca, 'XScale', specs.plot.XScale, 'XLim', specs.plot.XLim);
+        end
         
         % Set font size
         set(gca, 'FontSize', specs.plot.fontSize);
