@@ -48,6 +48,7 @@ function figlist = ecog_plotGridPRF(whichGrid, opt, varargin)
 %       labelCol         = color or cell-array of colors, color of the titles
 %                          in each axis. defualt is black.
 %       FigName          = string, name of the figure.
+%       FigSizRate       = scalar (default=1).
 %       fontSize         = scalar, font size in the figure.
 %       legend           = string or cell-array of strings, legend labels.
 %       options          = any other options for each axis.
@@ -106,6 +107,7 @@ SetDefault('opt.plot.XLim', [], 1);
 SetDefault('opt.plot.YLim', [], 1);
 
 SetDefault('opt.plot.FigName', '', 0);
+SetDefault('opt.plot.FigSizRate', 1, 0);
 SetDefault('opt.plot.RotGrid', true, 0);
 SetDefault('opt.plot.colors', [], 1);
 SetDefault('opt.plot.labelCol', [], 1);
@@ -320,14 +322,12 @@ for ee = 1:length(inx)
     nRow = opt.plot.nSubPlots(1);
     nCol = opt.plot.nSubPlots(2);
        
-    %-- subplot
+    %-- figure  % row+30 for legend  % -20*row if no-axis
     hF = figure('Name', opt.plot.FigName); 
-    if opt.plot.showaxis
-      set(hF, 'Position', [150 100 125*nCol 160*nRow+30]);%[150 100 2000 1250] %row+30 for legend
-    else
-      set(hF, 'Position', [150 100 125*nCol 140*nRow+30]);%[150 100 2000 1250] %row+30 for legend
-    end
+    hF.Position = [150 100 125*nCol (160-20.*~opt.plot.showaxis)*nRow+30] ...
+                    .* [1 1 opt.plot.FigSizRate(1).^1.38 opt.plot.FigSizRate(1)];
     hT = tiledlayout(nRow,nCol,'TileSpacing','compact','Padding','compact');
+    %-- subplot
     for ichidx=1:length(inx{ee})
 %       plotElectrodes = gridList(inx{ee}(ichidx));
       nameElectrodes = areaList(inx{ee}(ichidx));

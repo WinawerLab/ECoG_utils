@@ -42,6 +42,7 @@ function figlist = ecog_plotGridPRFts(data,stimulus,result,whichGrid, opt)
 %       labelCol          = color or cell-array of colors, color of the titles
 %                           in each axis. defualt is black.
 %       FigName           = string, name of the figure.
+%       FigSizRate        = scalar (default=1).
 %       fontSize          = scalar, font size in the figure.
 %       legend            = string or cell-array of strings, legend labels.
 %       options           = any other options for each axis.
@@ -92,6 +93,7 @@ SetDefault('opt.plot.boundaries', 'no', 0);
 SetDefault('opt.plot.reverseYaxis', 'auto', 0);
 
 SetDefault('opt.plot.FigName', '', 0);
+SetDefault('opt.plot.FigSizRate', 1, 0);
 SetDefault('opt.plot.RotGrid', false, 0);
 SetDefault('opt.plot.colors', [], 1);
 SetDefault('opt.plot.labelCol', [], 1);
@@ -284,11 +286,13 @@ for ee = 1:length(inx)
     nRow = opt.plot.nSubPlots(1);
     nCol = opt.plot.nSubPlots(2);
        
-    %-- subplot
+    %-- figure  % row+30 for legend
     hF = figure('Name', opt.plot.FigName); 
-    set(hF, 'Position', [150 100 200*nCol 160*nRow+30]);%[150 100 2000 1250]  %row+30 for lengend
+    hF.Position = [150 100 200*nCol 160*nRow+30] ...
+                    .* [1 1 opt.plot.FigSizRate(1) opt.plot.FigSizRate(1)];
     hT = tiledlayout(nRow,nCol,'TileSpacing','compact','Padding','compact');
 %             set(gcf,'Units','points');
+    %-- subplot
     for ichidx=1:length(inx{ee})
 %       plotElectrodes = gridList{inx{ee}(ichidx)};
       nameElectrodes = areaList{inx{ee}(ichidx)};
