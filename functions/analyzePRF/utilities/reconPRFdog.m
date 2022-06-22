@@ -28,8 +28,6 @@ function [modelts, datats] = reconPRFdog(result,stimulus,data,opts)
 % datats:           output time series of the data as a cell array of {chans}{iter x runs}(time x 1).
 %                   if catrun and catiter are 'yes':  {chans}(timeXruns x iter)
 %                   if catchan is 'yes' besides:      (timeXruns x chans)
-% 
-% See also: ecog_computePRFtimeseries
 
 % Dependency: cellstrfind
 

@@ -1,18 +1,23 @@
-function [coef,predictor] = ecog_regressERP(data_epoch,t_base,stims,stim4predict,maxlag,negregress)
+function [coef,predictor] = ecog_regressERP(data_epoch,t_base,stims,stim4predict,maxlag,negcoef4lag)
 % function to regress the ERP from some data
 % USAGE:
 % [coef,predictor] = ecog_regressERP(data_epoch,t_base,stims,stim4predict)
-% [coef,predictor] = ecog_regressERP(data_epoch,t_base,stims,stim4predict,maxlag,negregress)
+% [coef,predictor] = ecog_regressERP(data_epoch,t_base,stims,stim4predict,maxlag,negcoef4lag)
 % 
-% data_epoch % electrodes X time X epochs
-% t_base % indices of the baseline period (ex: [1:100])
-% stims % different code for different conditions
-% stim4predict % the number of the condition code to construct the predictor
-% maxlag % maximum time sample of lag for regression (default: 0)
-% negregress % if false, adopt the lag when the coefficient is largest (default)
-%              if true, adopt the lag when the absolute coefficient is larget
+% Inputs: 
+%   data_epoch   % electrodes X time X epochs
+%   t_base       % indices of the baseline period (ex: [1:100])
+%   stims        % different code for different conditions
+%   stim4predict % the number of the condition code to construct the predictor
+%   maxlag       % allows lag in the range from -maxlag to maxlag for regression (default: 0)
+%   negcoef4lag  % if false, adopt the lag when the coefficient is largest (default)
+%                  if true, adopt the lag when the absolute coefficient is largest
 % 
-% See also, ecog_regressout
+% Outputs: 
+%   coef         % coefficients of regressor
+%   predictor    % regressor (ERP)
+% 
+% See also, ecog_regressout, regress, xcorr
 
 % 20190903 Yuasa: modified from ecog_spectra.m in ECoG_utils
 % 20200303 Yuasa: make computations effective & use 'parfor'
@@ -21,7 +26,7 @@ function [coef,predictor] = ecog_regressERP(data_epoch,t_base,stims,stim4predict
 
 %-- check data_epoch
 narginchk(4,6);
-if nargin < 6,  negregress = false;     end
+if nargin < 6,  negcoef4lag = false;     end
 if nargin < 5,  maxlag = 0;             end
 dim_tim = size(data_epoch)==length(t_base);
 dim_trl = size(data_epoch)==length(stims);
@@ -54,7 +59,9 @@ end
 % stim4predict = stims(stim4predict);
 
 %-- baseline correct
-data_epoch = bsxfun(@minus, data_epoch, mean(data_epoch(:,t_base,:),2));
+if any(t_base)
+    data_epoch = bsxfun(@minus, data_epoch, mean(data_epoch(:,t_base,:),2,'omitnan'));
+end
 
 %-- regress erp out
 predictor = zeros(size(data_epoch,[1,2]));
@@ -82,7 +89,7 @@ for k=1:size(data_epoch,1)%channels
             [cr,tlags] = xcorr(x,av_erp,maxlag);
             if all(diff(cr)==0)
                 tlags = 0; dt = 1;   % avoid empty output for flat cr
-            elseif negregress
+            elseif negcoef4lag
                 [~,dt] = max(abs(cr));
             else
                 [~,dt] = max(cr);

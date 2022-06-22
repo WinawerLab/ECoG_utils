@@ -4,7 +4,8 @@ function [data_out,coefs,predictor,lags] = ecog_regressout(data_epoch,t_base,sti
 % USAGE:
 % data_out = ECOG_REGRESSOUT(data_epoch,t_base,stims)
 % data_out = ECOG_REGRESSOUT(data_epoch,t_base,stims [,maxlag,t_ref,negcoef4lag])
-%   with specifying 'maxlag', it estimates time lag for regression based on cross-correlation
+%   with specifying 'maxlag', time lag is allowed for regression in the range of maxlag
+%   the best time lag for each epoch is estimated based on cross-correlation
 % 
 % [data_out,coef,predictor,lag] = ECOG_REGRESSOUT(data_epoch,t_base,stims [,maxlag,t_ref,negcoef4lag])
 % 
@@ -12,17 +13,18 @@ function [data_out,coefs,predictor,lags] = ecog_regressout(data_epoch,t_base,sti
 %   data_epoch  % electrodes X time X epochs
 %   t_base      % indices of the baseline period (ex: [1:100])
 %   stims       % different code for different conditions
-%   maxlag      % maximum time sample of lag for regression (default: 0)
+%   maxlag      % allows lag in the range from -maxlag to maxlag for regression (default: 0)
 %   t_ref       % indices of the reference period to apply regression (ex: [1:30])(default: all time points)
-%   negcoef4lag % if allow negative regression during the time lag evaluation (default: false)
+%   negcoef4lag % if false, adopt the lag when the coefficient is largest (default)
+%                 if true, adopt the lag when the absolute coefficient is largest
 % 
 % Outputs: 
 %   data_out    % data_epoch after regressing out the EPR
 %   coef        % coefficients of regressor
 %   predictor   % regressor (ERP)
-%   lag         % regressor (ERP)
+%   lag         % lag where regression is applied
 % 
-% See also, ecog_regressERP
+% See also, ecog_regressERP, regress, xcorr
 
 % 20190903 Yuasa: modified from ecog_spectra.m in ECoG_utils
 % 20200303 Yuasa: make computations effective & use 'parfor'
