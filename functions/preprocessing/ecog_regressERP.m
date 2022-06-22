@@ -9,7 +9,9 @@ function [coef,predictor] = ecog_regressERP(data_epoch,t_base,stims,stim4predict
 %   t_base       % indices of the baseline period (ex: [1:100])
 %   stims        % different code for different conditions
 %   stim4predict % the number of the condition code to construct the predictor
-%   maxlag       % allows lag in the range from -maxlag to maxlag for regression (default: 0)
+%   maxlag       % allows lag in the range from -maxlag to maxlag for regression
+%                  if 0, regression is applied without lag (default: [0])
+%                  (ex: [5] for maximum 10 ms lag at 500 Hz sampling rate)
 %   negcoef4lag  % if false, adopt the lag when the coefficient is largest (default)
 %                  if true, adopt the lag when the absolute coefficient is largest
 % 

@@ -13,7 +13,9 @@ function [data_out,coefs,predictor,lags] = ecog_regressout(data_epoch,t_base,sti
 %   data_epoch  % electrodes X time X epochs
 %   t_base      % indices of the baseline period (ex: [1:100])
 %   stims       % different code for different conditions
-%   maxlag      % allows lag in the range from -maxlag to maxlag for regression (default: 0)
+%   maxlag      % allows lag in the range from -maxlag to maxlag for regression
+%                 if 0, regression is applied without lag (default: [0])
+%                 (ex: [5] for maximum 10 ms lag at 500 Hz sampling rate)
 %   t_ref       % indices of the reference period to apply regression (ex: [1:30])(default: all time points)
 %   negcoef4lag % if false, adopt the lag when the coefficient is largest (default)
 %                 if true, adopt the lag when the absolute coefficient is largest
