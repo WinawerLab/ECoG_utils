@@ -1,5 +1,5 @@
 function varargout = bidsEcogPlotElectrodesOnMesh(projectDir, subject, session, atlasName, thresh, surfaceType, specs)
-% bidsEcogPlotElectrodesOnMesh(projectDir, subject, session, atlasName, thresh, specs)
+% bidsEcogPlotElectrodesOnMesh(projectDir, subject, session, atlasName, [thresh], [surfaceType], [specs])
 % 
 % Plots iEEG electrode positions from a BIDS directory onto on a 3D brain
 % mesh of the pial surface reconstruction in derivatives/freesurfer, along
@@ -83,7 +83,6 @@ function varargout = bidsEcogPlotElectrodesOnMesh(projectDir, subject, session, 
 
 % KY, BAIR 2022
 
-
 % <projectDir>
 if ~exist('projectDir', 'var') || isempty(projectDir), error('projectDir not defined'); end    
 
@@ -102,14 +101,20 @@ end
 if ~exist('atlasName', 'var') || isempty(atlasName), atlasName = 'nane'; end
 if ~iscell(atlasName), atlasName = {atlasName}; end
 
-% <thresh>
-if ~exist('thresh', 'var') || isempty(thresh), thresh = inf; end
-
-% <surfaceType>
+% <optionals>
 if ~exist('specs','var') && exist('surfaceType','var') && isstruct(surfaceType)
     specs = surfaceType;
     surfaceType  = [];
 end
+if ~exist('surfaceType','var') && exist('thresh','var') && (ischar(thresh)||isstring(thresh))
+    surfaceType  = thresh;
+    thresh       = [];
+end
+
+% <thresh>
+if ~exist('thresh', 'var') || isempty(thresh), thresh = inf; end
+
+% <surfaceType>
 if ~exist('surfaceType','var') || isempty(surfaceType)
     if exist('specs','var') && isfield(specs, 'surf') && ~isempty(specs.surf)
         surfaceType = specs.surf;

@@ -4,7 +4,7 @@ function [electrode_table] = bidsEcogMatchElectrodesToAtlas(projectDir, subject,
 % in derivates/freesurfer. Area names will be added to the electrode_table.
 %
 % [electrode_table] = bidsEcogMatchElectrodesToAtlas(projectDir, ...
-%   subject, session, atlas, [thresh], [printSummary]);
+%   subject, session, atlas, [thresh], [surfaceType], [printSummary]);
 %
 % Notes:
 % Atlases are expected to be located in freesurfer's surf directory and
@@ -40,6 +40,8 @@ function [electrode_table] = bidsEcogMatchElectrodesToAtlas(projectDir, subject,
 %                       in mm (if empty, thresh is infinite, meaning that the
 %                       electrode can be infinitely far) 
 %                           default empty
+%     surfaceType:      which MRI surface to read 
+%                           default pial
 %     printSummary:     prints number of matched electrodes and matched
 %                       areas (if applicable) to command windown
 %                           default true 
@@ -86,14 +88,20 @@ if ~exist('atlasName', 'var') || isempty(atlasName), error('atlasName not define
 if ~iscell(atlasName), atlasName = {atlasName}; end
 atlasName(ismember(atlasName,'none')) = [];
 
+% <optionals>
+if ~exist('printSummary','var') && exist('surfaceType','var') && (islogical(surfaceType)||isnumeric(surfaceType))
+    printSummary = surfaceType;
+    surfaceType  = [];
+end
+if ~exist('surfaceType','var') && exist('thresh','var') && (ischar(thresh)||isstring(thresh))
+    surfaceType  = thresh;
+    thresh       = [];
+end
+
 % <thresh>
 if ~exist('thresh', 'var') || isempty(thresh), thresh = inf; end
 
 % <surfaceType>
-if ~exist('printSummary','var') && exist('surfaceType','var') && islogical(surfaceType)
-    printSummary = surfaceType;
-    surfaceType  = [];
-end
 if ~exist('surfaceType','var') || isempty(surfaceType)
     % surfaceType should be 'pial' to match electrode locations in BAIR project
     surfaceType = 'pial';

@@ -3,7 +3,7 @@ function  [matched_atlas_vals, electrode_table, matched_vertices, keep_idx, indi
              bidsEcogGetMatchedAtlas(projectDir, subject, session, atlasName, thresh, surfaceType)
 % [matched_atlas_vals, electrode_table, matched_vertices, keep_idx, indices, ...
 %  elec_xyz, atlases_r, atlases_l, vertices_r, faces_r, vertices_l, faces_l, atlasName] = ...
-%   bidsEcogGetMatchedAtlas(projectDir, subject, session, atlasName, thresh)
+%   bidsEcogGetMatchedAtlas(projectDir, subject, session, atlasName, thresh, surfaceType)
 % 
 % Read electrodes and atlas and match them in space.
 % 
