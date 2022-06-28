@@ -94,7 +94,7 @@ end
 %-- Plot response per electrode, in two separate figures (top and bottom)
 if ~hasGrid
     v = reshape(1:FullGRID,[nCol,nRow])';
-elseif ~opt.plot.RotGrid
+elseif ~specs.plot.RotGrid
     v = reshape(1:FullGRID,[nRow,nCol]);
 else
     v = flipud(reshape(1:FullGRID,[nCol,nRow])'); 
