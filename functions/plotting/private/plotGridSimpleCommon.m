@@ -45,12 +45,14 @@ if hasGrid
     end
 else
     if isempty(specs.plot.nSubPlots)
-        [nCol,nRow] = arrangeinrect(numel(gridList),2,[4,1]);
+        [nCol,nRow] = arrangeinrect(numpltchan,2,[4,1]);
+        nCol = ceil(sqrt(numpltchan));
+        nRow = ceil(numpltchan./nCol);
     elseif specs.plot.nSubPlots(2) == 0
         nRow = specs.plot.nSubPlots(1);
-        nCol = ceil(numel(gridList)./specs.plot.nSubPlots(1));
-    elseif prod(specs.plot.nSubPlots) < numel(gridList)
-        nRow = ceil(numel(gridList)./specs.plot.nSubPlots(2));
+        nCol = ceil(numpltchan./specs.plot.nSubPlots(1));
+    elseif prod(specs.plot.nSubPlots) < numpltchan
+        nRow = ceil(numpltchan./specs.plot.nSubPlots(2));
         nCol = specs.plot.nSubPlots(2);
     else
         nRow = specs.plot.nSubPlots(1);
@@ -58,7 +60,9 @@ else
     end
 end
 if hasGrid && specs.plot.RotGrid, tmp = nCol; nCol = nRow; nRow = tmp; end
-FullGRID = nCol * nRow;
+if hasGrid,  FullGRID = nCol * nRow;
+else,        FullGRID = numpltchan;
+end
 
 if isempty(specs.plot.nSubPlots)
     nFig = ceil(nRow / nCol ./ 1.2);
@@ -83,7 +87,7 @@ for ee = 1:FullGRID
       else,                 chanIdx(ee)  = igrid;
       end
       
-    elseif ee > numel(gridList)
+    elseif ee > numpltchan
         
       gridList{ee} = 'none';
       chanIdx(ee)  = nan;
@@ -93,13 +97,13 @@ end
  
 %-- Plot response per electrode, in two separate figures (top and bottom)
 if ~hasGrid
-    v = reshape(1:FullGRID,[nCol,nRow])';
+    v = 1:FullGRID;
 elseif ~specs.plot.RotGrid
-    v = reshape(1:FullGRID,[nRow,nCol]);
+    v = reshape(1:FullGRID,[nRow,nCol])';
 else
-    v = flipud(reshape(1:FullGRID,[nCol,nRow])'); 
+    v = flipud(reshape(1:FullGRID,[nCol,nRow])')'; 
 end
 inx = [];
 for ee = 1:nFig
-    inx{ee} = reshape(v(plRow*(ee-1)+1:min(nRow,plRow*(ee)),:)',1,[]);
+    inx{ee} = reshape(v((plRow*(ee-1)*nCol+1):min(FullGRID,plRow*(ee)*nCol)),1,[]);
 end

@@ -5,7 +5,7 @@ function [trials_out,figlist] = ecog_plotGridSpectra(spectra, whichGrid, whichTr
 % 
 % See also ecog_plotSpectra
 
-% Dependency: ecog_plotSpectra, plotGridSimpleCommon, SetDefault
+% Dependency: plotGridSimpleCommon, SetDefault
 
 % 20200306 Yuasa
 % 20220222 Yuasa: use plotGridSimpleCommon

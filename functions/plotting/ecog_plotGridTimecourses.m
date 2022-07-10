@@ -6,7 +6,7 @@ function [trials_out,figlist] = ecog_plotGridTimecourses(trials, whichGrid, whic
 % 
 % See also ecog_plotTimecourses
 
-% Dependency: ecog_plotTimecourses, plotGridSimpleCommon, SetDefault
+% Dependency: plotGridSimpleCommon, SetDefault
 
 % 20190725 Yuasa
 % 20200226 Yuasa: output figure handles
