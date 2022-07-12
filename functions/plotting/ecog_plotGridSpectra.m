@@ -16,6 +16,7 @@ SetDefault('specs.plot.XScale','linear', 0);
 SetDefault('specs.plot.YScale','log', 0);
 SetDefault('specs.plot.nSubPlots', [], 1);
 SetDefault('specs.plot.RotGrid', false, 0);
+SetDefault('specs.plot.showlegend','Outside', 0);    % Outside, Inside, Last, No
 
 %%
 %%% run plotGridSimpleCommon
@@ -58,26 +59,7 @@ for ifig=figlist
 end
 
 %-- Hide or reorder legend
-if isfield(specs,'plot')&&isfield(specs.plot,'showlegend')&&strcmp(specs.plot.showlegend,'no')
-    set(findobj(figlist,'Type','Legend'),'Visible','off');  % Hide
-else
-    for ifig=figlist
-        %%% get axis size
-        frstaxopos = ifig.Children(end).OuterPosition;
-        frstaxpos  = ifig.Children(end).Position;
-        
-        %%% get index of legend
-        legidx = find(strcmp(get(ifig.Children,'Type'),'legend'));
-        
-        %%% move legend at outer position
-        legpos = ifig.Children(legidx).Position;
-        ifig.Children(legidx).Position = ...
-            [frstaxpos(1)+(frstaxpos(3)-legpos(3))/2, frstaxopos(2)+frstaxopos(4), legpos(3:4)];
-        
-        %%% move legend and axes next to legend at the top of axes list
-        ifig.Children = ifig.Children([legidx:legidx+1,1:legidx-1,legidx+2:end]);
-    end
-end
+shiftlefend(figlist,specs.plot.showlegend);
 
 end
 
@@ -295,4 +277,41 @@ out.f           = spectra.f;
 out.colors      = colors;
 out.subplotdim  = [nRow nCol];   
 
+end
+
+function shiftlefend(figlist,showlegend)
+
+switch lower(showlegend)
+    case 'no'
+        set(findobj(figlist,'Type','Legend'),'Visible','off');  % Hide
+    case {'outside','last'}
+        for ifig=figlist
+            %%% get axis size
+            hax   = findobj(ifig,'Type','Axes'); 
+            frstaxopos = hax(end).OuterPosition;
+            frstaxpos  = hax(end).Position;
+            lastaxopos = hax(1).OuterPosition;
+            lastaxpos  = hax(1).Position;
+            
+            %%% get index of legend
+            hleg  = findobj(ifig,'Type','legend');
+            hleg  = hleg(1);
+            
+            %%% move legend at outer position
+            legpos = hleg.Position;
+            if strcmpi(showlegend,'last')
+                hleg.Position = ...
+                    [sum(lastaxopos([1,3]))+lastaxopos(1)./10,...
+                     lastaxpos(2) + lastaxpos(4)./2 - legpos(4)./2,...
+                     legpos(3:4)];
+            else
+                hleg.Position = ...
+                    [frstaxpos(1)+(frstaxpos(3)-legpos(3))/2, frstaxopos(2)+frstaxopos(4), legpos(3:4)];
+            end
+            
+            %%% move legend and axes next to legend at the top of axes list
+            legidx = find(ifig.Children==hleg);
+            uistack([hleg,ifig.Children(legidx+1)],'top');
+        end
+end
 end
