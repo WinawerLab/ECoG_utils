@@ -119,6 +119,11 @@ switch method
         % X2: chans x concatenated stim half 2
         X2 = squeeze(epochs_split(2,:,:));
         
+        % Omit NaN
+        nanidx = all(isnan(X1),1) | all(isnan(X2),1);
+        X1(:,nanidx) = [];
+        X2(:,nanidx) = [];
+        
         % % Pairwise correlation between all channels across the two sets
         %[r] = corr(X1',X2');
         % % Select diagonal (correlation of channel with itself)

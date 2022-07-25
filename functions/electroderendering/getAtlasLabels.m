@@ -30,7 +30,7 @@ if ~exist('issmry','var') || isempty(issmry),  issmry = false;  end
 % Load atlas labels
 switch atlasName
     
-    case {'wang2015_atlas', 'wang15_mplbl'} % Wang maximum probability map
+    case {'wang2015_atlas','wang15_mplbl','wangarea'} % Wang maximum probability map
 
             if issmry
             [area_labels, area_cmap, area_match] = wang15_smry_atlas;
@@ -39,7 +39,7 @@ switch atlasName
             end
             units = 'area';
                        
-	case {'wang15_fplbl'} % Wang full probability map
+	case {'wang15_fplbl','wangprob'} % Wang full probability map
 
             if issmry
             [area_labels, ~, area_match] = wang15_smry_atlas;
@@ -49,7 +49,7 @@ switch atlasName
             area_cmap   = autumn(64);
             units = 'probability';
 
-	case 'benson14_varea' % Noahs anatomically derived template
+	case {'benson14_varea','bensonarea'} % Noahs anatomically derived template
 
             if issmry
             [area_labels, area_cmap, area_match] = benson14_smry_atlas;
@@ -58,12 +58,12 @@ switch atlasName
             end
             units = 'area';
 
-    case {'template_areas','benson20_mplbl'} % old Noah templates & Noah's HCP template
+    case {'template_areas','benson20_mplbl','hcparea'} % old Noah templates & Noah's HCP template
 
             [area_labels, area_cmap] = benson20_atlas;
             units = 'area';
         
-    case {'benson20_fplbl'} % Noah's HCP full probability map
+    case {'benson20_fplbl','hcpprob'} % Noah's HCP full probability map
         
             area_labels = benson20_atlas;
             area_cmap   = autumn(64);
