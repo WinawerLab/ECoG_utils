@@ -59,8 +59,16 @@ if plotFilter
     return
 end
 
+% Detect NaNs & fill 0 if the signal includes NaN
+inclnan = any(isnan(signal),1);
+signal(:,inclnan)   = 0;
+
 % Apply filter
 band_sig = filtfilt(Hd, signal); 
+
+% Put back NaNs
+signal(:,inclnan)   = nan;
+band_sig(:,inclnan) = nan;
 
 % Check output
 normpow = rms(signal,1);
