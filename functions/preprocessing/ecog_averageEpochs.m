@@ -20,7 +20,8 @@ function [epochs_averaged, epochs_sd, stim_idx] = ecog_averageEpochs(epochs, eve
 %
 % see also ecog_makeEpochs.m and ecog_normalizeEpochs.m
 
-if ~iscell(stimIDs), stimIDs = {stimIDs}; end
+if ~exist('stimIDs','var') || isempty(stimIDs), stimIDs = unique(events.trial_name); end
+if ~iscell(stimIDs)&&~isnumeric(stimIDs), stimIDs = {stimIDs}; end
 if ~exist('avgrange','var') || isempty(avgrange), avgrange = 'all'; end
 
 switch lower(avgrange)
@@ -44,7 +45,7 @@ for ii = 1:navg
     if ~isnumeric(stimIDs)
         trial_idx = contains(events.trial_name, stimIDs{istim});        
     else
-        trial_idx = events.trial_type == stim_names(istim);
+        trial_idx = events.trial_type == stimIDs(istim);
     end
     trial_idx = trial_idx & rpttbl==irpt;
     epochs_averaged(:,ii,:) = mean(epochs(:,trial_idx,:),2, 'omitnan');
