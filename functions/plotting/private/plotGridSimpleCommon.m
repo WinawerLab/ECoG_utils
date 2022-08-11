@@ -45,7 +45,7 @@ if hasGrid
     end
 else
     if isempty(specs.plot.nSubPlots)
-        [nCol,nRow] = arrangeinrect(numpltchan,2,[4,1]);
+%         [nCol,nRow] = arrangeinrect(numpltchan,2,[4,1]);
         nCol = ceil(sqrt(numpltchan));
         nRow = ceil(numpltchan./nCol);
     elseif specs.plot.nSubPlots(2) == 0
