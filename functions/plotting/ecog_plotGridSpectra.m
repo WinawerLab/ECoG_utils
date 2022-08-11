@@ -71,6 +71,13 @@ if ~isfield(specs, 'plot') || isempty(specs.plot)
     specs.plot = [];
 end
 
+if ~isfield(specs, 'trialIntpr') || isempty(specs.trialIntpr)
+    specs.trialIntpr = @contains;
+end
+if ~isfield(specs, 'taksIntpr') || isempty(specs.taksIntpr)
+    specs.taksIntpr = @contains;
+end
+
 if ~isfield(specs.plot, 'colorMap') || isempty(specs.plot.colorMap), specs.plot.colorMap = 'copper'; end
 if ~isfield(specs.plot, 'nSubPlots') || isempty(specs.plot.nSubPlots), specs.plot.nSubPlots = []; end
 if ~isfield(specs.plot, 'addEccToTitle') || isempty(specs.plot.addEccToTitle), specs.plot.addEccToTitle = 'no'; end
@@ -97,11 +104,11 @@ if isempty(trialType)
 else
     if ~isempty(taskType)
         for ii = 1:length(trialType)
-            trial_index{ii} = find(contains(spectra.events.trial_name, trialType{ii}) & contains(spectra.events.task_name, taskType));
+            trial_index{ii} = find(specs.trialIntpr(spectra.events.trial_name, trialType{ii}) & specs.taksIntpr(spectra.events.task_name, taskType));
         end
     else
         for ii = 1:length(trialType)
-            trial_index{ii} = find(contains(spectra.events.trial_name, trialType{ii}));
+            trial_index{ii} = find(specs.trialIntpr(spectra.events.trial_name, trialType{ii}));
         end
     end
 end

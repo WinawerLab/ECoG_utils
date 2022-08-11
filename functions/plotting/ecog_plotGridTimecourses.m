@@ -76,6 +76,10 @@ if nargin < 4
     specs = [];
 end
 
+if ~isfield(specs, 'trialIntpr') || isempty(specs.trialIntpr)
+    specs.trialIntpr = @contains;
+end
+
 if ~isfield(specs, 'dataTypes') || isempty(specs.dataTypes)
     specs.dataTypes = {'broadband', 'evoked'};
 end
@@ -126,8 +130,8 @@ if isempty(trialType)
     baseline_index = find(~contains(lower(trials.events.task_name), {'prf'}));
 else
     for ii = 1:length(trialType)
-        trial_index{ii} = find(contains(trials.events.trial_name, trialType{ii}));
-        %trial_index{ii} = find(contains(trials.events.task_name, trialType{ii}));
+        trial_index{ii} = find(specs.trialIntpr(trials.events.trial_name, trialType{ii}));
+        %trial_index{ii} = find(specs.trialIntpr(trials.events.task_name, trialType{ii}));
     end
     %HACK
 %     trial_index{1} = 100:114;%trial_index{1}(33:64);

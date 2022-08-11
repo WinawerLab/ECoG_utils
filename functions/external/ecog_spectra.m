@@ -20,7 +20,7 @@ function [f,data_epoch_spectra,data_epoch] = ...
 %     ecog_spectra(data_epoch,stims,fft_w,fft_t,fft_ov,srate,regress_erp)
 %
 %
-% Dora Hermes, 2017
+% Dora Hermes, 2017; KY, 2022
 
 % regress erp out
 if reg_erp==1 
@@ -43,7 +43,8 @@ if reg_erp==1
 end
 
 % calculate spectra to get length of f to initialize spectra
-[~,f] = pwelch(squeeze(data_epoch(1,1,fft_t)),fft_w,fft_ov,srate,srate);
+[ir,ic]=find(~any(isnan(data_epoch),3),1);      % avoid nan
+[~,f] = pwelch(squeeze(data_epoch(ir,ic,fft_t)),fft_w,fft_ov,srate,srate);
 data_epoch_spectra = zeros(size(data_epoch,1),size(data_epoch,2),length(f));
 clear Pxx
 
