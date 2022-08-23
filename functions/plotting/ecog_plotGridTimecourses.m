@@ -150,7 +150,7 @@ end
 
 % Plot settings
 cmap = eval(specs.plot.colorMap);
-colors = cmap(1:round((length(cmap)/length(trial_index))):length(cmap),:);
+colors = cmap(round(1:(length(cmap)/length(trial_index)):length(cmap)),:);
 %colors = sortrows(colors,'descend');
 
 out.elecs = whichElectrodes;

@@ -56,13 +56,16 @@ end
 % MRI and MEG data will have different BIDS formatting, so figure out which
 % we're doing. 
 if ~exist('tasks', 'var') || isempty(tasks)
-    d = dir(fullfile(sessionDir, 'func', '*bold.nii*'));
+%     d = dir(fullfile(sessionDir, 'func', '*bold.nii*'));
+    d = dir(fullfile(sessionDir, 'func', '*task-*'));
     modality = 'mri';
     if isempty (d)
-        d = dir(fullfile(sessionDir, 'meg', '*meg.sqd'));
+%         d = dir(fullfile(sessionDir, 'meg', '*meg.sqd'));
+        d = dir(fullfile(sessionDir, 'meg', '*task-*'));
         modality = 'meg';
         if isempty (d)
-            d = dir(fullfile(sessionDir, 'ieeg', '*ieeg.eeg'));
+%             d = dir(fullfile(sessionDir, 'ieeg', '*ieeg.eeg'));
+            d = dir(fullfile(sessionDir, 'ieeg', '*task-*'));
             modality = 'ecog';
         end
     end
@@ -79,13 +82,13 @@ if ~exist('runnums', 'var') || isempty(runnums)
     
     runnums = cell(1,length(tasks));
     for ii = 1:length(tasks)
-        files = dir(fullfile(sessionDir, 'func', sprintf('*task-%s_*bold.nii*', tasks{ii})));
+        files = dir(fullfile(sessionDir, 'func', sprintf('*task-%s_*run-*', tasks{ii})));
         modality = 'mri';
         if isempty (files)
-            files = dir(fullfile(sessionDir, 'meg', sprintf('*task-%s_*meg.sqd', tasks{ii})));
+            files = dir(fullfile(sessionDir, 'meg', sprintf('*task-%s_*run-*', tasks{ii})));
             modality = 'meg';
             if isempty (files)
-                files = dir(fullfile(sessionDir, 'ieeg', sprintf('*task-%s_*ieeg.eeg', tasks{ii})));
+                files = dir(fullfile(sessionDir, 'ieeg', sprintf('*task-%s_*run-*', tasks{ii})));
                 modality = 'ecog';
             end
         end
@@ -94,6 +97,7 @@ if ~exist('runnums', 'var') || isempty(runnums)
                 %runnum{ii}(jj) = str2double(bidsGet(files(jj).name, 'run'));
                 runnums{ii}{jj} = bidsGet(files(jj).name, 'run');
             end
+            runnums{ii} = unique(runnums{ii});
         end
     end
 end

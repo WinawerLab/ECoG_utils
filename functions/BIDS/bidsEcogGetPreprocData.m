@@ -112,11 +112,11 @@ for ii = 1:length(sessions)
                     Fs = hdr.Fs;
                     if ~isequal(Fs,srate)
                         fprintf('[%s] Sample rate of %d Hz does not match requested sample rate of %d Hz. Resampling... \n',mfilename, hdr.Fs, srate);
-                        data = resample(data', 1, hdr.Fs/srate)';
+                        data = resample(data', srate, hdr.Fs)';
                         channels.sampling_frequency(:) = srate;
                     end
                 else
-                    if exist('previousFs', 'var')
+                    if exist('previousFs', 'var') || ~isempty(previousFs)
                         assert(hdr.Fs == previousFs,'Failed to concatenate sessions because the sampling frequencies were different. Please specify a desired sampling rate using the input argument srate.');
                     end
                 end
@@ -182,9 +182,11 @@ for ii = 1:length(sessions)
                 % Use runlengths to update next run
                 runLengthInSamples = hdr.nSamples;
                 runLengthInSeconds = hdr.nSamples/hdr.Fs;
+                if isempty(runLengthInSamples), runLengthInSamples = 0; end
+                if isempty(runLengthInSeconds), runLengthInSeconds = 0; end
                 samplesToAdd = samplesToAdd + runLengthInSamples;
                 secondsToAdd = secondsToAdd + runLengthInSeconds;
-                fprintf('[%s] Length of run %s is %0.1f seconds, cumulative length of data is %0.1f seconds \n', mfilename, runnum, runLengthInSeconds, samplesToAdd/hdr.Fs);          
+                fprintf('[%s] Length of run %s is %0.1f seconds, cumulative length of data is %0.1f seconds \n', mfilename, runnum, runLengthInSeconds, samplesToAdd./hdr.Fs);          
             end
         end        
     end

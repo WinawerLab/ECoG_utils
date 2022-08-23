@@ -116,7 +116,7 @@ end
 % Plot settings
 cmap = eval(specs.plot.colorMap);
 nCond = length(trial_index);
-colors = cmap(1:round((length(cmap)/nCond)):length(cmap),:);
+colors = cmap(round(1:(length(cmap)/nCond):length(cmap)),:);
 %colors = sortrows(colors,'descend');
 if max(contains(trialType, 'BLANK') >0)
     nCond = nCond-1; 

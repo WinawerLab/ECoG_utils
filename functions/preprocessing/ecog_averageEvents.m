@@ -50,6 +50,15 @@ if startsWith(average,'trials')
     %-- segregate BLANK
     bslIndex  = contains(events.trial_name, 'BLANK');
     avg_group(bslIndex) = avg_group(bslIndex) + max(avg_group);
+    
+    %-- modify events
+    events.trial_type(~bslIndex) = min(events.trial_type(~bslIndex));
+    events.trial_name(~bslIndex) = events.task_name(~bslIndex);
+end
+if matches(average,'all')
+    %-- modify events
+    events.trial_type(:) = min(events.trial_type(:));
+    events.trial_name(:) = 'ALL';
 end
     
 n_avg     = groupcounts(avg_group);
