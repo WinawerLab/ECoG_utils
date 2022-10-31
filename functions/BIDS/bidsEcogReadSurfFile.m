@@ -15,7 +15,7 @@ function [vertices_r, faces_r, vertices_l, faces_l]= bidsEcogReadSurfFile(dataPa
 %   subject = 'p10';
 %  [vertices_r, faces_r, vertices_l, faces_l]= bidsEcogReadSurfFile(projectDir, subject)
 %
-% Makes use of 'read_surf' function from vistasoft
+% Makes use of 'read_surf' function from freesurfer
 %
 % IG, BAIR 2020
 
@@ -38,9 +38,9 @@ surf_file_lh = fullfile(fsDir, 'surf', sprintf('lh.%s', surfaceType));
 
 % Read in the files
 if exist(surf_file_rh, 'file') && exist(surf_file_lh, 'file')
-    fprintf('[%s] Reading Freesurfer pial surface file %s ...\n',mfilename, surf_file_rh);
+    fprintf('[%s] Reading Freesurfer %s surface file %s ...\n',mfilename, surfaceType, surf_file_rh);
     [vertices_r, faces_r] = read_surf(surf_file_rh);
-    fprintf('[%s] Reading Freesurfer pial surface file %s ...\n',mfilename, surf_file_lh);
+    fprintf('[%s] Reading Freesurfer %s surface file %s ...\n',mfilename, surfaceType, surf_file_lh);
     [vertices_l, faces_l] = read_surf(surf_file_lh);
 else
     error('No freesurfer surfaces found for sub-%s in %s',subject, fsDir);

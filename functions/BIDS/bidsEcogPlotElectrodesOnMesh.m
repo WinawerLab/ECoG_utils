@@ -1,4 +1,4 @@
-function varargout = bidsEcogPlotElectrodesOnMesh(projectDir, subject, session, atlasName, thresh, surfaceType, specs)
+function varargout = bidsEcogPlotElectrodesOnMesh(projectDir, subject, session, atlasName, varargin)
 % bidsEcogPlotElectrodesOnMesh(projectDir, subject, session, atlasName, [thresh], [surfaceType], [specs])
 % 
 % Plots iEEG electrode positions from a BIDS directory onto on a 3D brain
@@ -77,6 +77,17 @@ function varargout = bidsEcogPlotElectrodesOnMesh(projectDir, subject, session, 
 %     specs.areaName    = {'V1','V2','V3'};
 % h = bidsEcogPlotElectrodesOnMesh(projectDir, subject, [], atlasName, [], specs);
 % 
+% Example 3
+% This example plots electrode positions for subject p10 on the wang atlas on the white matter
+%     projectDir        = '/Volumes/server/Projects/BAIR/Data/BIDS/visual_ecog_recoded'; 
+%     subject           = 'p10';
+%     atlasName         = 'wang15_mplbl';
+%     surfaceType       = 'white';
+%     specs = [];
+%     specs.plotelecs   = 'yes';
+%     specs.plotelecrad = 1;
+% h = bidsEcogPlotElectrodesOnMesh(projectDir, subject, [], atlasName, [], surfaceType, specs);
+% 
 % See also, bidsSpecifySessions, bidsEcogReadElectrodeFile,
 %           bidsEcogReadSurfFile, bidsEcogReadAtlasFile, bidsEcogGetMatchedAtlas,
 %           bidsEcogMatchElectrodesToAtlas
@@ -102,26 +113,71 @@ if ~exist('atlasName', 'var') || isempty(atlasName), atlasName = 'nane'; end
 if ~iscell(atlasName), atlasName = {atlasName}; end
 
 % <optionals>
-if ~exist('specs','var') && exist('surfaceType','var') && isstruct(surfaceType)
-    specs = surfaceType;
-    surfaceType  = [];
+thresh      = [];
+surfaceType = [];
+specs       = [];
+if numel(varargin)>2
+    thresh      = varargin{1};
+    surfaceType = varargin{2};
+    specs       = varargin{3};
+elseif numel(varargin)>1
+    if ischar(varargin{1})||isstring(varargin{1})||isstring(varargin{1})
+        surfaceType = varargin{1};
+        specs       = varargin{2};
+    else
+        thresh      = varargin{1};
+        if isstruct(varargin{2})
+            specs       = varargin{2};
+        else
+            surfaceType = varargin{2};
+        end
+    end
+elseif numel(varargin)>0
+    if ischar(varargin{1})||isstring(varargin{1})
+        surfaceType = varargin{1};
+    elseif isstruct(varargin{1})
+        specs       = varargin{1};
+    else
+        thresh      = varargin{1};
+    end
 end
-if ~exist('surfaceType','var') && exist('thresh','var') && (ischar(thresh)||isstring(thresh))
-    surfaceType  = thresh;
-    thresh       = [];
+
+% <surfaceOption>
+surfaceBase      = [];
+surftransrefdist = [];
+if isstruct(surfaceType)
+    if isfield(surfaceType,'surftransrefdist')
+        surftransrefdist = surfaceType.surftransrefdist;
+    end
+    if isfield(surfaceType,'surfaceBase')
+        surfaceBase      = surfaceType.surfaceBase;
+    end
+    if isfield(surfaceType,'surfaceType')
+        surfaceType      = surfaceType.surfaceType;
+    else
+        surfaceType      = [];
+    end
 end
 
 % <thresh>
-if ~exist('thresh', 'var') || isempty(thresh), thresh = inf; end
+if isempty(thresh), thresh = inf; end
 
 % <surfaceType>
-if ~exist('surfaceType','var') || isempty(surfaceType)
-    if exist('specs','var') && isfield(specs, 'surf') && ~isempty(specs.surf)
+if isempty(surfaceType)
+    if isfield(specs, 'surf') && ~isempty(specs.surf)
         surfaceType = specs.surf;
+    elseif isfield(specs, 'surfaceType') && ~isempty(specs.surfaceType)
+        surfaceType = specs.surfaceType;
     else
         % surfaceType should be 'pial' to match electrode locations in BAIR project
         surfaceType = 'pial';
     end
+end
+if isempty(surfaceBase) && isfield(specs, 'surfaceBase')
+    surfaceBase      = specs.surfaceBase;
+end
+if isempty(surftransrefdist) && isfield(specs, 'surftransrefdist')
+    surftransrefdist = specs.surftransrefdist;
 end
 
 %% Specs
@@ -183,7 +239,6 @@ if ~isfield(specs, 'adjustLRdistance') || isempty(specs.adjustLRdistance)
     specs.adjustLRdistance = 'auto';
 end
 
-
 plotmesh         = specs.plotmesh;
 face_alpha       = specs.face_alpha;
 plotelecs        = strcmpi(specs.plotelecs,'yes');
@@ -207,7 +262,7 @@ if ~iscell(areaName),  areaName = {areaName};  end
 [~,~,~,~,atlasName] = interpretAtlasNames(atlasName);
 [matched_atlas_vals, electrode_table, matched_vertices, keep_idx, ~, ...
     elec_xyz, atlases_r, atlases_l, vertices_r, faces_r, vertices_l, faces_l, atlasName] = ...
-    bidsEcogGetMatchedAtlas(projectDir, subject, session, atlasName, thresh, surfaceType);
+    bidsEcogGetMatchedAtlas(projectDir, subject, session, atlasName, thresh, surfaceType, surfaceBase, surftransrefdist);
 elec_labels = electrode_table.name(keep_idx);
 elec_size = electrode_table.size(keep_idx);
 
