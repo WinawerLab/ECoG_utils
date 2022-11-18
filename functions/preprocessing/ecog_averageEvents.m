@@ -33,6 +33,18 @@ assert(height(events) == ntrl, 'The numbers of events does not match input data'
 
 %% average
 %-- prepare for average
+if ~isfield(summary(events),'stim_file_index')
+    events_cp = events;
+    events_cp.stim_file_index(:) = 0;
+    events_cp.stim_orig_idx      = [1:height(events_cp)]';
+    events_cp = sortrows(events_cp,{'task_name','session_name','run_name','trial_type'});
+    avg_group = findgroups(events(:,{'task_name','session_name','run_name'}));
+    for ii=reshape(unique(avg_group),1,[])
+        events_cp.stim_file_index(avg_group==ii) = 1:sum(avg_group==ii);
+    end
+    events_cp = sortrows(events_cp,'stim_orig_idx');
+    events.stim_file_index = events_cp.stim_file_index;
+end
 switch average
     case {'none'},      avg_group = [1:ntrl]';
     case {'sessions'},  avg_group = findgroups(events(:,{'task_name','run_name','stim_file_index'}));
@@ -58,11 +70,15 @@ end
 if matches(average,'all')
     %-- modify events
     events.trial_type(:) = min(events.trial_type(:));
-    events.trial_name(:) = 'ALL';
+    if iscell(events.trial_name)
+        events.trial_name(:) = {'ALL'};
+    else
+        events.trial_name(:) = 'ALL';
+    end
 end
     
 n_avg     = groupcounts(avg_group);
-if ~all(diff(n_avg)==0),    warning('[%s] %s do not consist with the same time series',mfilename,average);  end
+if ~all(diff(n_avg)==0),    warning('[%s] %s not consist with the same time series',mfilename,average);  end
 
 %-- take average across repeats (t x events x chan -> t x averaged events x chan)
 datsiz(2)   = length(n_avg);

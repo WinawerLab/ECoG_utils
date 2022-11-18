@@ -423,5 +423,8 @@ switch lower(showlegend)
             legidx = find(ifig.Children==hleg);
             uistack([hleg,ifig.Children(legidx+1)],'top');
         end
+    case {'inside'} % do nothing        
+    otherwise
+        set(findobj(figlist,'Type','Legend'),'Location',showlegend);  % Interpret as location
 end
 end
