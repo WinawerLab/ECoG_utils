@@ -1,4 +1,4 @@
-function [electrode_table] = bidsEcogMatchElectrodesToAtlas(projectDir, subject, session, atlasName, thresh, surfaceType, printSummary)
+function [electrode_table] = bidsEcogMatchElectrodesToAtlas(projectDir, subject, session, atlasName, varargin)
 % Matches electrodes to visual atlas, using electrode coordinates specified
 % in the bids metadata file in electrodes.tsv and freesurfer surface nodes
 % in derivates/freesurfer. Area names will be added to the electrode_table.
@@ -89,32 +89,69 @@ if ~iscell(atlasName), atlasName = {atlasName}; end
 atlasName(ismember(atlasName,'none')) = [];
 
 % <optionals>
-if ~exist('printSummary','var') && exist('surfaceType','var') && (islogical(surfaceType)||isnumeric(surfaceType))
-    printSummary = surfaceType;
-    surfaceType  = [];
+thresh       = [];
+surfaceType  = [];
+printSummary = [];
+if numel(varargin)>2
+    thresh       = varargin{1};
+    surfaceType  = varargin{2};
+    printSummary = varargin{3};
+elseif numel(varargin)>1
+    if ischar(varargin{1})||isstring(varargin{1})||isstruct(varargin{1})
+        surfaceType  = varargin{1};
+        printSummary = varargin{2};
+    else
+        thresh      = varargin{1};
+        if islogical(varargin{2})||isnumeric(varargin{2})
+            printSummary = varargin{2};
+        else
+            surfaceType  = varargin{2};
+        end
+    end
+elseif numel(varargin)>0
+    if ischar(varargin{1})||isstring(varargin{1})||isstruct(varargin{1})
+        surfaceType  = varargin{1};
+    elseif islogical(varargin{1})
+        printSummary = varargin{1};
+    else
+        thresh       = varargin{1};
+    end
 end
-if ~exist('surfaceType','var') && exist('thresh','var') && (ischar(thresh)||isstring(thresh))
-    surfaceType  = thresh;
-    thresh       = [];
+
+% <surfaceOption>
+surfaceBase      = [];
+surftransrefdist = [];
+if isstruct(surfaceType)
+    if isfield(surfaceType,'surftransrefdist')
+        surftransrefdist = surfaceType.surftransrefdist;
+    end
+    if isfield(surfaceType,'surfaceBase')
+        surfaceBase      = surfaceType.surfaceBase;
+    end
+    if isfield(surfaceType,'surfaceType')
+        surfaceType      = surfaceType.surfaceType;
+    else
+        surfaceType      = [];
+    end
 end
 
 % <thresh>
-if ~exist('thresh', 'var') || isempty(thresh), thresh = inf; end
+if isempty(thresh), thresh = inf; end
 
 % <surfaceType>
-if ~exist('surfaceType','var') || isempty(surfaceType)
+if isempty(surfaceType)
     % surfaceType should be 'pial' to match electrode locations in BAIR project
     surfaceType = 'pial';
 end
 
 % <printSummary>
-if ~exist('printSummary', 'var') || isempty(printSummary), printSummary = true; end
+if isempty(printSummary), printSummary = true; end
 
 %% Read in files and matched ECoG electrodes and MRI atlas
 
 [~,~,~,~,atlasName] = interpretAtlasNames(atlasName);
 [matched_atlas_vals, electrode_table, matched_vertices, keep_idx, indices] =...
-    bidsEcogGetMatchedAtlas(projectDir, subject, session, atlasName, thresh, surfaceType);
+    bidsEcogGetMatchedAtlas(projectDir, subject, session, atlasName, thresh, surfaceType, surfaceBase, surftransrefdist);
 
 %% Make output
 

@@ -1,9 +1,9 @@
 function  [matched_atlas_vals, electrode_table, matched_vertices, keep_idx, indices, ...
            elec_xyz, atlases_r, atlases_l, vertices_r, faces_r, vertices_l, faces_l, atlasName] = ...
-             bidsEcogGetMatchedAtlas(projectDir, subject, session, atlasName, thresh, surfaceType)
+             bidsEcogGetMatchedAtlas(projectDir, subject, session, atlasName, thresh, surfaceType, surfaceBase, transrefdist)
 % [matched_atlas_vals, electrode_table, matched_vertices, keep_idx, indices, ...
 %  elec_xyz, atlases_r, atlases_l, vertices_r, faces_r, vertices_l, faces_l, atlasName] = ...
-%   bidsEcogGetMatchedAtlas(projectDir, subject, session, atlasName, thresh, surfaceType)
+%   bidsEcogGetMatchedAtlas(projectDir, subject, session, atlasName, thresh, surfaceType, surfaceBase)
 % 
 % Read electrodes and atlas and match them in space.
 % 
@@ -48,10 +48,14 @@ function  [matched_atlas_vals, electrode_table, matched_vertices, keep_idx, indi
 
 % <thresh>
 if ~exist('thresh', 'var') || isempty(thresh), thresh = inf; end
+if ~exist('transrefdist', 'var'), transrefdist = []; end
 
 % <surfaceType>
 if ~exist('surfaceType','var') || isempty(surfaceType)
-    surfaceType = 'pial';
+    surfaceType = 'pial';   % surface for output
+end
+if ~exist('surfaceBase','var') || isempty(surfaceBase)
+    surfaceBase = 'pial';   % surface to corregister with electrodes
 end
 
 %% Read in files
@@ -61,6 +65,11 @@ end
 
 % Read surface reconstructions from BIDS derivatives 
 [vertices_r, faces_r, vertices_l, faces_l] = bidsEcogReadSurfFile(projectDir, subject, surfaceType);
+if ~strcmpi(surfaceType,surfaceBase)
+    [basevertices_r, ~, basevertices_l] = bidsEcogReadSurfFile(projectDir, subject, surfaceBase);
+else
+    basevertices_r = vertices_r;    basevertices_l = vertices_l;
+end
 
 % Interpret atlas name
 if ~iscell(atlasName), atlasName = {atlasName}; end
@@ -133,25 +142,36 @@ end
 if ismember('hemisphere',fieldnames(summary(electrode_table))) && ...
         all(ismember(electrode_table.hemisphere,{'L','R'}))
     elec_isr = ismember(electrode_table.hemisphere,'R');
-    surfdist = min(vertices_r(:,1)) - max(vertices_l(:,1));
-    surfwdth = diff(minmax(vertcat(vertices_l(:,1),vertices_r(:,1))'));
+    surfdist = min(basevertices_r(:,1)) - max(basevertices_l(:,1));
+    surfwdth = diff(minmax(vertcat(basevertices_l(:,1),basevertices_r(:,1))'));
     isodist  = [round(max(-surfdist,0) + surfwdth/20) 0 0];
 else
     elec_isr = false(height(electrode_table),1);
     isodist  = [0 0 0];
 end
-elec_xyz   = elec_xyz + elec_isr.*isodist;
-vertices_r = vertices_r + isodist;
-
-% Prepare data for matching
-vertices   = [vertices_r;vertices_l];
+elec_xyz_iso   = elec_xyz + elec_isr.*isodist;
+basevertices   = [basevertices_r + isodist; basevertices_l];
             
 % Match the electrode xyz with the nodes in the surfaces; find nearest
-[indices, bestSqDist] = nearpoints(elec_xyz', vertices'); % function from vistasoft
+[indices, bestSqDist] = nearpoints(elec_xyz_iso', basevertices'); % function from vistasoft
 
-% Put back isolation
-elec_xyz   = elec_xyz - elec_isr.*isodist;
-vertices_r = vertices_r - isodist;
+% Transform electrode location
+if ismember('inflated',{surfaceType,surfaceBase}) && ~strcmpi(surfaceType,surfaceBase)
+    if  strcmpi(surfaceType,'inflated') && ~strcmpi(surfaceBase,'smoothwm')
+        [basevertices_r, ~, basevertices_l] = bidsEcogReadSurfFile(projectDir, subject, 'smoothwm');
+        tmpvertices_r = vertices_r;     tmpvertices_l = vertices_l;
+    elseif strcmpi(surfaceBase,'inflated') && ~strcmpi(surfaceType,'smoothwm')
+        [tmpvertices_r, ~, tmpvertices_l] = bidsEcogReadSurfFile(projectDir, subject, 'smoothwm');
+    end
+    vertices     = [tmpvertices_r;tmpvertices_l];
+    basevertices = [basevertices_r; basevertices_l];
+        
+    [sulc_r, sulc_l] = bidsEcogReadCurvFile(projectDir, subject, 'sulc');
+    sulc = [sulc_r;sulc_l];
+    
+    elec_xyz = transform_elec_xyz(elec_xyz,indices,basevertices,vertices,size(basevertices_r,1),sulc,transrefdist);
+    
+end
 vertices   = [vertices_r;vertices_l];
 
 % Add LR information
@@ -198,4 +218,32 @@ function [atlas] = normalizefplbl(atlas, normthresh)
     ind = sum(atlas,1) > max(normthresh/100,0);
     [~,tmp(:,ind)] = max(atlas(:,ind));
     atlas = tmp;
+end
+
+function [elec_xyz] = transform_elec_xyz(elec_xyz,indices,basevertices,vertices,Nrhemi,sulc,refdist)
+    
+    if ~exist('refdist','var')||isempty(refdist), refdist = 5; end
+    if ~exist('sulc','var'), sulc = []; end
+    
+    
+    % make cluster to compute transform matrix
+    isrhemi    = false(size(vertices,1),1); isrhemi(1:Nrhemi) = true;
+    elec_isr = indices <= Nrhemi;
+    for el = 1:numel(indices)
+        vertdist    = [vecnorm(basevertices - basevertices(indices(el),:),2,2),...
+                       vecnorm(vertices - vertices(indices(el),:),2,2)];
+        indices_sel = all(vertdist < refdist,2) & isrhemi==elec_isr(el);
+        if ~isempty(sulc)   % segregate sulcus
+            indices_sel = indices_sel & (sulc<-1)==(sulc(indices(el))<-1);
+        end
+        transmat    = preptrns(basevertices(indices_sel,:))\preptrns(vertices(indices_sel,:));
+        elec_xyznew = preptrns(elec_xyz(el,:))*transmat;
+        
+        elec_xyz(el,:) = elec_xyznew(:,1:size(elec_xyz,2));
+    end
+
+end
+
+function [xyzmat] = preptrns(xyzmat)
+    xyzmat = cat(2,xyzmat,ones(size(xyzmat,1),1));
 end

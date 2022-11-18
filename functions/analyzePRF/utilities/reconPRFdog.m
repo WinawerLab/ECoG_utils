@@ -13,6 +13,7 @@ function [modelts, datats] = reconPRFdog(result,stimulus,data,opts)
 % data:             time series of the data as a cell array of voxels x time
 % option:           structure with following fields.
 %   whichelec:      [](default), cell array of channel names, # of channels, logical indices
+%   stimres:        [](default), cell array of channel names, # of channels, logical indices
 %   skipprojection: 'yes', 'no'(default)  % if apply polynomial projection or not
 %   catrun:         'yes', 'no'(default)  % concatenate cell array across runs
 %   catiter:        'yes', 'no'(default)  % concatenate cell array across iterations
@@ -33,6 +34,7 @@ function [modelts, datats] = reconPRFdog(result,stimulus,data,opts)
 
 % 20210723 Yuasa
 % 20211122 Yuasa - update 'og' model
+% 20221006 Yuasa - add options
 
 %%
 %%% Check input
@@ -91,6 +93,7 @@ SetDefault('opts.skipprojection','no',0);
 SetDefault('opts.catrun','no',0);
 SetDefault('opts.catiter','no',0);
 SetDefault('opts.catchan','no',0);
+SetDefault('opts.stimres',[],1);
 
 %%% Set data & stimulus sizes (duplicate)
 numvxs  = size(result.params,3);
@@ -122,10 +125,11 @@ hrf           = opts.hrf;
 degs          = opts.maxpolydeg;
 gaussianmode  = lower(opts.gaussianmode);
 tarBAND       = opts.targetBAND;
-skipproj      = strcmpi(opts.skipprojection,'yes');
-catrun       = strcmpi(opts.catrun,'yes') | numruns == 1;
-catiter      = strcmpi(opts.catiter,'yes') | numitr == 1;
-catchan      = strcmpi(opts.catchan,'yes') | numelec == 1;
+skipproj      = intprtopt(opts.skipprojection);
+catrun        = intprtopt(opts.catrun) | numruns == 1;
+catiter       = intprtopt(opts.catiter) | numitr == 1;
+catchan       = intprtopt(opts.catchan) | numelec == 1;
+res           = opts.stimres;
 
 %% Prepare model computation
 %-- Get data length
@@ -133,8 +137,17 @@ ntime = zeros(numvxs,numruns);
 for pp=1:numruns
     ntime(:,pp) = sum(~isnan(data{1,pp}),2);
 end
-%-- Set stimulus
-res = sizefull(stimulus{1}{1},2);
+%-- Set stimulus (change size)
+if isempty(res)
+    res = sizefull(stimulus{1}{1},2);
+else
+    if isscalar(res),       res = [res res];
+    elseif ~isvector(res),  res = res(1:2);
+    end
+    stimulus = cellfun(...
+            @(C) cellfun(@(S) imresize(S, res, 'nearest'),C,'UniformOutput',false),...
+            stimulus,'UniformOutput',false);
+end
 resmx = max(res);
 
 %%% Model computation
@@ -240,5 +253,13 @@ function M = cellcatrow(I,dim)
     M = cell(1,nclm);
     for ii=1:nclm
         M{1,ii} = cat(dim,I{:,ii});
+    end
+
+%-- Check if option is 'yes'
+function f = intprtopt(opt)
+    if islogical(opt)
+        f = opt;
+    else
+        f = strcmpi(opt,'yes');
     end
 
