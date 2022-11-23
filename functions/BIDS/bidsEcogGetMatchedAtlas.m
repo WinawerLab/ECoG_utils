@@ -1,9 +1,9 @@
 function  [matched_atlas_vals, electrode_table, matched_vertices, keep_idx, indices, ...
            elec_xyz, atlases_r, atlases_l, vertices_r, faces_r, vertices_l, faces_l, atlasName] = ...
-             bidsEcogGetMatchedAtlas(projectDir, subject, session, atlasName, thresh, surfaceType, surfaceBase, transrefdist)
+             bidsEcogGetMatchedAtlas(projectDir, subject, session, atlasName, thresh, surfaceType, surfaceBase, surfaceTransSmooth)
 % [matched_atlas_vals, electrode_table, matched_vertices, keep_idx, indices, ...
 %  elec_xyz, atlases_r, atlases_l, vertices_r, faces_r, vertices_l, faces_l, atlasName] = ...
-%   bidsEcogGetMatchedAtlas(projectDir, subject, session, atlasName, thresh, surfaceType, surfaceBase)
+%   bidsEcogGetMatchedAtlas(projectDir, subject, session, atlasName, thresh, surfaceType, [surfaceBase, surfaceTransSmooth])
 % 
 % Read electrodes and atlas and match them in space.
 % 
@@ -39,6 +39,11 @@ function  [matched_atlas_vals, electrode_table, matched_vertices, keep_idx, indi
 %     surfaceType:      which MRI surface to read 
 %                           default pial
 % 
+% Supplementary Input
+%     surfaceBase:          default pial
+%     surfaceTransSmooth:   default 10 [mm]
+% 
+% 
 % See also, bidsEcogMatchElectrodesToAtlas, bidsEcogPlotElectrodesOnMesh
 % 
 % Makes use of 'nearpoints' function from vistasoft
@@ -48,7 +53,7 @@ function  [matched_atlas_vals, electrode_table, matched_vertices, keep_idx, indi
 
 % <thresh>
 if ~exist('thresh', 'var') || isempty(thresh), thresh = inf; end
-if ~exist('transrefdist', 'var'), transrefdist = []; end
+if ~exist('transrefdist', 'var'), surfaceTransSmooth = []; end
 
 % <surfaceType>
 if ~exist('surfaceType','var') || isempty(surfaceType)
@@ -156,12 +161,15 @@ basevertices   = [basevertices_r + isodist; basevertices_l];
 [indices, bestSqDist] = nearpoints(elec_xyz_iso', basevertices'); % function from vistasoft
 
 % Transform electrode location
-if ismember('inflated',{surfaceType,surfaceBase}) && ~strcmpi(surfaceType,surfaceBase)
-    if  strcmpi(surfaceType,'inflated') && ~strcmpi(surfaceBase,'smoothwm')
+if ~strcmpi(surfaceType,surfaceBase) && ismember('inflated',{surfaceType,surfaceBase})
+    if  ~ismember(surfaceBase,{'smoothwm','inflated'})   % surfaceType = 'inflated'
         [basevertices_r, ~, basevertices_l] = bidsEcogReadSurfFile(projectDir, subject, 'smoothwm');
+        basevertices   = [basevertices_r + isodist; basevertices_l];
+        [tmpindices] = nearpoints(elec_xyz_iso', basevertices'); % function from vistasoft
         tmpvertices_r = vertices_r;     tmpvertices_l = vertices_l;
-    elseif strcmpi(surfaceBase,'inflated') && ~strcmpi(surfaceType,'smoothwm')
+    elseif ~ismember(surfaceType,{'smoothwm','inflated'})  % surfaceBase = 'inflated'
         [tmpvertices_r, ~, tmpvertices_l] = bidsEcogReadSurfFile(projectDir, subject, 'smoothwm');
+        tmpindices = indices;
     end
     vertices     = [tmpvertices_r;tmpvertices_l];
     basevertices = [basevertices_r; basevertices_l];
@@ -169,7 +177,7 @@ if ismember('inflated',{surfaceType,surfaceBase}) && ~strcmpi(surfaceType,surfac
     [sulc_r, sulc_l] = bidsEcogReadCurvFile(projectDir, subject, 'sulc');
     sulc = [sulc_r;sulc_l];
     
-    elec_xyz = transform_elec_xyz(elec_xyz,indices,basevertices,vertices,size(basevertices_r,1),sulc,transrefdist);
+    elec_xyz = transform_elec_xyz(elec_xyz,tmpindices,basevertices,vertices,size(basevertices_r,1),sulc,surfaceTransSmooth);
     
 end
 vertices   = [vertices_r;vertices_l];
@@ -220,11 +228,11 @@ function [atlas] = normalizefplbl(atlas, normthresh)
     atlas = tmp;
 end
 
-function [elec_xyz] = transform_elec_xyz(elec_xyz,indices,basevertices,vertices,Nrhemi,sulc,refdist)
+function [elec_xyz] = transform_elec_xyz(elec_xyz,indices,basevertices,vertices,Nrhemi,sulc,transsmooth)
     
-    if ~exist('refdist','var')||isempty(refdist), refdist = 5; end
+    if ~exist('transsmooth','var')||isempty(transsmooth), transsmooth = 10; end
     if ~exist('sulc','var'), sulc = []; end
-    
+    transsmooth = max(transsmooth,0);
     
     % make cluster to compute transform matrix
     isrhemi    = false(size(vertices,1),1); isrhemi(1:Nrhemi) = true;
@@ -232,7 +240,7 @@ function [elec_xyz] = transform_elec_xyz(elec_xyz,indices,basevertices,vertices,
     for el = 1:numel(indices)
         vertdist    = [vecnorm(basevertices - basevertices(indices(el),:),2,2),...
                        vecnorm(vertices - vertices(indices(el),:),2,2)];
-        indices_sel = all(vertdist < refdist,2) & isrhemi==elec_isr(el);
+        indices_sel = all(vertdist <= transsmooth,2) & isrhemi==elec_isr(el);
         if ~isempty(sulc)   % segregate sulcus
             indices_sel = indices_sel & (sulc<-1)==(sulc(indices(el))<-1);
         end

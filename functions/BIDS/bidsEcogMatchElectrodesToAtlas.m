@@ -119,19 +119,19 @@ elseif numel(varargin)>0
 end
 
 % <surfaceOption>
-surfaceBase      = [];
-surftransrefdist = [];
+surfaceBase        = [];
+surfaceTransSmooth = [];
 if isstruct(surfaceType)
-    if isfield(surfaceType,'surftransrefdist')
-        surftransrefdist = surfaceType.surftransrefdist;
+    if isfield(surfaceType,'surfaceTransSmooth')
+        surfaceTransSmooth = surfaceType.surfaceTransSmooth;
     end
     if isfield(surfaceType,'surfaceBase')
-        surfaceBase      = surfaceType.surfaceBase;
+        surfaceBase        = surfaceType.surfaceBase;
     end
     if isfield(surfaceType,'surfaceType')
-        surfaceType      = surfaceType.surfaceType;
+        surfaceType        = surfaceType.surfaceType;
     else
-        surfaceType      = [];
+        surfaceType        = [];
     end
 end
 
@@ -151,7 +151,7 @@ if isempty(printSummary), printSummary = true; end
 
 [~,~,~,~,atlasName] = interpretAtlasNames(atlasName);
 [matched_atlas_vals, electrode_table, matched_vertices, keep_idx, indices] =...
-    bidsEcogGetMatchedAtlas(projectDir, subject, session, atlasName, thresh, surfaceType, surfaceBase, surftransrefdist);
+    bidsEcogGetMatchedAtlas(projectDir, subject, session, atlasName, thresh, surfaceType, surfaceBase, surfaceTransSmooth);
 
 %% Make output
 

@@ -143,19 +143,19 @@ elseif numel(varargin)>0
 end
 
 % <surfaceOption>
-surfaceBase      = [];
-surftransrefdist = [];
+surfaceBase        = [];
+surfaceTransSmooth = [];
 if isstruct(surfaceType)
-    if isfield(surfaceType,'surftransrefdist')
-        surftransrefdist = surfaceType.surftransrefdist;
+    if isfield(surfaceType,'surfaceTransSmooth')
+        surfaceTransSmooth = surfaceType.surfaceTransSmooth;
     end
     if isfield(surfaceType,'surfaceBase')
-        surfaceBase      = surfaceType.surfaceBase;
+        surfaceBase        = surfaceType.surfaceBase;
     end
     if isfield(surfaceType,'surfaceType')
-        surfaceType      = surfaceType.surfaceType;
+        surfaceType        = surfaceType.surfaceType;
     else
-        surfaceType      = [];
+        surfaceType        = [];
     end
 end
 
@@ -174,10 +174,10 @@ if isempty(surfaceType)
     end
 end
 if isempty(surfaceBase) && isfield(specs, 'surfaceBase')
-    surfaceBase      = specs.surfaceBase;
+    surfaceBase        = specs.surfaceBase;
 end
-if isempty(surftransrefdist) && isfield(specs, 'surftransrefdist')
-    surftransrefdist = specs.surftransrefdist;
+if isempty(surfaceTransSmooth) && isfield(specs, 'surfaceTransSmooth')
+    surfaceTransSmooth = specs.surfaceTransSmooth;
 end
 
 %% Specs
@@ -262,7 +262,7 @@ if ~iscell(areaName),  areaName = {areaName};  end
 [~,~,~,~,atlasName] = interpretAtlasNames(atlasName);
 [matched_atlas_vals, electrode_table, matched_vertices, keep_idx, ~, ...
     elec_xyz, atlases_r, atlases_l, vertices_r, faces_r, vertices_l, faces_l, atlasName] = ...
-    bidsEcogGetMatchedAtlas(projectDir, subject, session, atlasName, thresh, surfaceType, surfaceBase, surftransrefdist);
+    bidsEcogGetMatchedAtlas(projectDir, subject, session, atlasName, thresh, surfaceType, surfaceBase, surfaceTransSmooth);
 elec_labels = electrode_table.name(keep_idx);
 elec_size = electrode_table.size(keep_idx);
 
@@ -307,6 +307,8 @@ end
 if adjustLRdistance
     isodist  = [round((-surfdist + surfwdth/20)./2) 0 0];
     elec_xyz   = elec_xyz + (elec_isr-~elec_isr).*isodist;
+    matched_vertices ...
+               = matched_vertices + (elec_isr-~elec_isr).*isodist;
     vertices_r = vertices_r + isodist;
     vertices_l = vertices_l - isodist;
 end

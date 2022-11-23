@@ -78,6 +78,8 @@ function results = analyzePRFdog(stimulus,data,tr,options)
 %     default: 0.
 %   <boundsecc> (optional) is how many times bounds of eccentricity is larger than stimulus:
 %     if 2 (default), then the pRF center of each x and y axis is estimated in double area of stimulus
+%   <nonegativegain> (optional) is flag to restrict gain to be non-negative:
+%     default: true
 %
 % Analyze pRF data and return the results.
 %
@@ -327,6 +329,9 @@ if ~isfield(options,'boundsecc') || isempty(options.boundsecc)
 elseif numel(options.boundsecc)==1
   options.boundsecc = [-1 1].*options.boundsecc;
 end
+if ~isfield(options,'nonegativegain') || isempty(options.nonegativegain)
+  options.nonegativegain = true;
+end
 
 % massage
 wantquick = isequal(options.seedmode,-2);
@@ -394,12 +399,13 @@ end
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% PREPARE MODEL
 eccrate = (options.boundsecc+1)./2;
-if options.forcebounds == 2
-  lb = [1+eccrate(1).*res(1) 1+eccrate(1).*res(2) 0   0   0   1   0];
-  ub = [eccrate(2).*res(1)   eccrate(2).*res(2)   Inf Inf 1   Inf 1];
-else
-  lb = [1+eccrate(1).*res(1) 1+eccrate(1).*res(2) 0   0   0   1   0];
-  ub = [eccrate(2).*res(1)   eccrate(2).*res(2)   Inf Inf Inf Inf 1];
+lb = [1+eccrate(1).*res(1) 1+eccrate(1).*res(2) 0   0   0   1   0];
+ub = [eccrate(2).*res(1)   eccrate(2).*res(2)   Inf Inf Inf Inf 1];
+if options.forcebounds == 2 % upper limit of exponent
+  ub(5) = 1;
+end
+if ~options.nonegativegain % lower limit of gain
+  lb(4) = -inf;
 end
 
 % pre-compute some cache
