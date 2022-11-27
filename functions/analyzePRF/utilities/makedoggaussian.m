@@ -10,8 +10,8 @@ function    out = makedoggaussian(x,y,res,varargin)
 % DoG = gaussian([R C S*SS G*GS N]) - gaussian([R C S*SR*SS G*GR*GS N]))
 %   SR > 1      : sigma ratio for negative gaussian
 %   GR = (0,1) 	: gain ratio for negative gaussian
-%   SS          : sigma scale to obtain the same width as the original positive gaussian
-%   GS          : gain scale to obtain the same hight as the original positive gaussian
+%   SS          : sigma scale to convert one gaussian to center gaussian in DoG
+%   GS          : gain scale to convert one gaussian to center gaussian in DoG
 % 
 % Example:
 %   imagesc(makedoggaussian(pp(1:5),pp(6:end),res,xx,yy,0,0)));
@@ -28,27 +28,38 @@ function    out = makedoggaussian(x,y,res,varargin)
 % 20191119 yuasa
 % 20191126 yuasa: enable nanoutput as hidden option
 % 20191213 yuasa: change preciseness for width
+% 20221123 Yuasa: enable negative gain
+
+if length(varargin)>4
+    noneggain = varargin{5};
+    varargin(5:end) = [];
+else
+    noneggain = [];
+end
+if isempty(noneggain)
+    noneggain = false;
+end
 
 resmx  = max(res);
-outerflg = false;
+outofbnds = false;
 % if y(1)>10
 %     warning('sigma ratio should be smaller than 10');
-%     outerflg = true;
+%     outofbnds = true;
 % end
 if y(1)<1
     warning('sigma ratio must be lager than 1');
-    outerflg = true;
+    outofbnds = true;
     y(1)=1;
 end
 if y(2)<0 || y(2)>1
     warning('gain ratio must be lager than 0 and smaller than 1');
-    outerflg = true;
+    outofbnds = true;
     if y(2)<0,  y(2)=0;
     else,       y(2)=1;
     end
 end
 
-if numel(y) >= 5 && y(5) && outerflg
+if numel(y) >= 5 && y(5) && outofbnds
     out = nan(res);
     return;
 end
@@ -72,10 +83,13 @@ if numel(y) < 3 || isnan(y(3))
     end
 end
 
+if noneggain,  gainfnc = @(x)posrect(x);
+else,          gainfnc = @(x)x;
+end
 pp   = [[x(1), x(1)];
         [x(2), x(2)];
         x(3).*SS.*[1 y(1)];
-        posrect(x(4)).*GS.*[1 -y(2)];
+        gainfnc(x(4)).*GS.*[1 -y(2)];
         posrect([x(5), x(5)])];
 
 gauss1 = pp(4,1) * amppow(placematrix(zeros(res),...
