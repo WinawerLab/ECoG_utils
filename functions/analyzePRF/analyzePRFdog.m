@@ -78,7 +78,7 @@ function results = analyzePRFdog(stimulus,data,tr,options)
 %     default: 0.
 %   <boundsecc> (optional) is how many times bounds of eccentricity is larger than stimulus:
 %     if 2 (default), then the pRF center of each x and y axis is estimated in double area of stimulus
-%   <nonegativegain> (optional) is flag to restrict gain to be non-negative:
+%   <noneggain> (optional) is flag to restrict gain to be non-negative:
 %     default: true
 %
 % Analyze pRF data and return the results.
@@ -329,8 +329,8 @@ if ~isfield(options,'boundsecc') || isempty(options.boundsecc)
 elseif numel(options.boundsecc)==1
   options.boundsecc = [-1 1].*options.boundsecc;
 end
-if ~isfield(options,'nonegativegain') || isempty(options.nonegativegain)
-  options.nonegativegain = true;
+if ~isfield(options,'noneggain') || isempty(options.noneggain)
+  options.noneggain = true;
 end
 
 % massage
@@ -404,15 +404,15 @@ ub = [eccrate(2).*res(1)   eccrate(2).*res(2)   Inf Inf Inf Inf 1];
 if options.forcebounds == 2 % upper limit of exponent
   ub(5) = 1;
 end
-if ~options.nonegativegain % lower limit of gain
+if ~options.noneggain % lower limit of gain (also need to set in model)
   lb(4) = -inf;
 end
 
 % pre-compute some cache
 [d,xx,yy] = makegaussian2d(resmx,2,2,2,2);
 
-% define the model (parameters are R C S G N)
-modelfunbase = @(pp,dd) conv2run(modeldogcss(pp(1:5),pp(6:end),dd,res,xx,yy,0,0),options.hrf,dd(:,prod(res)+1));
+% define the model (parameters are R C S G N + SR GR) (embedded bounds: G>=0, N>=0)
+modelfunbase = @(pp,dd) conv2run(modeldogcss(pp(1:5),pp(6:end),dd,res,xx,yy,0,0,options.noneggain),options.hrf,dd(:,prod(res)+1));
 if ~options.forcebounds,	modelfun = @(pp,dd) modelfunbase([pp nan nan true],dd);
 else,      modelfun = @(pp,dd)setboundsinfunc(lb,ub,[],[],@(pp,dd) modelfunbase([pp nan nan true],dd),pp,dd,'OutputMode','nan');
 end
@@ -798,7 +798,10 @@ results.ecc(options.vxs,:) =    permute(sqrt(((1+res(1))/2 - paramsA(:,1,:)).^2 
 results.expt(options.vxs,:) =   permute(posrect(paramsA(:,5,:)),[3 1 2]);
 results.rfsize(options.vxs,:) = permute(abs(paramsA(:,3,:)) ./ sqrt(posrect(paramsA(:,5,:))),[3 1 2]);
 results.R2(options.vxs,:) =     permute(rA,[2 1]);
-results.gain(options.vxs,:) =   permute(posrect(paramsA(:,4,:)),[3 1 2]);
+results.gain(options.vxs,:) =   permute(paramsA(:,4,:),[3 1 2]);
+if options.noneggain
+results.gain(options.vxs,:) =   posrect(results.gain(options.vxs,:));
+end
 if ~wantquick
   results.resnorms(options.vxs) = a1.resnorms;
   results.numiters(options.vxs) = a1.numiters;
