@@ -58,6 +58,8 @@ function results = analyzePRFdog(stimulus,data,tr,options)
 %     0 means just fit all the data
 %     1 means two-fold cross-validation (first half of runs; second half of runs)
 %     2 means two-fold cross-validation (first half of each run; second half of each run)
+%     3 means two-fold cross-validation (first alternative runs; second alternative runs)
+%     4 means two-fold cross-validation (first alternative of each run; second alternative of each run)
 %     default: 0.  (note that we round when halving.)
 %   <numperjob> (optional) is
 %     [] means to run locally (not on the cluster)
@@ -175,6 +177,7 @@ function results = analyzePRFdog(stimulus,data,tr,options)
 %   - The <resnorms> and <numiters> outputs will be empty.
 %
 % history:
+% 2022/12/05 - Yuasa: add extra cross-validation mode
 % 2022/05/16 - Yuasa: enable to modify bounds on eccentricity
 % 2020/02/25 - Yuasa: make bounds on eccentricity more strict.
 %                     (triple of visual field -> double of visual field)
@@ -511,6 +514,8 @@ end
 
 % super-grid seed
 if any(ismember([2 -2],options.seedmode))
+  datclass = class(data{1});
+  data = cellfun(@single,data,'UniformOutput',false);   % temporally convert data to single
   if ismember(options.prfmodel,{'linear','fixexpt'}),  modelfun0 = @(pp,dd) modelfunbase([replelement(pp,5,options.typicalexpt) seedsOG],dd);
   else,                                                modelfun0 = @(pp,dd) modelfunbase([pp seedsOG],dd);
   end
@@ -542,6 +547,7 @@ if any(ismember([2 -2],options.seedmode))
                                                    [],noisereg);
    fullsupergridseeds = [fullsupergridseeds;
                          permute(gssupergridseeds,[3,2,1])];
+   data = cellfun(@(d) eval([datclass '(d)']),data,'UniformOutput',false);  % reconvert data
   end
 end
 
@@ -578,6 +584,21 @@ else
     resampling = [];
     for p=1:length(data)
       half1 = copymatrix(zeros(1,size(data{p},2)),1:round(size(data{p},2)/2),1);
+      half2 = ~half1;
+      resampling = cat(2,resampling,[(1)*half1 + (-1)*half2;
+                                     (-1)*half1 + (1)*half2]);
+    end
+  case 3
+    wantresampleruns = 1;
+    half1 = copymatrix(zeros(1,length(data)),1:2:length(data),1);
+    half2 = ~half1;
+    resampling = [(1)*half1 + (-1)*half2;
+                  (-1)*half1 + (1)*half2];
+  case 4
+    wantresampleruns = 0;
+    resampling = [];
+    for p=1:length(data)
+      half1 = copymatrix(zeros(1,size(data{p},2)),1:2:size(data{p},2),1);
       half2 = ~half1;
       resampling = cat(2,resampling,[(1)*half1 + (-1)*half2;
                                      (-1)*half1 + (1)*half2]);

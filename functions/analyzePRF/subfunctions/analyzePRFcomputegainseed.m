@@ -32,7 +32,7 @@ allseeds(:,4) = 1;
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% generate the predicted time-series for each seed
 
 % generate predicted time-series [note that some time-series are all 0]
-predts = zeros(sum(cellfun(@(x) size(x,1),stimulus)),size(allseeds,1),'single');  % time x seeds
+predts = zeros(sum(cellfun(@(x) size(x,1),stimulus)),size(allseeds,1),class(data{1}));  % time x seeds
 temp = catcell(1,stimulus);
 fprintf('generating time-series in each voxel...'); tic
 parfor p=1:size(allseeds,1)

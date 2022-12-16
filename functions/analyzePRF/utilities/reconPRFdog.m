@@ -14,6 +14,8 @@ function [modelts, datats] = reconPRFdog(result,stimulus,data,opts)
 % option:           structure with following fields.
 %   whichelec:      [](default), cell array of channel names, # of channels, logical indices
 %   stimres:        [](default), cell array of channel names, # of channels, logical indices
+%   flipgain:       'auto'(default), 'yes', 'no'  % apply -1 to the gain
+%                               % if 'auto', flip the gain for alpha band
 %   skipprojection: 'yes', 'no'(default)  % if apply polynomial projection or not
 %   catrun:         'yes', 'no'(default)  % concatenate cell array across runs
 %   catiter:        'yes', 'no'(default)  % concatenate cell array across iterations
@@ -89,6 +91,7 @@ SetDefault('result.options.targetBAND','bb',0);
 SetDefault('result.targetBAND',result.options.targetBAND,0)
 SetDefault('opts.targetBAND',result.targetBAND,0);
 SetDefault('opts.whichelec','*',0);
+SetDefault('opts.flipgain','auto',0);
 SetDefault('opts.skipprojection','no',0);
 SetDefault('opts.catrun','no',0);
 SetDefault('opts.catiter','no',0);
@@ -115,6 +118,8 @@ if islogical(opts.whichelec)
     whichelec = find(opts.whichelec);
 elseif isnumeric(opts.whichelec)
     whichelec = opts.whichelec;
+elseif strcmp(opts.whichelec,'*') && (isempty(channels)||~isfield(summary(channels),'name'))
+    whichelec = 1:size(result.params,3);
 else
     whichelec = cellstrfind(channels.name, opts.whichelec,0);
 end
@@ -130,6 +135,12 @@ catrun        = intprtopt(opts.catrun) | numruns == 1;
 catiter       = intprtopt(opts.catiter) | numitr == 1;
 catchan       = intprtopt(opts.catchan) | numelec == 1;
 res           = opts.stimres;
+%-- projection
+if skipproj, degs(:) = -1;  end
+if numel(degs)<numruns
+    assert(numel(degs)==1,'maxpolydeg option is invalid.');
+    degs = repmat(degs,1,numruns);
+end
 
 %% Prepare model computation
 %-- Get data length
@@ -175,17 +186,15 @@ end
 polymatrix = repmat({{}},numvxs,1);
 for vxs=1:numvxs
 for pp=1:numruns
-  if skipproj
-    polymatrix{vxs}{pp} = projectionmatrix(zeros(ntime(vxs,pp),1));
-  else
     polymatrix{vxs}{pp} = projectionmatrix(constructpolynomialmatrix(ntime(vxs,pp),0:degs(pp)));
-  end
 end
 end
 
 %-- reverse for alpha suppression
-if exist('alphaComputationTypes','file')
+if strcmpi(opts.flipgain,'auto') && exist('alphaComputationTypes','file')
   negfit = (-1).^ismember(tarBAND,alphaComputationTypes);
+elseif strcmpi(opts.flipgain,'yes')
+  negfit = 1;
 else
   negfit = 1;
 end
