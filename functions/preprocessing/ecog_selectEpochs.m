@@ -48,6 +48,11 @@ else
         % Compute mean over stim_on period across epochs
         max_epochs_stim_on = squeeze(max(epochs_b(stim_on_idx,:,:),[],1, 'omitnan'));
         
+        if size(max_epochs_stim_on,1) ~= nStim
+            max_epochs          = max_epochs';
+            max_epochs_stim_on = max_epochs_stim_on';
+        end
+        
         % Put all epochs with max higher than outlier_thresh * mean to nans
         thresh = opts.epoch_outlier_thresh * std(max_epochs_stim_on,[],1, 'omitnan') + mean(max_epochs_stim_on, 'omitnan');
         outlier_idx2 = max_epochs > thresh | max_epochs_stim_on > thresh;             
