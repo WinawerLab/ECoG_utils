@@ -29,7 +29,7 @@ if reg_erp==1
         disp(['regress erp el ' int2str(k)])
         for m = 1:size(data_epoch,2)%epochs
             x = squeeze(data_epoch(k,m,:));
-            if ~all(isnan(x))
+            if all(~isnan(x))
                 % regress ERP out
                 s = stims(m);
                 av_erp = squeeze(mean(data_epoch_orig(k,stims==s,:),2,'omitnan'));
