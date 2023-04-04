@@ -1,5 +1,5 @@
 function [f,data_epoch_spectra,data_epoch] = ...
-    ecog_crossspectra(data_epoch,stims,fft_w,fft_t,fft_ov,srate,reg_erp,f_lim,outtype)
+    ecog_crossspectra(data_epoch,stims,fft_w,fft_t,fft_ov,srate,reg_erp,f_lim,outtype,calcmode)
 
 % Function to calculate cross-powerspectrum for across several ECoG
 % channels and epochs using Matlab's cpsd function.
@@ -32,11 +32,15 @@ function [f,data_epoch_spectra,data_epoch] = ...
 % % Output sparse matrix with auto-spectra
 % [f,corss_data_epoch_spectra,data_epoch] = ...
 %     ecog_crossspectra(data_epoch,stims,fft_w,fft_t,fft_ov,srate,regress_erp,f_limits,'sparse+')
+% % Output magnitude-squared coherence isntead of cross-spectrum
+% [f,corss_data_epoch_spectra,data_epoch] = ...
+%     ecog_crossspectra(data_epoch,stims,...,'coh')
 %
 %
 % K.Yuasa, 20201116 - modify from ecog_spectra
 % K.Yuasa, 20210511 - enable to set limit in output frequency
 % K.Yuasa, 20210514 - change output data structure
+% K.Yuasa, 20230315 - add coherence mode
 
 % regress erp out
 if ~exist('f_lim','var')||isempty(f_lim)
@@ -44,6 +48,9 @@ if ~exist('f_lim','var')||isempty(f_lim)
 end
 if ~exist('outtype','var')||isempty(outtype)
     outtype = 'sparse';
+end
+if ~exist('calcmode','var')||isempty(calcmode)
+    calcmode = 'default';
 end
 if reg_erp==1 
     data_epoch_orig = data_epoch;
@@ -65,7 +72,8 @@ if reg_erp==1
 end
 
 % calculate spectra to get length of f to initialize spectra
-[~,f] = pwelch(squeeze(data_epoch(1,1,fft_t)),fft_w,fft_ov,srate,srate);
+[ix,iy]=find(~any(isnan(data_epoch(:,:,fft_t)),3),1);       % 1st non-nan indices
+[~,f] = pwelch(squeeze(data_epoch(ix,iy,fft_t)),fft_w,fft_ov,srate,srate);
 fidx = f >= f_lim(1) & f <= f_lim(2);
 f = f(fidx);
 switch outtype
@@ -83,6 +91,10 @@ switch outtype
     otherwise
         error('%s is unknown input',outtype);
 end
+switch lower(calcmode)
+    case {'default','cpsd'},         func_cross = @cpsd;     func_auto = @pwelch; 
+    case {'coh','mscoh','mscohere'}, func_cross = @mscohere; func_auto = @(varargin) mscohere(varargin{1},varargin{1},varargin{2:end}); 
+end
 
 % calculate cross-spectra (skip k==l)
 ii=1;
@@ -94,7 +106,7 @@ for k = 1:size(data_epoch,1)%channels
                 x = permute(data_epoch(k,:,:),[3,2,1]);
                 y = permute(data_epoch(l,:,:),[3,2,1]);
                 nanepoch = or(all(isnan(x),1),all(isnan(y),1));
-                [Pxy] = cpsd(x(fft_t,~nanepoch),y(fft_t,~nanepoch),fft_w,fft_ov,srate,srate);
+                [Pxy] = func_cross(x(fft_t,~nanepoch),y(fft_t,~nanepoch),fft_w,fft_ov,srate,srate);
                 data_epoch_spectra(ii,~nanepoch,:) = Pxy(fidx,:)';
                 ii = ii + 1;
             end
@@ -106,12 +118,12 @@ for k = 1:size(data_epoch,1)%channels
                     x = permute(data_epoch(k,:,:),[3,2,1]);
                     y = permute(data_epoch(l,:,:),[3,2,1]);
                     nanepoch = or(all(isnan(x),1),all(isnan(y),1));
-                    [Pxy] = cpsd(x(fft_t,~nanepoch),y(fft_t,~nanepoch),fft_w,fft_ov,srate,srate);
+                    [Pxy] = func_cross(x(fft_t,~nanepoch),y(fft_t,~nanepoch),fft_w,fft_ov,srate,srate);
                     data_epoch_spectra(k,l,~nanepoch,:) = Pxy(fidx,:)';
                 elseif l==k
                     x = permute(data_epoch(k,:,:),[3,2,1]);
                     nanepoch = all(isnan(x),1);
-                    [Pxx] = pwelch(x(fft_t,~nanepoch),fft_w,fft_ov,srate,srate);
+                    [Pxx] = func_auto(x(fft_t,~nanepoch),fft_w,fft_ov,srate,srate);
                     data_epoch_spectra(k,k,~nanepoch,:) = Pxx(fidx,:)';
                 end
             end

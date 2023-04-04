@@ -2,7 +2,7 @@ function [bb_amp_low,alpha_amp,alpha_freq,alpha_width,fit_fd2,out_exp,beta_param
     ecog_fitalpha(f,f_use4fit,f_alpha,data_base,data_fit,neg_amp,fit_beta)
 
 % function fits broadband + gaussian for <data_base - data_fit>
-% [bb_amp_low,alpha_amp,alpha_freq,alpha_width,fit_fd2,out_exp,[beta_params,fiterr,cod]] = ...
+% [bb_amp_low,alpha_amp,alpha_freq,alpha_width,[fit_fd2,out_exp,beta_params,fiterr,cod]] = ...
 %     ecog_fitalpha(f,f_use4fit,[f_alpha],data_base,data_fit,[neg_amp],[est_beta]);
 %
 % input:
@@ -17,7 +17,7 @@ function [bb_amp_low,alpha_amp,alpha_freq,alpha_width,fit_fd2,out_exp,beta_param
 %          if true, fit beta bump in 15-30Hz
 %          if -1,   fit theta bump in 3–6Hz instead of beta
 %
-% output (weight_pwr_at_alpha_freq weight_gauss alpha_freq width_gauss fit_fd2 exp)
+% output (weight_pwr_at_alpha_freq weight_gauss alpha_freq width_gauss fit_fd2 exp beta_parameters fit_error, cod)
 
 % 20190903 Yuasa: modified from ecog_fitgamma.m in gammaModel toolbox (Hermes, 2015)
 % 20191112 Yuasa: update parameters & do fitting twice
@@ -118,7 +118,7 @@ bb_amp_low  = -(x(1)-x(5)*alpha_freq);
 out_exp = x([5,1]);
 
 %-- fit to pre-post data in log-space
-if nargout > 6
+if nargout > 4
 if fit_beta
     beta_params = x(6:8);
     fit_fd2 = [func_model(x(1:4),log10(f),x(5),beta_params),...

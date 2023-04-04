@@ -31,6 +31,7 @@ function   varargout = SetDefault(varname, defval, varargin)
 % 20170622 Yuasa
 % 20200220 Yuasa: add 'cell' mode
 % 20220224 Yuasa: add 'base' mode
+% 20230329 Yuasa: consider string as a kind of cell
 
 narginchk(2,5)
 issetdefault = false;
@@ -127,7 +128,7 @@ if ~varexist || ~fldexst || varempty
     assignin(whichspace,chkstrct{1},defval);
     issetdefault = true;
 elseif cellmode
-    if evalin(whichspace,sprintf('~iscell(%s)',varname))
+    if evalin(whichspace,sprintf('~iscell(%s)&&~isstring(%s)',varname,varname))
         evalin(whichspace,sprintf('%s = {%s};',varname,varname));
     end
 end
