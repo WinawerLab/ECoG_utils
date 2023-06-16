@@ -21,7 +21,9 @@ function [epochs] = ecog_normalizeEpochs(epochs, t, baselineTime, baselineType, 
 %                           - subtractwithintrial 
 %   idx:                vector equal to number of epochs indicating subgroups 
 %                       for which to apply normalization separately (e.g.,
-%                       individual runs).
+%                       individual runs). 
+%                       If baselineType issubtractwithintrial, idx is ignored
+%                       and nomalization is applied for each epoch.
 %                           default: vector of ones (no subgroups).
 %
 % Output
