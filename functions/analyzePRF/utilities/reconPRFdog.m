@@ -14,9 +14,8 @@ function [modelts, datats] = reconPRFdog(result,stimulus,data,opts)
 % option:           structure with following fields.
 %   whichelec:      [](default), cell array of channel names, # of channels, logical indices
 %   stimres:        [](default), cell array of channel names, # of channels, logical indices
-%   flipgain:       'auto'(default), 'yes', 'no'  % apply -1 to the gain
-%                               % if 'auto', flip the gain for alpha band
-%   skipprojection: 'yes', 'no'(default)  % if apply polynomial projection or not
+%   flipgain:       'yes', 'no'(default)  % apply -1 to the gain
+%   skipprojection: 'yes', 'no'(default)  % apply polynomial projection
 %   catrun:         'yes', 'no'(default)  % concatenate cell array across runs
 %   catiter:        'yes', 'no'(default)  % concatenate cell array across iterations
 %   catchan:        'yes', 'no'(default)  % concatenate cell array across channels
@@ -25,7 +24,6 @@ function [modelts, datats] = reconPRFdog(result,stimulus,data,opts)
 %       option.hrf
 %       option.maxpolydeg
 %       option.gaussianmode
-%       option.targetBAND
 % 
 % modelts:          output time series of the model as a cell array of {chans}{iter x runs}(time x 1).
 % datats:           output time series of the data as a cell array of {chans}{iter x runs}(time x 1).
@@ -37,6 +35,7 @@ function [modelts, datats] = reconPRFdog(result,stimulus,data,opts)
 % 20210723 Yuasa
 % 20211122 Yuasa - update 'og' model
 % 20221006 Yuasa - add options
+% 20230620 Yuasa - delete unappropriate option
 
 %%
 %%% Check input
@@ -87,11 +86,8 @@ SetDefault('result.options.maxpolydeg',1,0);
 SetDefault('opts.maxpolydeg',result.options.maxpolydeg,0);
 SetDefault('result.options.gaussianmode','og',0);
 SetDefault('opts.gaussianmode',result.options.gaussianmode,0);
-SetDefault('result.options.targetBAND','bb',0);
-SetDefault('result.targetBAND',result.options.targetBAND,0)
-SetDefault('opts.targetBAND',result.targetBAND,0);
 SetDefault('opts.whichelec','*',0);
-SetDefault('opts.flipgain','auto',0);
+SetDefault('opts.flipgain','no',0);
 SetDefault('opts.skipprojection','no',0);
 SetDefault('opts.catrun','no',0);
 SetDefault('opts.catiter','no',0);
@@ -129,7 +125,7 @@ numelec = length(whichelec);
 hrf           = opts.hrf;
 degs          = opts.maxpolydeg;
 gaussianmode  = lower(opts.gaussianmode);
-tarBAND       = opts.targetBAND;
+gainsign      = (-1)^intprtopt(opts.flipgain);
 skipproj      = intprtopt(opts.skipprojection);
 catrun        = intprtopt(opts.catrun) | numruns == 1;
 catiter       = intprtopt(opts.catiter) | numitr == 1;
@@ -190,15 +186,6 @@ for pp=1:numruns
 end
 end
 
-%-- reverse for alpha suppression
-if strcmpi(opts.flipgain,'auto') && exist('alphaComputationTypes','file')
-  negfit = (-1).^ismember(tarBAND,alphaComputationTypes);
-elseif strcmpi(opts.flipgain,'yes')
-  negfit = 1;
-else
-  negfit = 1;
-end
-
 %% Contsruct time series
 datats  = repmat({{}},numvxs,1);
 modelts = repmat({{}},numvxs,1);
@@ -206,8 +193,8 @@ for vxs=reshape(whichelec,1,[])
 for pp=1:numruns
 for itr=1:numitr
   nanplace    = isnan(data{itr,pp}(vxs,:));
-  datats{vxs}{itr,pp}  = negfit.*polymatrix{vxs}{pp}*data{itr,pp}(vxs,~nanplace)';
-  modelts{vxs}{itr,pp} = negfit.*polymatrix{vxs}{pp}*modelfun(result.params(1,:,vxs,itr),stimulusPP{vxs}{pp}(~nanplace,:));
+  datats{vxs}{itr,pp}  = gainsign.*polymatrix{vxs}{pp}*data{itr,pp}(vxs,~nanplace)';
+  modelts{vxs}{itr,pp} = gainsign.*polymatrix{vxs}{pp}*modelfun(result.params(1,:,vxs,itr),stimulusPP{vxs}{pp}(~nanplace,:));
 end
 end
 end
