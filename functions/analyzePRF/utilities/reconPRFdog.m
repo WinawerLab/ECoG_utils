@@ -7,15 +7,15 @@ function [modelts, datats] = reconPRFdog(result,stimulus,data,opts)
 % [modelts, datats] = reconPRFdog(result,datastcuct,option)
 %   returns model and data time series estimated from pRF parametes in result and stimulus.
 % 
-% result:           output of analyzePRF
-% params:           params field of the output of analyzePRF
-% stimulus:         time series of the stimulus apertures as a cell array of R x C x time.
-% data:             time series of the data as a cell array of voxels x time
-% option:           structure with following fields.
+% result / params:  output of analyzePRF OR params field of result
+% stimulus:         {runs} R x C x time cell array, time series of stimulus apertures
+% data:             {runs} voxels x timecell array, time series of neural responses
+% option:           structure with following fields
 %   whichelec:      [](default), cell array of channel names, # of channels, logical indices
 %   stimres:        [](default), cell array of channel names, # of channels, logical indices
 %   flipgain:       'yes', 'no'(default)  % apply -1 to the gain
-%   skipprojection: 'yes', 'no'(default)  % apply polynomial projection
+%   skipprojection: 'yes', 'no'(default)  % skip to apply polynomial projection
+%   cqtprojection:  'yes', 'no'(default)  % correct shift by polynomial projection
 %   catrun:         'yes', 'no'(default)  % concatenate cell array across runs
 %   catiter:        'yes', 'no'(default)  % concatenate cell array across iterations
 %   catchan:        'yes', 'no'(default)  % concatenate cell array across channels
@@ -60,7 +60,7 @@ end
 if isempty(stimulus)
     if isfield(opts,'stimulus')&&~isempty(opts.stimulus)
         stimulus = opts.stimulus;
-    elseif isfield(data,'stimulus')&&~isempty(data.stimulus)
+    elseif isstruct(data)&&isfield(data,'stimulus')&&~isempty(data.stimulus)
         stimulus = data.stimulus;
     else
         error('stimulus is invalid');
@@ -68,9 +68,9 @@ if isempty(stimulus)
 end
 if isfield(opts,'channels')&&~isempty(opts.channels)
     channels = opts.channels;
-elseif isfield(result,'channels')&&~isempty(result.channels)
+elseif isstruct(result)&&isfield(result,'channels')&&~isempty(result.channels)
     channels = result.channels;
-elseif isfield(data,'channels')&&~isempty(data.channels)
+elseif isstruct(data)&&isfield(data,'channels')&&~isempty(data.channels)
     channels = data.channels;
 else
     channels = '';
@@ -89,6 +89,7 @@ SetDefault('opts.gaussianmode',result.options.gaussianmode,0);
 SetDefault('opts.whichelec','*',0);
 SetDefault('opts.flipgain','no',0);
 SetDefault('opts.skipprojection','no',0);
+SetDefault('opts.cqtprojection','no',0);
 SetDefault('opts.catrun','no',0);
 SetDefault('opts.catiter','no',0);
 SetDefault('opts.catchan','no',0);
@@ -99,7 +100,9 @@ numvxs  = size(result.params,3);
 numitr  = size(result.params,4);
 if ~iscell(stimulus),      stimulus = {stimulus}; end
 if ~iscell(stimulus{1}),   stimulus = {stimulus};  end
-if length(stimulus)==1,    stimulus = repmat(stimulus,numvxs,1);    end
+if length(stimulus)==1,    stimvxsidx = ones(1,numvxs);
+else,                      stimvxsidx = 1:numvxs;
+end
 if isempty(data)
     [~,maxrunidx] = max(cellfun(@length,stimulus)); 
     data = cellfun(@(C) zeros(numvxs,size(C,3)),stimulus{maxrunidx},'UniformOutput',false);
@@ -108,6 +111,9 @@ else
     if ~iscell(data), data = {data}; end
 end
 numruns = size(data,2);
+if max(cellfun(@length,stimulus))==1,   stimrunsidx = ones(1,numruns);
+else,                                   stimrunsidx = 1:numruns;
+end
 
 %%% Select channels
 if islogical(opts.whichelec)
@@ -127,11 +133,13 @@ degs          = opts.maxpolydeg;
 gaussianmode  = lower(opts.gaussianmode);
 gainsign      = (-1)^intprtopt(opts.flipgain);
 skipproj      = intprtopt(opts.skipprojection);
+cqtproj       = intprtopt(opts.cqtprojection);
 catrun        = intprtopt(opts.catrun) | numruns == 1;
 catiter       = intprtopt(opts.catiter) | numitr == 1;
 catchan       = intprtopt(opts.catchan) | numelec == 1;
 res           = opts.stimres;
 %-- projection
+degs(isnan(degs)) = -1;
 if skipproj, degs(:) = -1;  end
 if numel(degs)<numruns
     assert(numel(degs)==1,'maxpolydeg option is invalid.');
@@ -162,9 +170,9 @@ resmx = max(res);
 [~,xx,yy] = makegaussian2d(resmx,2,2,2,2);
 
 %-- Prepare the stimuli for use in the model
-stimulusPP = repmat({{}},numvxs,1);
-for vxs=1:numvxs
-for pp=1:numruns
+stimulusPP = repmat({{}},max(stimvxsidx),1);
+for vxs=1:max(stimvxsidx)
+for pp=1:max(stimrunsidx)
   stimulusPP{vxs}{pp} = squish(stimulus{vxs}{pp},2)';  % this flattens the image so that the dimensionality is now frames x pixels
   stimulusPP{vxs}{pp} = [stimulusPP{vxs}{pp} pp*ones(size(stimulusPP{vxs}{pp},1),1)];  % this adds a dummy column to indicate run breaks
 end
@@ -194,7 +202,12 @@ for pp=1:numruns
 for itr=1:numitr
   nanplace    = isnan(data{itr,pp}(vxs,:));
   datats{vxs}{itr,pp}  = gainsign.*polymatrix{vxs}{pp}*data{itr,pp}(vxs,~nanplace)';
-  modelts{vxs}{itr,pp} = gainsign.*polymatrix{vxs}{pp}*modelfun(result.params(1,:,vxs,itr),stimulusPP{vxs}{pp}(~nanplace,:));
+  modelts{vxs}{itr,pp} = gainsign.*polymatrix{vxs}{pp}*modelfun(result.params(1,:,vxs,itr),stimulusPP{stimvxsidx(vxs)}{stimrunsidx(pp)}(~nanplace,:));
+  if cqtproj
+      nonprojdat = gainsign.*data{itr,pp}(vxs,~nanplace)';
+      modelts{vxs}{itr,pp} = modelts{vxs}{itr,pp} + nonprojdat - datats{vxs}{itr,pp};
+      datats{vxs}{itr,pp}  = nonprojdat;
+  end
 end
 end
 end

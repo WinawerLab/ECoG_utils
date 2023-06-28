@@ -71,7 +71,11 @@ clear temp;
 % construct polynomials, noise regressors, and projection matrix
 pregressors = {};
 for p=1:length(maxpolydeg)
-  pregressors{p} = constructpolynomialmatrix(size(data{p},dimtime),0:maxpolydeg(p));
+  if isnan(maxpolydeg(p))
+    pregressors{p} = zeros(size(data{p},dimtime),0);
+  else
+    pregressors{p} = constructpolynomialmatrix(size(data{p},dimtime),0:maxpolydeg(p));
+  end
   if ~isempty(noisereg)
     pregressors{p} = cat(2,pregressors{p},noisereg{p});
   end

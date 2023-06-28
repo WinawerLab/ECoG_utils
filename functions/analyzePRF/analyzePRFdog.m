@@ -56,11 +56,13 @@ function results = analyzePRFdog(stimulus,data,tr,options)
 %     default: [0 1 2] for DoG model, [1] for OG model, [3] for GS model. 
 %   <xvalmode> (optional) is
 %     0 means just fit all the data
-%     1 means two-fold cross-validation (first half of runs; second half of runs)
-%     2 means two-fold cross-validation (first half of each run; second half of each run)
-%     3 means two-fold cross-validation (first alternative runs; second alternative runs)
-%     4 means two-fold cross-validation (first alternative of each run; second alternative of each run)
+%     1 means N-fold cross-validation (first half of runs; second half of runs)
+%     2 means N-fold cross-validation (first half of each run; second half of each run)
+%     3 means N-fold cross-validation (first alternative runs; second alternative runs)
+%     4 means N-fold cross-validation (first alternative of each run; second alternative of each run)
 %     default: 0.  (note that we round when halving.)
+%   <xvalfold> (optional) is folding number in cross-validation 
+%     default: 2.  (two-fold cross-validation)
 %   <numperjob> (optional) is
 %     [] means to run locally (not on the cluster)
 %     N where N is a positive integer indicating the number of voxels to analyze in each 
@@ -177,6 +179,7 @@ function results = analyzePRFdog(stimulus,data,tr,options)
 %   - The <resnorms> and <numiters> outputs will be empty.
 %
 % history:
+% 2023/06/23 - Yuasa: add N-fold cross-validation mode
 % 2022/12/05 - Yuasa: add extra cross-validation mode
 % 2022/05/16 - Yuasa: enable to modify bounds on eccentricity
 % 2020/02/25 - Yuasa: make bounds on eccentricity more strict.
@@ -302,6 +305,9 @@ if ~isfield(options,'dogseed') || isempty(options.dogseed)
 end
 if ~isfield(options,'xvalmode') || isempty(options.xvalmode)
   options.xvalmode = 0;
+end
+if ~isfield(options,'xvalfold') || isempty(options.xvalfold)
+  options.xvalfold = 2;
 end
 if ~isfield(options,'numperjob') || isempty(options.numperjob)
   options.numperjob = [];
@@ -547,12 +553,12 @@ if any(ismember([2 -2],options.seedmode))
                                                    [],noisereg);
    fullsupergridseeds = [fullsupergridseeds;
                          permute(gssupergridseeds,[3,2,1])];
-   data = cellfun(@(d) eval([datclass '(d)']),data,'UniformOutput',false);  % reconvert data
   end
+  data = cellfun(@(d) eval([datclass '(d)']),data,'UniformOutput',false);  % reconvert data
 end
 
 % make a function that individualizes the seeds
-if exist('supergridseeds','var')
+if exist('fullsupergridseeds','var')
   seedfun = @(vx) [[seeds];
                    [subscript(squish(fullsupergridseeds,dimdata),{':' ':' vx})]];
 else
@@ -575,33 +581,39 @@ else
     resampling = 0;
   case 1
     wantresampleruns = 1;
-    half1 = copymatrix(zeros(1,length(data)),1:round(length(data)/2),1);
-    half2 = ~half1;
-    resampling = [(1)*half1 + (-1)*half2;
-                  (-1)*half1 + (1)*half2];
+    resamplingindex = floor(((1:length(data))-1)./length(data).*options.xvalfold)+1;
+    resampling = ones(max(resamplingindex),length(data));
+    for nx=1:max(resamplingindex)
+        resampling(nx,resamplingindex==(max(resamplingindex)-nx+1)) = -1;
+    end
   case 2
     wantresampleruns = 0;
     resampling = [];
     for p=1:length(data)
-      half1 = copymatrix(zeros(1,size(data{p},2)),1:round(size(data{p},2)/2),1);
-      half2 = ~half1;
-      resampling = cat(2,resampling,[(1)*half1 + (-1)*half2;
-                                     (-1)*half1 + (1)*half2]);
+      resamplingindex = floor(((1:size(data{p},2))-1)./size(data{p},2).*options.xvalfold)+1;
+      resamplingP = ones(max(resamplingindex),size(data{p},2));
+      for nx=1:max(resamplingindex)
+          resamplingP(nx,resamplingindex==(max(resamplingindex)-nx+1)) = -1;
+      end
+      resampling = cat(2,resampling,resamplingP);
     end
   case 3
     wantresampleruns = 1;
-    half1 = copymatrix(zeros(1,length(data)),1:2:length(data),1);
-    half2 = ~half1;
-    resampling = [(1)*half1 + (-1)*half2;
-                  (-1)*half1 + (1)*half2];
+    resamplingindex = mod((1:length(data))-1,options.xvalfold)+1;
+    resampling = ones(max(resamplingindex),length(data));
+    for nx=1:max(resamplingindex)
+        resampling(nx,resamplingindex==(max(resamplingindex)-nx+1)) = -1;
+    end
   case 4
     wantresampleruns = 0;
     resampling = [];
     for p=1:length(data)
-      half1 = copymatrix(zeros(1,size(data{p},2)),1:2:size(data{p},2),1);
-      half2 = ~half1;
-      resampling = cat(2,resampling,[(1)*half1 + (-1)*half2;
-                                     (-1)*half1 + (1)*half2]);
+      resamplingindex = mod((1:size(data{p},2))-1,options.xvalfold)+1;
+      resamplingP = ones(max(resamplingindex),size(data{p},2));
+      for nx=1:max(resamplingindex)
+          resamplingP(nx,resamplingindex==(max(resamplingindex)-nx+1)) = -1;
+      end
+      resampling = cat(2,resampling,resamplingP);
     end
   end
 

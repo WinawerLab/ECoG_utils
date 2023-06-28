@@ -246,7 +246,7 @@ end
 polymatrix = repmat({{}},numvxs,1);
 for vxs=1:numvxs
 for pp=1:numruns
-  if skipproj
+  if skipproj || isnan(degs(pp))
     polymatrix{vxs}{pp} = projectionmatrix(zeros(ntime(vxs,pp),1));
   else
     polymatrix{vxs}{pp} = projectionmatrix(constructpolynomialmatrix(ntime(vxs,pp),0:degs(pp)));
