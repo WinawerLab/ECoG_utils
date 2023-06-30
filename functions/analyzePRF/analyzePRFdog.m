@@ -43,6 +43,7 @@ function results = analyzePRFdog(stimulus,data,tr,options)
 %       0 means use generic large PRF seed
 %       1 means use generic small PRF seed
 %       2 means use best seed based on super-grid
+%       3 means use pre-defined PRF seed (need options.initialseed)
 %     default: [0 1 2].  a special case is to pass <seedmode> as -2.  this causes the
 %     best seed based on the super-grid to be returned as the final estimate, thereby
 %     bypassing the computationally expensive optimization procedure.  further notes
@@ -54,6 +55,7 @@ function results = analyzePRFdog(stimulus,data,tr,options)
 %       2 means use generic SS seed (Slightly Suppression for DoG optimization)
 %       3 means use generic GS seed or best GS seed based on super-grid for seedmode=2 (Global Suppression)
 %     default: [0 1 2] for DoG model, [1] for OG model, [3] for GS model. 
+%   <initialseed> (optional) is a X-params-channels matrix consisting of initial seeds. (only valid when seedmode=3)
 %   <xvalmode> (optional) is
 %     0 means just fit all the data
 %     1 means N-fold cross-validation (first half of runs; second half of runs)
@@ -179,9 +181,10 @@ function results = analyzePRFdog(stimulus,data,tr,options)
 %   - The <resnorms> and <numiters> outputs will be empty.
 %
 % history:
-% 2023/06/23 - Yuasa: add N-fold cross-validation mode
-% 2022/12/05 - Yuasa: add extra cross-validation mode
-% 2022/05/16 - Yuasa: enable to modify bounds on eccentricity
+% 2023/06/28 - Yuasa: implement <seedmode> 3 to pass-through initial seeds.
+% 2023/06/23 - Yuasa: implement N-fold cross-validation mode.
+% 2022/12/05 - Yuasa: implement alternative cross-validation mode.
+% 2022/05/16 - Yuasa: enable to modify bounds on eccentricity.
 % 2020/02/25 - Yuasa: make bounds on eccentricity more strict.
 %                     (triple of visual field -> double of visual field)
 %                     separate <prfmodel='fixexpt'> from <prfmodel='linear'>
@@ -302,6 +305,14 @@ if ~isfield(options,'dogseed') || isempty(options.dogseed)
     case 'og',  options.dogseed = 1;
     case 'gs',  options.dogseed = 3;
   end
+end
+if ~isfield(options,'initialseed') || isempty(options.initialseed)
+    if all(options.seedmode == 3)
+        error('''initialseed'' is required under seedmode = 3.');
+    elseif ismember(3,options.seedmode)
+        warning('''initialseed'' is not specified. Skip seedmode = 3.');
+        options.seedmode(ismember(options.seedmode,3)) = [];
+    end
 end
 if ~isfield(options,'xvalmode') || isempty(options.xvalmode)
   options.xvalmode = 0;
@@ -525,42 +536,100 @@ if any(ismember([2 -2],options.seedmode))
   if ismember(options.prfmodel,{'linear','fixexpt'}),  modelfun0 = @(pp,dd) modelfunbase([replelement(pp,5,options.typicalexpt) seedsOG],dd);
   else,                                                modelfun0 = @(pp,dd) modelfunbase([pp seedsOG],dd);
   end
-  [supergridseeds,rvalues] = analyzePRFcomputesupergridseeds(res,stimulus,data,modelfun0, ...
+  [ogsupergridseeds,ogrvalues] = analyzePRFcomputesupergridseeds(res,stimulus,data,modelfun0, ...
                                                    options.maxpolydeg,dimdata,dimtime, ...
                                                    options.typicalgain,noisereg);
-  if ismember(options.prfmodel,{'linear','fixexpt'}),  supergridseeds(:,5) = options.typicalexpt;   end
-  [supergridseeds]         = analyzePRFcomputegainseed(supergridseeds,stimulus,data,modelfun0, ...
+  if ismember(options.prfmodel,{'linear','fixexpt'})  
+      if is3d, ogsupergridseeds(:,:,:,5) = options.typicalexpt; 
+      else,    ogsupergridseeds(:,5)     = options.typicalexpt; 
+      end
+  end
+  [ogsupergridseeds]         = analyzePRFcomputegainseed(ogsupergridseeds,stimulus,data,modelfun0, ...
                                                    options.maxpolydeg,dimdata,dimtime, noisereg);
   if ismember(0,options.dogseed)
-  [fullsupergridseeds,rvalues] = analyzePRFdogcomputesupergridseeds(supergridseeds,stimulus,data,modelfun, ...
+  [supergridseeds,rvalues] = analyzePRFdogcomputesupergridseeds(ogsupergridseeds,stimulus,data,modelfun, ...
                                                    options.maxpolydeg,dimdata,dimtime, ...
                                                    [],noisereg);
-   fullsupergridseeds = permute(fullsupergridseeds,[3,2,1]);
   else
-   fullsupergridseeds = [];
+   supergridseeds = [];
+   rvalues        = [];
   end
   if ismember(1,options.dogseed)
-   fullsupergridseeds = [fullsupergridseeds;
-                         permute([supergridseeds repmat(seedsOG,size(supergridseeds,1),1)],[3,2,1])];
+   fullsupergridseeds        = cat(dimdata+1,ogsupergridseeds, ...
+                               reshape(repmat(seedsOG,prod(sizefull(ogsupergridseeds,dimdata)),1),[sizefull(ogsupergridseeds,dimdata),2]));
+   supergridseeds = cat(dimdata+2, supergridseeds, fullsupergridseeds);
+   rvalues        = cat(dimdata+1, rvalues, ogrvalues);
   end
   if ismember(2,options.dogseed)
-   fullsupergridseeds = [fullsupergridseeds;
-                         permute([supergridseeds repmat(seedsSS,size(supergridseeds,1),1)],[3,2,1])];
+   fullsupergridseeds        = cat(dimdata+1,ogsupergridseeds, ...
+                               reshape(repmat(seedsSS,prod(sizefull(ogsupergridseeds,dimdata)),1),[sizefull(ogsupergridseeds,dimdata),2]));
+   supergridseeds = cat(dimdata+2, supergridseeds, fullsupergridseeds);
+   rvalues        = cat(dimdata+1, rvalues, ogrvalues);
   end
   if ismember(3,options.dogseed)
-  [gssupergridseeds,rvalues] = analyzePRFgscomputesupergridseeds(supergridseeds,stimulus,data,modelfun, ...
+  [fullsupergridseeds,fullrvalues] = analyzePRFgscomputesupergridseeds(ogsupergridseeds,stimulus,data,modelfun, ...
                                                    options.maxpolydeg,dimdata,dimtime, ...
                                                    [],noisereg);
-   fullsupergridseeds = [fullsupergridseeds;
-                         permute(gssupergridseeds,[3,2,1])];
+   supergridseeds = cat(dimdata+2, supergridseeds, fullsupergridseeds);
+   rvalues        = cat(dimdata+1, rvalues, fullrvalues);
   end
   data = cellfun(@(d) eval([datclass '(d)']),data,'UniformOutput',false);  % reconvert data
 end
 
+% pre-definedd seed
+if ismember(3,options.seedmode)
+  if ~exist('supergridseeds','var')
+   supergridseeds = [];
+  end
+  if ndims(options.initialseed)<=3 && size(options.initialseed,3) == numvxs
+      initialseed = permute(reshape(options.initialseed,[sizefull(options.initialseed,2),xyzsize]),[3:(2+dimdata),2,1]);
+  elseif ndims(options.initialseed)<=3 && size(options.initialseed,1) == numvxs
+      initialseed = reshape(options.initialseed,[xyzsize,size(options.initialseed,2:ndims(options.initialseed))]);
+  elseif ndims(options.initialseed)>=dimdata && all(sizefull(options.initialseed,dimdata)==xyzsize)
+      initialseed = options.initialseed;
+  elseif ndims(options.initialseed)>=dimdata && all(size(options.initialseed,3:(2+dimdata))==xyzsize)
+      initialseed = permute(options.initialseed,[3:(2+dimdata),2,1]);
+  else
+      error('The size of initialseed is invalid.');
+  end
+  if size(initialseed,dimdata+1)==5
+    for p=1:size(initialseed,dimdata+2)
+      if is3d, ogsupergridseeds  = initialseed(:,:,:,:,p);
+      else,    ogsupergridseeds  = initialseed(:,:,p);
+      end
+      if ismember(0,options.dogseed)
+      [fullsupergridseeds] = analyzePRFdogcomputesupergridseeds(ogsupergridseeds,stimulus,data,modelfun, ...
+                                                       options.maxpolydeg,dimdata,dimtime, ...
+                                                       [],noisereg);
+       supergridseeds = cat(dimdata+2, supergridseeds, fullsupergridseeds);
+      end
+      if ismember(1,options.dogseed)
+       fullsupergridseeds  = cat(dimdata+1,ogsupergridseeds, ...
+                             reshape(repmat(seedsOG,prod(sizefull(ogsupergridseeds,dimdata)),1),[sizefull(ogsupergridseeds,dimdata),2]));
+       supergridseeds = cat(dimdata+2, supergridseeds, fullsupergridseeds);
+      end
+      if ismember(2,options.dogseed)
+       fullsupergridseeds  = cat(dimdata+1,ogsupergridseeds, ...
+                             reshape(repmat(seedsSS,prod(sizefull(ogsupergridseeds,dimdata)),1),[sizefull(ogsupergridseeds,dimdata),2]));
+       supergridseeds = cat(dimdata+2, supergridseeds, fullsupergridseeds);
+      end
+      if ismember(3,options.dogseed)
+      [fullsupergridseeds] = analyzePRFgscomputesupergridseeds(ogsupergridseeds,stimulus,data,modelfun, ...
+                                                       options.maxpolydeg,dimdata,dimtime, ...
+                                                       [],noisereg);
+       supergridseeds = cat(dimdata+2, supergridseeds, fullsupergridseeds);
+      end
+    end
+  else
+       supergridseeds = cat(dimdata+2, supergridseeds, initialseed);
+  end
+
+end
+
 % make a function that individualizes the seeds
-if exist('fullsupergridseeds','var')
+if exist('supergridseeds','var')
   seedfun = @(vx) [[seeds];
-                   [subscript(squish(fullsupergridseeds,dimdata),{':' ':' vx})]];
+                   [permute(subscript(squish(supergridseeds,dimdata),{vx ':' ':'}),[3,2,1])]];
 else
   seedfun = @(vx) [seeds];
 end
@@ -800,8 +869,9 @@ end
 % depending on which analysis we did (quick or full optimization),
 % we have to get the outputs in a common format
 if wantquick
-  paramsA = permute(squish(supergridseeds,dimdata),[3 2 1]);  % fits x parameters x voxels
-  rA = squish(rvalues,dimdata)';                              % fits x voxels
+  [rA,maxrA] = max(squish(rvalues,dimdata)',[],1,'linear');   % fits x voxels
+  paramsA = permute(squish(supergridseeds,dimdata),[2 3 1]);  % parameters x fits x voxels
+  paramsA = permute(paramsA(:,maxrA),[3 2 1]);                % fits x parameters x voxels
 else
   paramsA = a1.params;                                        % fits x parameters x voxels
   rA = a1.trainperformance;                                   % fits x voxels

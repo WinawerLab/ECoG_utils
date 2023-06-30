@@ -72,8 +72,8 @@ predts   = pmatrix*predts;  predts(predts<0) = 0;
 
 % prepare output
 gainseeds = datagain./predgain;
-seeds(:,4) = gainseeds;        % set gain to typical gain
-seeds = reshape(seeds,[sizefull(data{1},dimdata) size(allseeds,2)]);
+allseeds(:,4) = gainseeds;        % set gain to typical gain
+seeds = reshape(allseeds,[size(seeds)]);
 
 
 

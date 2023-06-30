@@ -105,7 +105,7 @@ rvalues = catcell(1,rvalues);        % voxels x 1
 bestseedix = catcell(1,bestseedix);  % voxels x 1
 
 % prepare output
-if isempty(typicalgain), typicalgain = seeds(:,4);  end
+if isempty(typicalgain), typicalgain = subscript(squish(seeds,dimdata),{':' 4});  end
 rvalues = reshape(rvalues,[sizefull(data{1},dimdata) 1]);
 seeds = allseeds(bestseedix,:);  % voxels x parameters
 seeds(:,4) = typicalgain;        % set gain to typical gain
