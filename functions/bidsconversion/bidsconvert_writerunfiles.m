@@ -100,6 +100,9 @@ for ii = 1:nRuns
             
         case 'tactile'
             % TACTILE TASKS - TO DO
+            
+        case 'none'
+            % NO SPECIFIC TASKS - Skip
     end
     
     % Fix some problems in older stimulus files 
@@ -142,13 +145,20 @@ for ii = 1:nRuns
         run_stop_inx = onset_indices(end);
         % Stimulus onsets are those in between
         onset_indices = onset_indices(2:end-1);
+    elseif isequal(sensoryDomain, 'none') 
+        % THESE DATA DO NOT HAVE ONSET/OFFSET TRIGGERS
+        hasOnOffTriggers = 0;
+        % Segment from first onset
+        run_start_inx = onset_indices(1);
+        % Segment to end
+        run_stop_inx = size(data,2)+1;
     else
         % THESE DATA DO NOT HAVE ONSET/OFFSET TRIGGERS
         hasOnOffTriggers = 0;
         % Segment 3 seconds before first onset
-        run_start_inx = onset_indices(1)-3*hdr.Fs;
+        run_start_inx = max(onset_indices(1)-3*hdr.Fs,1);
         % Segment 3 seconds after last onset
-        run_stop_inx = onset_indices(end)+3*hdr.Fs;             
+        run_stop_inx = min(onset_indices(end)+3*hdr.Fs,size(data,2));             
     end
     
     % Clip data from run using task onset and offset triggers

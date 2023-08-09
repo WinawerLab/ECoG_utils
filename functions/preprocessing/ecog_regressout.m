@@ -1,4 +1,4 @@
-function [data_out,coefs,predictor,lags] = ecog_regressout(data_epoch,t_base,stims,maxlag,t_ref,negcoef4lag,stim4predict)
+function [data_out,coefs,predictor,lags] = ecog_regressout(data_epoch,t_base,stims,maxlag,t_ref,negcoef4lag,stim4predict,usepar)
 
 % function to regress out ERP from data
 % USAGE:
@@ -18,6 +18,8 @@ function [data_out,coefs,predictor,lags] = ecog_regressout(data_epoch,t_base,sti
 % 
 % [data_out,coef,predictor,lag] = ECOG_REGRESSOUT(data_epoch,t_base,stims [,maxlag,t_ref,negcoef4lag])
 %   returns coefficients of regression, regressor, and estimated lag.
+% 
+% ECOG_REGRESSOUT(...,useparallel=false) suppress to use parallel computing.
 % 
 % Inputs: 
 %   data_epoch   % electrodes X time X epochs
@@ -45,6 +47,7 @@ function [data_out,coefs,predictor,lags] = ecog_regressout(data_epoch,t_base,sti
 % 20210810 Yuasa: merge ecog_regresslag into this function
 % 20220420 Yuasa: enable to output coef and predictor
 % 20220825 Yuasa: add stim4predict option
+% 20230720 Yuasa: add useparallel option
 
 narginchk(3,inf);
 %-- check data_epoch
@@ -69,6 +72,9 @@ data_epoch = permute(data_epoch,[dim_ch,dim_tim,dim_trl]);
 
 %-- get inputs
 nsample  = size(data_epoch,2);
+if nargin < 8
+    usepar = true;
+end
 if nargin < 7
     stim4predict = [];
 end
@@ -103,6 +109,12 @@ if any(t_base)
     data_epoch = bsxfun(@minus, data_epoch, mean(data_epoch(:,t_base,:),2,'omitnan'));
 end
 
+%-- start parallel pool
+poolsize = 0;
+if usepar && ~isempty(gcp)
+  poolsize = gcp;  poolsize = poolsize.NumWorkers;
+end
+
 %-- regress erp out
 data_out  = nan(size(data_epoch));
 predictor = zeros(size(data_epoch));
@@ -121,7 +133,7 @@ for k=1:size(data_epoch,1)%channels
         av_erp_list = repmat(av_erp_list(:),1,max(stims(:)));
     end
     %-- regress ERP out
-    parfor m=1:size(data_epoch,3)%epochs
+    parfor (m=1:size(data_epoch,3),poolsize) %epochs
       av_erp            = av_erp_list(:,stims(m));
       av_erp_pad        = zeros(nsample,1);
       av_erp_pad(t_ref) = av_erp(t_ref,:);

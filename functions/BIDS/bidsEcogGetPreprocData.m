@@ -1,9 +1,9 @@
-function [data, channels, events, srate] = bidsEcogGetPreprocData(dataPath, subject, sessions, tasks, runnums, description, srate)
+function [data, channels, events, srate, nsamples] = bidsEcogGetPreprocData(dataPath, subject, sessions, tasks, runnums, description, srate)
 % Reads in timeseries data, channels and events from a BIDS directory with
 % preprocessed ECoG data. Data from specified tasks and runs will be
 % concatenated, and the event onsets will be updated accordingly.
 %   
-% [data, channels, events, srate] = bidsEcogGetPreProcData(dataPath, ...
+% [data, channels, events, srate, nsamples] = bidsEcogGetPreProcData(dataPath, ...
 %           subject, sessions, tasks, runnums, [description], [srate])
 %
 % Inputs
@@ -31,6 +31,7 @@ function [data, channels, events, srate] = bidsEcogGetPreprocData(dataPath, subj
 %                       across tasks and runs, with updated onsets)
 %     srate:        	Sampling rate (native when the no srate input is
 %                       provided, should match input srate if provided).
+%     nsamples:         Number of samples for loaded files
 %
 % Example:
 %  dataPath = fullfile(bidsRootPath, 'derivatives', 'ECoGCAR');
@@ -76,6 +77,7 @@ allData = [];
 allEvents = [];
 samplesToAdd = 0;
 secondsToAdd = 0;
+nsamples = [];
 runCount = 0;
 
 for ii = 1:length(sessions)
@@ -178,6 +180,7 @@ for ii = 1:length(sessions)
                     allEvents = events; 
                     allData = data; 
                 end
+                nsamples = cat(1,nsamples,length(data));
 
                 % Use runlengths to update next run
                 runLengthInSamples = hdr.nSamples;
@@ -205,6 +208,7 @@ else
     data     = [];
     events   = []; 
     srate    = [];
+    nsamples = [];
 end
 
 end

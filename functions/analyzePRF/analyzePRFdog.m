@@ -63,7 +63,9 @@ function results = analyzePRFdog(stimulus,data,tr,options)
 %     3 means N-fold cross-validation (first alternative runs; second alternative runs)
 %     4 means N-fold cross-validation (first alternative of each run; second alternative of each run)
 %     default: 0.  (note that we round when halving.)
-%   <xvalfold> (optional) is folding number in cross-validation 
+%   <xvalfold> (optional) is number of fold in cross-validation.
+%     N means N-fold cross-validation
+%     1 means leave-one-outcross-validation
 %     default: 2.  (two-fold cross-validation)
 %   <numperjob> (optional) is
 %     [] means to run locally (not on the cluster)
@@ -650,7 +652,10 @@ else
     resampling = 0;
   case 1
     wantresampleruns = 1;
-    resamplingindex = floor(((1:length(data))-1)./length(data).*options.xvalfold)+1;
+    if options.xvalfold == 1,    xvalfold = length(data);
+    else,                        xvalfold = options.xvalfold;
+    end
+    resamplingindex = floor(((1:length(data))-1)./length(data).*xvalfold)+1;
     resampling = ones(max(resamplingindex),length(data));
     for nx=1:max(resamplingindex)
         resampling(nx,resamplingindex==(max(resamplingindex)-nx+1)) = -1;
@@ -659,7 +664,10 @@ else
     wantresampleruns = 0;
     resampling = [];
     for p=1:length(data)
-      resamplingindex = floor(((1:size(data{p},2))-1)./size(data{p},2).*options.xvalfold)+1;
+      if options.xvalfold == 1,    xvalfold = size(data{p},2);
+      else,                        xvalfold = options.xvalfold;
+      end
+      resamplingindex = floor(((1:size(data{p},2))-1)./size(data{p},2).*xvalfold)+1;
       resamplingP = ones(max(resamplingindex),size(data{p},2));
       for nx=1:max(resamplingindex)
           resamplingP(nx,resamplingindex==(max(resamplingindex)-nx+1)) = -1;
@@ -668,7 +676,10 @@ else
     end
   case 3
     wantresampleruns = 1;
-    resamplingindex = mod((1:length(data))-1,options.xvalfold)+1;
+    if options.xvalfold == 1,    xvalfold = length(data);
+    else,                        xvalfold = options.xvalfold;
+    end 
+    resamplingindex = mod((1:length(data))-1,xvalfold)+1;
     resampling = ones(max(resamplingindex),length(data));
     for nx=1:max(resamplingindex)
         resampling(nx,resamplingindex==(max(resamplingindex)-nx+1)) = -1;
@@ -677,7 +688,10 @@ else
     wantresampleruns = 0;
     resampling = [];
     for p=1:length(data)
-      resamplingindex = mod((1:size(data{p},2))-1,options.xvalfold)+1;
+      if options.xvalfold == 1,    xvalfold = size(data{p},2);
+      else,                        xvalfold = options.xvalfold;
+      end
+      resamplingindex = mod((1:size(data{p},2))-1,xvalfold)+1;
       resamplingP = ones(max(resamplingindex),size(data{p},2));
       for nx=1:max(resamplingindex)
           resamplingP(nx,resamplingindex==(max(resamplingindex)-nx+1)) = -1;
