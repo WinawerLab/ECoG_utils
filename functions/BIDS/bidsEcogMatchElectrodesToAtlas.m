@@ -67,7 +67,7 @@ function [electrode_table] = bidsEcogMatchElectrodesToAtlas(projectDir, subject,
 %           bidsEcogReadSurfFile, bidsEcogReadAtlasFile, bidsEcogGetMatchedAtlas,
 %           bidsEcogPlotElectrodesOnMesh
 
-% IG, BAIR 2020; K.Yuasa, 2022
+% IG, BAIR 2020; K.Yuasa, 2022-2023
 
 % <projectDir>
 if ~exist('projectDir', 'var') || isempty(projectDir), error('projectDir not defined'); end    
@@ -81,6 +81,8 @@ if ~exist('session', 'var') || isempty(session)
     idx = find(contains(lower(sessions), {'ecog', 'iemu'}));
     if isempty(idx), error('no ECOG sessions found for this subject');end
     session = sessions{idx(1)};
+elseif iscell(session)
+    session = session{1};
 end
 
 % <atlas>
