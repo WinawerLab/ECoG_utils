@@ -9,7 +9,7 @@ function data = ecog_notch(data,srate,notch_freq,nharmonic,norder)
 %   notch_freq: notch frequency (Hz) [default = 60]
 %   harmonic:   Nth-harmonics to be notched [default = 3]
 %   order:      Nth-order filter [default = 5]
-%
+
 % 20220824 Yuasa
 
 %-- Set parameters
@@ -22,7 +22,7 @@ nharmonic = round(nharmonic(1));
 norder    = round(norder(1));
 
 %-- Expand notch frequencies to include all harmonics
-notch_freq = reshape(notch_freq(:)*[1:nharmonic],1,[]);
+notch_freq = reshape(notch_freq(:).*(1:nharmonic),1,[]);
 
 %-- Apply notch filter
 fprintf('[%s] Notching out ', mfilename);
