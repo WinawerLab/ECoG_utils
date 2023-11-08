@@ -118,7 +118,7 @@ for ii = 1:length(sessions)
                         channels.sampling_frequency(:) = srate;
                     end
                 else
-                    if exist('previousFs', 'var') || ~isempty(previousFs)
+                    if exist('previousFs', 'var') && ~isempty(previousFs)
                         assert(hdr.Fs == previousFs,'Failed to concatenate sessions because the sampling frequencies were different. Please specify a desired sampling rate using the input argument srate.');
                     end
                 end

@@ -80,6 +80,7 @@ if isempty(tasks), cleartasks = 1; end % determines whether tasks will be cleare
 if isempty(runnums), clearrunnums = 1; end
 
 %% Perform CAR for each session, tasks and runnums 
+newdescription = sprintf('%s%d',description,srate);
 
 for ii = 1:length(sessions)   
     
@@ -113,7 +114,7 @@ for ii = 1:length(sessions)
              channels.sampling_frequency(:) = hdr.Fs;
 
              % Update the description and save out the data
-             [fname_out] = bidsEcogWriteFiles(writePath, subject, session, task, runnum, 'reref', ...
+             [fname_out] = bidsEcogWriteFiles(writePath, subject, session, task, runnum, newdescription, ...
                  data, channels, events, ieeg_json, hdr);
            end
        end
