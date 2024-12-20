@@ -76,6 +76,7 @@ function figlist = ecog_plotGridPRF(whichGrid, opt, varargin)
 % 20210419 Yuasa: use tiledlayout
 % 20210701 Yuasa: use plotGridCommon
 % 20220307 Yuasa: remove patient dependent code
+% 20240904 Yuasa: minor bug fix 
 
 %% Set options
 narginchk(3,inf);
@@ -262,7 +263,7 @@ PRFa = cat(3,PRFa,PRFr,PRFr);
 
 %-- legend
 lgnds = reshape(opt.plot.legend,1,[]);
-if ~iscell(lgnds), lgnds = {lgnds}; end
+if ~iscell(lgnds)&&~isstring(lgnds), lgnds = {lgnds}; end
 if ngroups>1
     lgndr = lgnds([1:length(lgnds)]>ngroups);
     lgnds = lgnds([1:length(lgnds)]<=ngroups);
