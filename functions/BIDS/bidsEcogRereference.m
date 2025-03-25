@@ -148,7 +148,7 @@ for ii = 1:length(sessions)
                        plot(t,data_reref(channel_plot,:),'g')
                        legend({'before CAR','after CAR'})
                        xlabel('Time (s)'); ylabel('Voltage');set(gca, 'FontSize', 16);
-                       title(channels.name(channel_plot));
+                       % title(channels.name(channel_plot));
 
                        % Plot the spectra before and after CAR
                        subplot(1,2,2),hold on
@@ -164,7 +164,7 @@ for ii = 1:length(sessions)
                        % hardcoded rather than made read from hdr so it's
                        % easier to compare across NYU and UMCU
                        xlabel('Frequency (Hz)'); ylabel('Log power');set(gca, 'FontSize', 16);
-                       title(channels.name(channel_plot));
+                       % title(channels.name(channel_plot));
                         
                        % Generate a name for the figure
                        figureName = fullfile(figSaveDir,sprintf('%s_desc-reref_%s',fname_out, group_names{ee}));

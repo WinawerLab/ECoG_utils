@@ -112,6 +112,8 @@ if ~isfield(specs,'plot_includelegend'), specs.plot_includelegend = 1; end
 if ~isfield(specs,'average_stims'), specs.average_stims = 0; end
 if ~isfield(specs,'subplotdims') || isempty(specs.subplotdims), specs.subplotdims = []; end
 if ~isfield(specs,'subplotidx') || isempty(specs.subplotidx), specs.subplotidx = []; end
+if ~isfield(specs,'plot_offset') || isempty(specs.plot_offset), specs.plot_offset = 0; end
+if ~isfield(specs,'str') || isempty(specs.str), specs.str = []; end
 
 % <plot save>
 if ~exist('savePlot', 'var') || isempty(savePlot), savePlot = true; end
@@ -146,7 +148,7 @@ else
     % ALTERNATIVE: use channel_group as second way to select channels?
     chan_idx = contains(channels.name, chan_names);
 	chan_idx = chan_idx | matches(channels.group, chan_names);
-
+    includeChansInFigureName = 1;
     useSeparateFiguresForGroups = 1;    
 end
 if ~any(chan_idx), error('Did not find any matching channels! Please check channel names.'), end
@@ -155,9 +157,39 @@ data = data(chan_idx,:);
 channels = channels(chan_idx,:);
 
 % Epoch the data
-[epochs, t] = ecog_makeEpochs(data, events.onset, specs.epoch_t, channels.sampling_frequency(1));  
-fprintf('[%s] Found %d epochs across %d runs and %d sessions \n', ...
-    mfilename, size(epochs,2), length(unique(events.run_name)), length(unique(events.session_name)));
+if specs.plot_offset % epoch by trial offset
+
+    event_offset = zeros(height(events), 1);
+
+    % Convert trial_name to string if needed
+    if iscell(events.trial_name)
+        trial_names = string(events.trial_name);
+    else
+        trial_names = events.trial_name;
+    end
+
+    % Identify 'ONE-PULSE' and 'TWO-PULSE' trials
+    is_one_pulse = contains(trial_names, "ONE-PULSE");
+    is_two_pulse = contains(trial_names, "TWO-PULSE");
+
+    % Compute offsets
+    event_offset(is_one_pulse) = events.onsets(is_one_pulse) + events.duration(is_one_pulse);
+    event_offset(is_two_pulse) = events.onsets(is_two_pulse) + 2 * events.duration(is_two_pulse) + events.ISI(is_two_pulse);
+
+    % Add to the table
+    events.event_offset = event_offset;
+    [epochs, t] = ecog_makeEpochs(data, events.event_offset, specs.epoch_t, channels.sampling_frequency(1));
+    fprintf('[%s] Found %d epochs across %d runs and %d sessions \n', ...
+        mfilename, size(epochs,2), length(unique(events.run_name)), length(unique(events.session_name)));
+
+    % Add offset to figure filename and figure title
+    specs.str = 'Relative to offset';
+
+else % epoch by trial onset
+    [epochs, t] = ecog_makeEpochs(data, events.onset, specs.epoch_t, channels.sampling_frequency(1));
+    fprintf('[%s] Found %d epochs across %d runs and %d sessions \n', ...
+        mfilename, size(epochs,2), length(unique(events.run_name)), length(unique(events.session_name)));
+end
 
 % Baseline correct the epochs
 switch description
@@ -240,7 +272,7 @@ for ii = 1:length(chan_groups)
     else
         chanFigureNamePart = groupNames{ii};
     end
-    figureName = sprintf('sub %s %s %s %s %s %s', subject, chanFigureNamePart, [tasks{:}], [stim_names{:}], description, specs.plot_type);
+    figureName = sprintf('sub %s %s %s %s %s %s %s', subject, chanFigureNamePart, [tasks{:}], [stim_names{:}], description, specs.plot_type, specs.str);
 
     figure('Name', figureName);
     
@@ -276,6 +308,7 @@ for ii = 1:length(chan_groups)
         set(gcf, 'Position', [0 400 1200 1000]);
     end
 
+    hasLabel = 0;
     hasLegend = 0;
     
     % Loop over electrodes
@@ -293,11 +326,12 @@ for ii = 1:length(chan_groups)
                 CI = [];
 
                 % Determine plot type
-                switch specs.plot_type
+                 switch specs.plot_type
 
                     case 'singletrial'
                         this_trial = this_epoch; 
-                        hasLegend = 1; % do not plot legend for single trials
+                        hasLabel = 1; % do not plot legend for single trials
+                        hasLegend = 1;
                         
                     case 'average'                    
                         this_trial = mean(this_epoch,2, 'omitnan');
@@ -325,19 +359,41 @@ for ii = 1:length(chan_groups)
 %                out{ii}.ci(:,:,ss,ee) = CI;
             end
             
-            % Add axis labels and legend
-            if ~hasLegend && specs.plot_includelegend 
-                legend(stim_names, 'Location', 'best'); hasLegend = 1;
-                %ylabel(sprintf('%s (%s)', description, channels.units{1}));
-                %xlabel('Time (s)');
-            end
-            if nPlot <= 4
-                %ylabel(sprintf('%s (%s)', description, channels.units{1}));
+            % Add axis labels
+            if ~hasLabel && specs.plot_includelegend 
+                hasLabel = 1;
+                ylabel(sprintf('%s (%s)', description, channels.units{1}));
                 xlabel('Time (s)');
             end
-            %setsubplotaxes();
+
+            if nPlot <= 4
+                ylabel(sprintf('%s (%s)', description, channels.units{1}));
+                xlabel('Time (s)');
+            end
+            setsubplotaxes();
             set(gca, 'FontSize', 20);
             title(plotTitle);          
+        end
+
+        if nPlot > 4
+            % Create an extra subplot for the legend with invisible lines
+            if ee == length(chan_idx)
+                subplot(nRow, nCol, plot_idx(ee) + 1);
+                hold on
+
+                for ss = 1:length(stim_idx)
+                    % Plot but make lines invisible
+                    ecog_plotSingleTimeCourse(t, this_trial, CI, colors(ss,:), [], [], specs.plot_ylim);
+                end
+                set(gca, 'Visible', 'off');
+                % Add legend for all trial types
+                legend(stim_names, 'Location', 'best');
+                axis off; % Hide axes
+            end
+
+        elseif nPlot<= 4 && ~hasLegend
+            legend(stim_names, 'Location', 'best','FontSize',10);    
+            hasLegend = 1;
         end
     end
     
@@ -345,7 +401,7 @@ for ii = 1:length(chan_groups)
 
     if savePlot
 
-       figSaveDir = fullfile(writePath, sprintf('sub-%s', subject), 'figures');
+       figSaveDir = fullfile(writePath, sprintf('sub-%s', subject), 'figures',specs.plot_type);
        if ~exist(figSaveDir, 'dir')
             mkdir(figSaveDir); fprintf('[%s] Creating a figure directory for sub-%s\n', mfilename, subject); 
        end    

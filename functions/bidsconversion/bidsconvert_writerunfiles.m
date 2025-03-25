@@ -99,7 +99,12 @@ for ii = 1:nRuns
             end
             
         case 'tactile'
-            % TACTILE TASKS - TO DO
+            % TACTILE TASKS
+            if contains(task_label{ii}, 'temporalpattern') 
+                ieeg_json.TaskName = 'temporalpattern';
+                ieeg_json.TaskDescription = 'Tactile vibrations presented for variable durations and inter-stimulus intervals';
+                ieeg_json.Instructions = 'Look at the fixation cross';
+            end
             
         case 'none'
             % NO SPECIFIC TASKS - Skip
@@ -127,7 +132,18 @@ for ii = 1:nRuns
             stimData(ii).stimulus.tsv.trial_name = [repmat('PRF', [height(stimData(ii).stimulus.tsv),1]) num2str(stimData(ii).stimulus.tsv.trial_name)];
         end
     end
-    
+    if contains(task_label{ii}, 'temporalpattern')
+        if length(find(stimData(ii).stimulus.trigSeq)) ~= 144
+            % There are additional triggers that we should not use
+            warning('[%s] Temporal pattern stimulus file has incorrect number of triggers', mfilename)
+            fprintf('[%s] Removing the triggers of block onsets/offsets from stimfile \n', mfilename);
+            newTrigSeq = stimData(ii).stimulus.trigSeq;
+            newTrigSeq(1) = 0;
+            newTrigSeq(end) = 0;
+            stimData(ii).stimulus.trigSeq = newTrigSeq;
+        end
+    end
+
     % Get the onsets in the data recordings for this run
     t = ((0:hdr.nSamples-1)/hdr.Fs); 
     num_triggers = length(find(stimData(ii).stimulus.trigSeq));
@@ -145,7 +161,14 @@ for ii = 1:nRuns
         run_stop_inx = onset_indices(end);
         % Stimulus onsets are those in between
         onset_indices = onset_indices(2:end-1);
-    elseif isequal(sensoryDomain, 'none') 
+    elseif isequal(sensoryDomain, 'tactile')
+        % THESE DATA DO NOT HAVE ONSET/OFFSET TRIGGERS
+        hasOnOffTriggers = 0;
+        % Segment 3 seconds before first onset
+        run_start_inx = max(onset_indices(1)-3*hdr.Fs,1);
+        % Segment 3 seconds after last onset
+        run_stop_inx = min(onset_indices(end)+3*hdr.Fs,size(data,2)); 
+    elseif isequal(sensoryDomain, 'none')
         % THESE DATA DO NOT HAVE ONSET/OFFSET TRIGGERS
         hasOnOffTriggers = 0;
         % Segment from first onset
@@ -166,9 +189,12 @@ for ii = 1:nRuns
     hdr_thisrun = hdr;
     hdr_thisrun.nSamples = size(data_thisrun,2);
     
-    if segmentOnFlips    
-        % Determine trial onset based on the flips:   
+    if segmentOnFlips
+        % Determine trial onset based on the flips:
         % Get the fliptimes for the requested triggers
+        fprintf('Flip array length: %d | TrigSeq length: %d\n', ...
+            numel(stimData(ii).response.flip), numel(stimData(ii).stimulus.trigSeq));
+
         flips        = stimData(ii).response.flip(stimData(ii).stimulus.trigSeq>0); % in seconds
         % Align to first flip
         flips        = flips-flips(1);

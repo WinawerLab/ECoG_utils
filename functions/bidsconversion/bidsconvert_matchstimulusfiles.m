@@ -1,7 +1,7 @@
 function [stimData, triggersAreMatched, runTimes] = bidsconvert_matchstimulusfiles(dataReadDir, patientID, ses_label, task_label, run_label, trigger_onsets, makePlot)
 
 if nargin < 7 || isempty(makePlot)
-    makePlot = 0;
+    makePlot = 1;
 end
 % READ IN relevant data files %%%%%%%%%%%%%%%%%%
 

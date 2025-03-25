@@ -42,9 +42,9 @@ hold on;
 
 % Plot time course
 if ischar(lineSpec)
-    plot(t, timecourse, lineSpec, 'LineWidth',2);
+    plot(t, timecourse, lineSpec, 'LineWidth',1);
 else
-    plot(t, timecourse, 'Color', lineSpec, 'LineWidth',2);
+    plot(t, timecourse, 'Color', lineSpec, 'LineWidth',1);
 end
 
 box off
@@ -75,6 +75,5 @@ if ~isempty(yLabel), ylabel(yLabel); end
 if ~isempty(plotTitle), title(plotTitle); end
 set(gca, 'fontsize',14);
  
-
 
 end

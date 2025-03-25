@@ -33,7 +33,6 @@ function [epochs] = ecog_normalizeEpochs(epochs, t, baselineTime, baselineType, 
 %
 % See also ecog_makeEpochs.m
 
-
 if ~exist('baselineType', 'var') || isempty(baselineType)
     baselineType = 'percentsignalchange';
 end

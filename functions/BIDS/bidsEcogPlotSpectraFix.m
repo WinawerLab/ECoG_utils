@@ -95,7 +95,6 @@ if ~exist('runnums', 'var'), runnums = []; end
 % <inputFolder>
 if ~exist('inputFolder', 'var') || isempty(inputFolder)
     inputFolder = 'ECoGCAR';
-    % inputFolder = 'ECoGBroadband_exclude110Hz';
 end
 
 % <description>
@@ -153,7 +152,6 @@ else
     % (probably) trying to plot a group of channels based on a common
     % character (e.g. G): match all channels with this character:
     chan_idx = contains(channels.name, chan_names);
-    includeChansInFigureName = 1;
     % ALTERNATIVE: use channel_group as second way to select channels
 end
 if ~any(chan_idx), error('Did not find any matching channels! Please check channel names.'), end
@@ -203,25 +201,25 @@ srate = channels.sampling_frequency(1);
 
 [f,spectra] = ecog_spectra(epochs,stims,fft_w,fft_t,fft_ov,srate,reg_erp);
 
-if isempty(specs.plot_includeblank) || specs.plot_includeblank
-    % check inputs
-    if min(specs.fft_blank_t) < min(specs.epoch_t)
-        if isempty(specs.plot_includeblank)
-            specs.plot_includeblank = 0;
-        else
-            error('The FFT time window for blank is smaller than than epoch window. Please adjust or do not plot blank using specs.plot_includeblank = 0.');
-        end
+hao niif isempty(specs.plot_includeblank) || specs.plot_includeblank
+% check inputs
+if min(specs.fft_blank_t) < min(specs.epoch_t)
+    if isempty(specs.plot_includeblank)
+        specs.plot_includeblank = 0;
     else
-        specs.plot_includeblank = 1;
-        fft_t = t > specs.fft_blank_t(1) & t < specs.fft_blank_t(2);
-        [f,spectra_blank] = ecog_spectra(epochs,stims,fft_w,fft_t,fft_ov,srate,reg_erp);
-
-        % add blanks to data and stimulus indices
-        nTrials = size(spectra,2);
-        spectra = cat(2, spectra, spectra_blank);
-        stim_idx = [{(nTrials+1:2*nTrials)'}; stim_idx];
-        stim_names = [{'BLANK'} stim_names];
+        error('The FFT time window for blank is smaller than than epoch window. Please adjust or do not plot blank using specs.plot_includeblank = 0.');
     end
+else
+    specs.plot_includeblank = 1;
+    fft_t = t > specs.fft_blank_t(1) & t < specs.fft_blank_t(2);
+    [f,spectra_blank] = ecog_spectra(epochs,stims,fft_w,fft_t,fft_ov,srate,reg_erp);
+
+    % add blanks to data and stimulus indices
+    nTrials = size(spectra,2);
+    spectra = cat(2, spectra, spectra_blank);
+    stim_idx = [{(nTrials+1:2*nTrials)'}; stim_idx];
+    stim_names = [{'BLANK'} stim_names];
+end
 end
 
 spectra = permute(spectra,[3 2 1]); % frequencies x epochs x channels
@@ -341,10 +339,9 @@ for ii = 1:length(chan_groups)
 
             % Add axis labels and legend
             if ~hasLegend
-                % legend(stim_names, 'Location', 'best'); 
-                hasLegend = 1;
-                ylabel(sprintf('%s (%s)', description, channels.units{1}));
-                xlabel('Time (s)');
+                legend(stim_names, 'Location', 'best'); hasLegend = 1;
+                %ylabel(sprintf('%s (%s)', description, channels.units{1}));
+                %xlabel('Time (s)');
             end
             if nPlot <= 4
                 ylabel('Spectral power');
@@ -354,20 +351,6 @@ for ii = 1:length(chan_groups)
             set(gca, 'FontSize', 20);
             title(plotTitle);
         end
-
-
-        % Create an extra subplot for the legend with invisible lines
-        if ee == length(chan_idx)
-            subplot(nRow, nCol, plot_idx(ee) + 1);
-            hold on
-            for ss = 1:length(stim_idx)
-                ecog_plotSingleSpectrum(f, this_spectrum, CI, colors(ss,:), [], specs.plot_ylim, specs.plot_yscale,[], specs.plot_xlim, specs.plot_xscale);
-            end
-            set(gca, 'Visible', 'off');
-            legend(stim_names, 'Location', 'best','FontSize', 20);
-            axis off; 
-        end
-
     end
 
     %% save Plot?

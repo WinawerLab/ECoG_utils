@@ -63,7 +63,7 @@ if ~exist('method', 'var')   || isempty(method),    method = @(bp,banddim) geome
 if isa(bandopts, 'cell')
     
     % Entire range for broadband
-    band_rg  = bandopts{1}; 
+    band_rg  = bandopts{1}; e
     
     % Bin width 
     band_w   = bandopts{2}; 
