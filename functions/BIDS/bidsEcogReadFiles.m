@@ -66,6 +66,8 @@ end
 % <runnum>
 if ~exist('runnum', 'var') || isempty(runnum)
 	error('runnum not defined');
+elseif isnumeric(runnum)
+    runnum = num2str(runnum);
 end
 
 % <description>

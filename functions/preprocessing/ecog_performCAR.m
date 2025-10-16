@@ -1,4 +1,6 @@
- function [signal_reref, channels_reref, group_indices, group_names] = ecog_performCAR(signal, channels)
+ function [signal_reref, channels_reref, group_indices, group_names] = ecog_performCAR(signal, channels, car_mode)
+
+ if~exist('car_mode','var'), car_mode = 'demean';end % default: demean; else: 'regress'
 
 % If there is no status column, add one assuming all channels are good.
 if ~isfield(summary(channels), 'status') 
@@ -38,13 +40,24 @@ for ii = 1:length(group_names)
     
     fprintf('[%s] Referencing %s electrodes...\n',mfilename, group_names{ii});
     chan_index = find(strcmp(channels.group, group_names{ii}));
-    
+
     if ~isempty(chan_index)
         % Include only good_channels in the common average:
         good_channels = find(contains(channels(chan_index,:).status, 'good'));
-        % The mean of the good channels is regressed out of all channels
-        % (i.e. including the bad ones)
-        temp = ecog_carRegress(signal(chan_index,:), good_channels);    
+
+        switch car_mode
+
+            case 'demean'
+                % Subtract the mean of good channels of all channels
+                good_channel_mean = mean(signal(good_channels,:));
+                temp = signal(chan_index,:) - good_channel_mean;
+
+            case 'regress'
+                % The mean of the good channels is regressed out of all channels
+                % (i.e. including the bad ones)
+                temp = ecog_carRegress(signal(chan_index,:), good_channels);
+
+        end
         signal_reref(chan_index,:) = temp;
         channels_reref.reference(chan_index,:) = {'car'};
     end

@@ -362,12 +362,14 @@ for ii = 1:length(chan_groups)
             % Add axis labels
             if ~hasLabel && specs.plot_includelegend 
                 hasLabel = 1;
-                ylabel(sprintf('%s (%s)', description, channels.units{1}));
+                % ylabel(sprintf('%s (%s)', description, channels.units{1}));
+                ylabel(sprintf('%s (X-fold increase)', description));
                 xlabel('Time (s)');
             end
 
             if nPlot <= 4
-                ylabel(sprintf('%s (%s)', description, channels.units{1}));
+                % ylabel(sprintf('%s (%s)', description, channels.units{1}));
+                ylabel(sprintf('%s (X-fold increase)', description));
                 xlabel('Time (s)');
             end
             setsubplotaxes();

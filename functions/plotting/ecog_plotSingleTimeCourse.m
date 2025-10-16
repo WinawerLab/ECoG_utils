@@ -42,9 +42,9 @@ hold on;
 
 % Plot time course
 if ischar(lineSpec)
-    plot(t, timecourse, lineSpec, 'LineWidth',1);
+    plot(t, timecourse, lineSpec, 'LineWidth',2);
 else
-    plot(t, timecourse, 'Color', lineSpec, 'LineWidth',1);
+    plot(t, timecourse, 'Color', lineSpec, 'LineWidth',2);
 end
 
 box off

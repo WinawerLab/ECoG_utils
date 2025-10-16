@@ -50,13 +50,13 @@ for i = 1:numBlocks
     fprintf('Block %d: %d triggers\n', i, numel(blocks{i}));
 end
 
-% For blocks with 145 triggers, remove the first trigger
-for i = 1:numBlocks
-    if numel(blocks{i}) == 145
-        blocks{i}(1) = [];  % Remove the first trigger
-        fprintf('Block %d had 145 triggers: first trigger removed.\n', i);
-    end
-end
+% % For blocks with 145 triggers, remove the first trigger
+% for i = 1:numBlocks
+%     if numel(blocks{i}) == 145
+%         blocks{i}(1) = [];  % Remove the first trigger
+%         fprintf('Block %d had 145 triggers: first trigger removed.\n', i);
+%     end
+% end
 
 % Display block counts after correction
 fprintf('\nTrigger counts per block AFTER correction:\n');
